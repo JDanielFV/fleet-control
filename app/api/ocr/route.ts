@@ -1,0 +1,104 @@
+import { NextResponse } from "next/server";
+
+export async function POST(request: Request) {
+  try {
+    const { image, target } = await request.json();
+
+    if (!image) {
+      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn("[OCR API] GEMINI_API_KEY is not defined in environment variables. Falling back to client-side OCR.");
+      return NextResponse.json({ error: "Missing GEMINI_API_KEY in environment variables" }, { status: 412 });
+    }
+
+    // Strip base64 metadata headers if present (e.g. data:image/jpeg;base64,)
+    const base64Data = image.replace(/^data:image\/[a-z]+;base64,/, "");
+
+    // Structured prompt for Mexican documents
+    const prompt = `Analiza la imagen adjunta de un documento de identidad o control vehicular mexicano. 
+Determina qué tipo de documento es:
+- Si es INE o IFE, extrae los datos correspondientes.
+- Si es una Licencia de Conducir, extrae los datos correspondientes.
+- Si es una Tarjeta de Circulación de automóvil, extrae los datos del vehículo.
+- Si es una Póliza de Seguro de auto, extrae la vigencia/expiración.
+
+*IMPORTANTE SOBRE EL VIN/NIV:* El número de serie (VIN o NIV) de un vehículo mexicano consta estrictamente de exactamente 17 caracteres alfanuméricos y nunca contiene guiones. Los números con formato como "MT-C-XXXX" o números de 8-12 dígitos con guiones representan el Folio de la Tarjeta de Circulación, NO el VIN. Si no localizas una serie de 17 caracteres, deja el campo "vin" vacío.
+
+Responde únicamente con un objeto JSON válido con la siguiente estructura (llena únicamente los campos que logres leer claramente, el resto déjalos vacíos o en blanco):
+
+{
+  "firstName": "nombres del conductor",
+  "paternalLastName": "apellido paterno",
+  "maternalLastName": "apellido materno",
+  "curp": "CURP de 18 caracteres",
+  "dob": "fecha de nacimiento en formato AAAA-MM-DD",
+  "electorKey": "clave de elector de 18 caracteres del INE",
+  "sex": "M para masculino, F para femenino",
+  "address": "domicilio completo",
+  "licenseNumber": "número de licencia de conducir",
+  "brand": "marca del auto",
+  "vehicleName": "submarca o modelo del auto (ej. Sentra)",
+  "model": "año/modelo del auto (ej. 2022)",
+  "classType": "clase o tipo de auto",
+  "expirationDate": "fecha de expiración de la licencia, póliza o tarjeta en formato AAAA-MM-DD",
+  "vin": "número de serie / NIV de 17 caracteres",
+  "plateNumber": "placa del auto"
+}
+
+No incluyas formateo de markdown (como \`\`\`json) en tu respuesta, devuelve estrictamente el JSON plano.`;
+
+    // Connect to Google Gemini API using the verified gemini-2.5-flash model
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: "image/jpeg",
+                    data: base64Data,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[OCR API] Gemini API error response:", errorText);
+      return NextResponse.json({ error: `Gemini service failed: ${response.statusText}` }, { status: response.status });
+    }
+
+    const data = await response.json();
+    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!resultText) {
+      return NextResponse.json({ error: "Empty response from Gemini model" }, { status: 500 });
+    }
+
+    // Parse the JSON output returned by Gemini
+    const parsedData = JSON.parse(resultText.trim());
+    console.log("[OCR API] Gemini successfully parsed:", parsedData);
+    
+    return NextResponse.json(parsedData);
+  } catch (err: any) {
+    console.error("[OCR API] Route handler error:", err);
+    return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+  }
+}
