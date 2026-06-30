@@ -576,7 +576,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">Vehículos</h2>
           <p className="text-sm text-muted-foreground">Administra los autos de la flota</p>
