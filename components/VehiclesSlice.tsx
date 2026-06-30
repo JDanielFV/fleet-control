@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db, Vehicle, getVerificationSchedule, Driver } from "@/lib/db";
+import { db, Vehicle, getVerificationSchedule, Driver, Maintenance, Checklist, WeeklyRental } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
 import Tesseract from "tesseract.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -14,12 +14,32 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
+  searchQuery?: string;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: VehiclesSliceProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
   const [search, setSearch] = useState("");
+
+  const handleDeleteVehicle = async (id: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.")) {
+      const success = await db.deleteVehicle(id);
+      if (success) {
+        setVehicles((prev) => prev.filter((v) => v.id !== id));
+        onRefreshAlerts();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearch(searchQuery);
+    }
+  }, [searchQuery]);
   const [isOpen, setIsOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanTarget, setScanTarget] = useState<"CIRCULACION" | "SEGURO" | null>(null);
@@ -49,6 +69,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
   const [plateNumber, setPlateNumber] = useState("");
   const [insurancePolicyImg, setInsurancePolicyImg] = useState("");
   const [insuranceExpirationDate, setInsuranceExpirationDate] = useState("");
+  const [rentCost, setRentCost] = useState<number>(2500);
 
   useEffect(() => {
     loadData();
@@ -60,13 +81,34 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
   const loadData = async () => {
     const list = await db.getVehicles();
     const dList = await db.getDrivers();
+    const mList = await db.getMaintenances();
+    const cList = await db.getChecklists();
+    const rList = await db.getWeeklyRentals();
     setVehicles(list);
     setDrivers(dList);
+    setMaintenances(mList);
+    setChecklists(cList);
+    setWeeklyRentals(rList);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brand || !vehicleName || !plateNumber) return;
+
+    const formattedPlate = plateNumber.toUpperCase().replace(/\s+/g, "").trim();
+    const formattedVin = vin.toUpperCase().trim();
+
+    // Check for duplicates
+    const isDuplicate = vehicles.some(
+      (v) =>
+        v.plate_number.toUpperCase().replace(/\s+/g, "").trim() === formattedPlate ||
+        (v.vin && formattedVin && v.vin.toUpperCase().trim() === formattedVin)
+    );
+
+    if (isDuplicate) {
+      alert("Error: Ya existe un vehículo registrado con estas placas o número de serie (VIN).");
+      return;
+    }
 
     await db.saveVehicle({
       brand,
@@ -74,11 +116,12 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
       model,
       class_type: classType,
       circulation_expiration_date: circulationExpirationDate,
-      vin: vin.toUpperCase().trim(),
-      plate_number: plateNumber.toUpperCase().replace(/\s+/g, "").trim(),
+      vin: formattedVin,
+      plate_number: formattedPlate,
       insurance_policy_img: insurancePolicyImg,
       insurance_expiration_date: insuranceExpirationDate,
       active_driver_id: null,
+      rent_cost: Number(rentCost),
     });
 
     resetForm();
@@ -97,6 +140,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
     setPlateNumber("");
     setInsurancePolicyImg("");
     setInsuranceExpirationDate("");
+    setRentCost(2500);
     stopCamera();
   };
 
@@ -417,8 +461,8 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight dark:text-zinc-50">Vehículos</h2>
-          <p className="text-sm text-zinc-500">Administra los autos de la flota</p>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Vehículos</h2>
+          <p className="text-sm text-muted-foreground">Administra los autos de la flota</p>
         </div>
 
         <Dialog open={isOpen} onOpenChange={(open) => {
@@ -426,15 +470,15 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
           if (!open) resetForm();
         }}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold active:scale-95 cursor-pointer" onClick={resetForm}>
+            <Button className="rounded-xl bg-primary hover:bg-primary text-white font-bold active:scale-95 cursor-pointer" onClick={resetForm}>
               <Car className="w-4 h-4 mr-2" />
               Nuevo Vehículo
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-zinc-800 bg-zinc-950 text-zinc-50 rounded-2xl">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-white font-black text-lg">Registro de Vehículo</DialogTitle>
-              <DialogDescription className="text-zinc-400 text-xs">
+              <DialogDescription className="text-muted-foreground text-xs">
                 Ingresa datos o usa OCR de la tarjeta de circulación y póliza.
               </DialogDescription>
             </DialogHeader>
@@ -448,7 +492,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="flex flex-col gap-4 py-3"
                 >
-                  <div className="relative aspect-video w-full rounded-xl border border-emerald-500/30 bg-zinc-900 overflow-hidden flex items-center justify-center">
+                  <div className="relative aspect-video w-full rounded-xl border border-primary/30 bg-muted overflow-hidden flex items-center justify-center">
                     
                     {/* Live webcam feed stream */}
                     {isCameraActive && !cameraError ? (
@@ -460,8 +504,8 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                       />
                     ) : (
                       <div className="text-center space-y-2 p-4 z-20">
-                        <Camera className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-emerald-400 animate-pulse" : "text-zinc-500"}`} />
-                        <p className="text-xs font-bold text-zinc-300">
+                        <Camera className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
+                        <p className="text-xs font-bold text-foreground">
                           {ocrStep === "align" && (cameraError || "Iniciando captura...")}
                           {ocrStep === "scan" && "Analizando marcas..."}
                           {ocrStep === "extract" && "Generando bloques de texto..."}
@@ -475,14 +519,14 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                         initial={{ y: -80 }}
                         animate={{ y: 80 }}
                         transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }}
-                        className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-lg shadow-emerald-500/60 z-10"
+                        className="absolute left-0 right-0 h-1 bg-primary shadow-lg shadow-primary/60 z-10"
                       />
                     )}
 
-                    <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-zinc-500" />
-                    <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-zinc-500" />
-                    <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-zinc-500" />
-                    <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-zinc-500" />
+                    <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-border" />
+                    <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-border" />
+                    <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-border" />
+                    <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-border" />
 
                     {/* Camera capture shutter button */}
                     {isCameraActive && !cameraError && (
@@ -490,7 +534,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                         <Button
                           type="button"
                           onClick={capturePhoto}
-                          className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
+                          className="bg-primary hover:bg-primary text-white font-bold rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
                         >
                           <Camera className="w-5 h-5" />
                         </Button>
@@ -508,8 +552,8 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
 
                   <canvas ref={canvasRef} className="hidden" />
 
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 h-36 overflow-y-auto font-mono text-[10px] text-emerald-400/90 flex flex-col gap-1 shadow-inner">
-                    <div className="flex items-center gap-1.5 text-zinc-500 border-b border-zinc-800 pb-1 mb-1">
+                  <div className="bg-muted border border-border rounded-xl p-3 h-36 overflow-y-auto font-mono text-[10px] text-primary/90 flex flex-col gap-1 shadow-inner">
+                    <div className="flex items-center gap-1.5 text-muted-foreground border-b border-border pb-1 mb-1">
                       <Terminal className="w-3.5 h-3.5" />
                       <span>LOGS DETALLADOS VEHICULARES</span>
                     </div>
@@ -522,24 +566,24 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                 <form onSubmit={handleSave} className="space-y-4 pt-2">
                   
                   {/* Tarjeta de Circulación Photo / Upload picker */}
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3.5">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Tarjeta de Circulación (OCR)</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => startCamera("CIRCULACION")}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <Camera className="w-4 h-4 text-emerald-400" /> Tomar Foto
+                        <Camera className="w-4 h-4 text-primary" /> Tomar Foto
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => circFileRef.current?.click()}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <FolderOpen className="w-4 h-4 text-emerald-400" /> Subir Archivo
+                        <FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo
                       </Button>
                       <input
                         type="file"
@@ -551,7 +595,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                       <button
                         type="button"
                         onClick={() => triggerOcrScanDemo("CIRCULACION")}
-                        className="col-span-2 text-[9px] text-zinc-500 hover:text-zinc-300 font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
                       >
                         Simular Tarjeta Demo
                       </button>
@@ -559,24 +603,24 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                   </div>
 
                   {/* Seguro Photo / Upload picker */}
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3.5">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Póliza de Seguro (OCR)</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro (OCR)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => startCamera("SEGURO")}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <Camera className="w-4 h-4 text-emerald-400" /> Tomar Foto
+                        <Camera className="w-4 h-4 text-primary" /> Tomar Foto
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => insFileRef.current?.click()}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <FolderOpen className="w-4 h-4 text-emerald-400" /> Subir Archivo
+                        <FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo
                       </Button>
                       <input
                         type="file"
@@ -588,42 +632,42 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                       <button
                         type="button"
                         onClick={() => triggerOcrScanDemo("SEGURO")}
-                        className="col-span-2 text-[9px] text-zinc-500 hover:text-zinc-300 font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
                       >
                         Simular Seguro Demo
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Datos del Vehículo</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
                     <div className="grid grid-cols-1 gap-3">
                       <div className="min-w-0">
-                        <Label htmlFor="brand" className="text-zinc-400 text-xs">Marca</Label>
-                        <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} required placeholder="ej. Nissan" className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="brand" className="text-muted-foreground text-xs">Marca</Label>
+                        <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} required placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" />
                       </div>
                       <div className="min-w-0">
-                        <Label htmlFor="vName" className="text-zinc-400 text-xs">Vehículo / Submarca</Label>
-                        <Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} required placeholder="ej. Versa" className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="vName" className="text-muted-foreground text-xs">Vehículo / Submarca</Label>
+                        <Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} required placeholder="ej. Versa" className="border-input bg-background rounded-xl w-full min-w-0" />
                       </div>
                       <div className="min-w-0">
-                        <Label htmlFor="model" className="text-zinc-400 text-xs">Modelo (Año)</Label>
-                        <Input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="ej. 2022" className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="model" className="text-muted-foreground text-xs">Modelo (Año)</Label>
+                        <Input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="ej. 2022" className="border-input bg-background rounded-xl w-full min-w-0" />
                       </div>
                       <div className="min-w-0">
-                        <Label htmlFor="classType" className="text-zinc-400 text-xs">Clase / Tipo</Label>
-                        <Input id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} placeholder="ej. Sedán" className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="classType" className="text-muted-foreground text-xs">Clase / Tipo</Label>
+                        <Input id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} placeholder="ej. Sedán" className="border-input bg-background rounded-xl w-full min-w-0" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Identificación & Vigencias</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Identificación & Vigencias</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 gap-3">
                         <div className="min-w-0">
-                          <Label htmlFor="plate" className="text-zinc-400 text-xs">Placa</Label>
-                          <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" required className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa</Label>
+                          <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" required className="border-input bg-background rounded-xl w-full min-w-0" />
                           {isPlateLengthInvalid && (
                             <span className="text-[10px] text-amber-400 flex items-center gap-1 mt-1">
                               <AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.
@@ -631,8 +675,8 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <Label htmlFor="vin" className="text-zinc-400 text-xs">NIV / Serie</Label>
-                          <Input id="vin" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="17 caracteres" className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="vin" className="text-muted-foreground text-xs">NIV / Serie</Label>
+                          <Input id="vin" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="17 caracteres" className="border-input bg-background rounded-xl w-full min-w-0" />
                           {isVinLengthInvalid && (
                             <span className="text-[10px] text-amber-400 flex items-center gap-1 mt-1 font-semibold">
                               <AlertTriangle className="w-3.5 h-3.5" /> El NIV debe tener 17 caracteres (leídos: {vin.length}).
@@ -641,29 +685,33 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                         </div>
                       </div>
                       <div className="min-w-0">
-                        <Label htmlFor="circExp" className="text-zinc-400 text-xs">Vigencia Tarjeta Circulación</Label>
-                        <Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="circExp" className="text-muted-foreground text-xs">Vigencia Tarjeta Circulación</Label>
+                        <Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
+                      </div>
+                      <div className="min-w-0">
+                        <Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label>
+                        <Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" required />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Póliza de Seguro</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro</h4>
                     <div className="space-y-3">
                       <div className="min-w-0">
-                        <Label htmlFor="insExp" className="text-zinc-400 text-xs">Vigencia del Seguro</Label>
-                        <Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label>
+                        <Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                       </div>
                       <div>
-                        <Label className="text-zinc-400 text-xs">Foto de Póliza</Label>
-                        <div className="border border-dashed border-zinc-800 rounded-xl p-4 text-center cursor-pointer hover:bg-zinc-900/50 transition-colors">
+                        <Label className="text-muted-foreground text-xs">Foto de Póliza</Label>
+                        <div className="border border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                           {insurancePolicyImg ? (
                             <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-semibold">
                               <CheckCircle2 className="w-4 h-4" /> Seguro Escaneado Correctamente
                             </div>
                           ) : (
-                            <div className="text-zinc-500 text-xs flex flex-col items-center gap-1">
-                              <Shield className="w-6 h-6 text-zinc-600 mb-1" />
+                            <div className="text-muted-foreground text-xs flex flex-col items-center gap-1">
+                              <Shield className="w-6 h-6 text-muted-foreground/80 mb-1" />
                               <span>Póliza no cargada</span>
                             </div>
                           )}
@@ -672,7 +720,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all cursor-pointer" disabled={isScanning}>
+                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer" disabled={isScanning}>
                     Guardar Vehículo
                   </Button>
                 </form>
@@ -683,10 +731,10 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
       </div>
 
       {/* Verification Schedule Visual Grid */}
-      <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden">
+      <Card className="border-border bg-card/30 overflow-hidden">
         <CardHeader className="p-3.5 pb-2">
-          <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 font-black">
-            <Calendar className="w-4 h-4 text-emerald-400" />
+          <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 font-black">
+            <Calendar className="w-4 h-4 text-primary" />
             Calendario de Verificación CDMX / Edomex
           </CardTitle>
         </CardHeader>
@@ -697,61 +745,127 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                 <div className={`py-1.5 rounded-md ${sch.bg} font-black shadow-xs`}>
                   {sch.color}
                 </div>
-                <div className="text-zinc-500 text-[8px] font-mono leading-none">{sch.digits}</div>
-                <div className="text-zinc-400 font-medium scale-90 leading-tight">{sch.months.split("/")[0]}</div>
+                <div className="text-muted-foreground text-[8px] font-mono leading-none">{sch.digits}</div>
+                <div className="text-muted-foreground font-medium scale-90 leading-tight">{sch.months.split("/")[0]}</div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
-        <Input
-          placeholder="Buscar vehículo por marca o placas..."
-          className="pl-9 bg-zinc-900 border-zinc-800 rounded-xl h-11 focus-visible:ring-emerald-500"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+
 
       <div className="space-y-3">
         {filteredVehicles.map((vehicle) => {
           const schedule = getVerificationSchedule(vehicle.plate_number);
           
+          // 1. Last service calculation
+          const vehicleMaints = maintenances.filter((m) => m.vehicle_id === vehicle.id);
+          const lastMaint = vehicleMaints.length > 0
+            ? [...vehicleMaints].sort((a, b) => new Date(b.maintenance_date).getTime() - new Date(a.maintenance_date).getTime())[0]
+            : null;
+          const lastServiceDate = lastMaint ? lastMaint.maintenance_date : "Sin registros";
+          
+          // 2. Mileage calculation
+          const vehicleChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
+          const lastChecklist = vehicleChecklists.length > 0
+            ? [...vehicleChecklists].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+            : null;
+          const mileage = lastChecklist ? `${lastChecklist.mileage} km` : "Sin registros";
+          
+          // 3. Verification status check
+          let verificationStatus = "Pendiente";
+          if (typeof window !== "undefined") {
+            const completed = JSON.parse(localStorage.getItem("fleet_completed_alerts") || "[]");
+            if (completed.includes(`alert-ver-${vehicle.id}`)) {
+              verificationStatus = "Verificado (Al corriente)";
+            }
+          }
+          
+          // 4. Rent status check (si está pagada)
+          let rentStatusText = "Sin chofer";
+          let rentStatusColor = "text-muted-foreground";
+          if (vehicle.active_driver_id) {
+            const d = new Date();
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(d.setDate(diff));
+            const currentMondayStr = monday.toISOString().split("T")[0];
+            
+            const activeRent = weeklyRentals.find(
+              (r) => r.driver_id === vehicle.active_driver_id && r.week_start === currentMondayStr
+            );
+            if (activeRent) {
+              if (activeRent.status === "PAID") {
+                rentStatusText = "Al corriente (Pagada)";
+                rentStatusColor = "text-emerald-400 font-bold";
+              } else if (activeRent.status === "PARTIAL") {
+                rentStatusText = "Abono Parcial";
+                rentStatusColor = "text-amber-400 font-bold";
+              } else {
+                rentStatusText = "Pendiente de Pago";
+                rentStatusColor = "text-red-400 font-bold";
+              }
+            } else {
+              rentStatusText = "Sin cobro generado";
+              rentStatusColor = "text-muted-foreground font-medium";
+            }
+          }
+
           return (
-            <Card key={vehicle.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-200">
+            <Card key={vehicle.id} className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200">
               <CardHeader className="p-4 pb-2.5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl">
-                      <Car className="w-5 h-5 text-emerald-400" />
+                    <div className="p-2.5 bg-muted border border-border rounded-xl">
+                      <Car className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-sm font-bold text-white">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</CardTitle>
-                      <CardDescription className="text-2xs font-mono font-bold text-zinc-500 tracking-wide pt-0.5">{vehicle.vin}</CardDescription>
+                      <CardTitle className="text-sm font-bold text-foreground">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</CardTitle>
+                      <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5">{vehicle.vin}</CardDescription>
+                      <div className="mt-1 text-[10px] font-bold">
+                        {vehicle.active_driver_id ? (
+                          <span className="text-primary dark:text-blue-400">
+                            Asignado a: {getDriverName(vehicle.active_driver_id)}
+                          </span>
+                        ) : (
+                          <span className="text-amber-500">
+                            Disponible (En Patio)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 text-xs font-black font-mono tracking-wide border border-zinc-800 bg-zinc-900/80 text-white rounded-lg shadow-sm">
-                    {vehicle.plate_number}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 text-xs font-black font-mono tracking-wide border border-border bg-card/80 text-foreground rounded-lg shadow-sm">
+                      {vehicle.plate_number}
+                    </span>
+                    <Button
+                      onClick={() => handleDeleteVehicle(vehicle.id)}
+                      variant="ghost"
+                      className="p-1.5 h-auto text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer shrink-0"
+                      title="Eliminar Vehículo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-zinc-900 bg-zinc-950/20">
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-zinc-400">
+              <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
+                <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-muted-foreground">
                   <div>
-                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Chofer Asignado</span>
-                    <span className="font-semibold text-zinc-200">
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
+                    <span className="font-semibold text-foreground">
                       {getDriverName(vehicle.active_driver_id)}
                     </span>
                   </div>
                   <div>
-                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Clase / Tipo</span>
-                    <span className="text-zinc-300 font-medium">{vehicle.class_type || "Sedán"}</span>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
+                    <span className="text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
                   </div>
                   <div>
-                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Engomado Verificación</span>
-                    <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado Verificación</span>
+                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
                       <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block" style={{
                         backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
                                         schedule.color === "Rosa" ? "#ec4899" :
@@ -762,11 +876,29 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
                     </span>
                   </div>
                   <div>
-                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Seguro Vigente</span>
-                    <span className="flex items-center gap-1 text-zinc-300 font-medium">
-                      <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Seguro Vigente</span>
+                    <span className="flex items-center gap-1 text-foreground font-medium">
+                      <Shield className="w-3.5 h-3.5 text-primary" />
                       {vehicle.insurance_expiration_date || "No registrada"}
                     </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Último Servicio</span>
+                    <span className="text-foreground font-medium">{lastServiceDate}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                    <span className="text-foreground font-medium">{mileage}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Estatus Verificación</span>
+                    <span className={`font-semibold ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
+                      {verificationStatus}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta Semanal</span>
+                    <span className={rentStatusColor}>{rentStatusText}</span>
                   </div>
                 </div>
               </CardContent>
@@ -775,7 +907,7 @@ export default function VehiclesSlice({ onRefreshAlerts }: VehiclesSliceProps) {
         })}
 
         {filteredVehicles.length === 0 && (
-          <div className="text-center py-8 text-zinc-500">
+          <div className="text-center py-8 text-muted-foreground">
             No se encontraron vehículos.
           </div>
         )}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db, Driver } from "@/lib/db";
+import { db, Driver, Vehicle } from "@/lib/db";
 import { parseOcrText, extractDobFromCurp, calculateCurp, MEXICAN_STATES } from "@/lib/ocr";
 import Tesseract from "tesseract.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,16 +11,34 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles } from "lucide-react";
+import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
+  searchQuery?: string;
 }
 
-export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
+
+  const handleDeleteDriver = async (id: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.")) {
+      const success = await db.deleteDriver(id);
+      if (success) {
+        setDrivers((prev) => prev.filter((d) => d.id !== id));
+        onRefreshAlerts();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setSearch(searchQuery);
+    }
+  }, [searchQuery]);
   const [isOpen, setIsOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanTarget, setScanTarget] = useState<"INE" | "LICENCIA" | null>(null);
@@ -66,12 +84,27 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
 
   const loadDrivers = async () => {
     const list = await db.getDrivers();
+    const vList = await db.getVehicles();
     setDrivers(list);
+    setVehicles(vList);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName || !paternalLastName || !licenseCurp) return;
+
+    // Check for duplicates
+    const isDuplicate = drivers.some(
+      (d) =>
+        d.curp.toLowerCase().trim() === licenseCurp.toLowerCase().trim() ||
+        (d.license_number && licenseNumber && d.license_number.toLowerCase().trim() === licenseNumber.toLowerCase().trim()) ||
+        (d.ine_elector_key && ineElectorKey && d.ine_elector_key.toLowerCase().trim() === ineElectorKey.toLowerCase().trim())
+    );
+
+    if (isDuplicate) {
+      alert("Error: Ya existe un chofer registrado con esta CURP, número de licencia o clave electoral.");
+      return;
+    }
 
     await db.saveDriver({
       first_name: firstName,
@@ -487,8 +520,8 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight dark:text-zinc-50">Conductores</h2>
-          <p className="text-sm text-zinc-500">Expedientes de choferes registrados</p>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Conductores</h2>
+          <p className="text-sm text-muted-foreground">Expedientes de choferes registrados</p>
         </div>
 
         <Dialog open={isOpen} onOpenChange={(open) => {
@@ -496,15 +529,15 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
           if (!open) resetForm();
         }}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold active:scale-95 cursor-pointer" onClick={resetForm}>
+            <Button className="rounded-xl bg-primary hover:bg-primary text-white font-bold active:scale-95 cursor-pointer" onClick={resetForm}>
               <UserCheck className="w-4 h-4 mr-2" />
               Nuevo Conductor
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-zinc-800 bg-zinc-950 text-zinc-50 rounded-2xl">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white font-black text-lg">Registro de Conductor</DialogTitle>
-              <DialogDescription className="text-zinc-400 text-xs">
+              <DialogTitle className="text-foreground font-black text-lg">Registro de Conductor</DialogTitle>
+              <DialogDescription className="text-muted-foreground text-xs">
                 Crea el expediente escaneando documentos o llenando los campos.
               </DialogDescription>
             </DialogHeader>
@@ -518,7 +551,7 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="flex flex-col gap-4 py-3"
                 >
-                  <div className="relative aspect-video w-full rounded-xl border border-emerald-500/30 bg-zinc-900 overflow-hidden flex items-center justify-center">
+                  <div className="relative aspect-video w-full rounded-xl border border-primary/30 bg-muted overflow-hidden flex items-center justify-center">
                     
                     {/* Live webcam feed stream */}
                     {isCameraActive && !cameraError ? (
@@ -530,8 +563,8 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                       />
                     ) : (
                       <div className="text-center space-y-2 p-4 z-20">
-                        <Camera className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-emerald-400 animate-pulse" : "text-zinc-500"}`} />
-                        <p className="text-xs font-bold text-zinc-300">
+                        <Camera className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
+                        <p className="text-xs font-bold text-foreground">
                           {ocrStep === "align" && (cameraError || "Iniciando captura...")}
                           {ocrStep === "scan" && "Escaneando píxeles..."}
                           {ocrStep === "extract" && "Analizando caracteres..."}
@@ -545,14 +578,14 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                         initial={{ y: -80 }}
                         animate={{ y: 80 }}
                         transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }}
-                        className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-lg shadow-emerald-500/60 z-10"
+                        className="absolute left-0 right-0 h-1 bg-primary shadow-lg shadow-primary/60 z-10"
                       />
                     )}
 
-                    <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-zinc-500" />
-                    <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-zinc-500" />
-                    <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-zinc-500" />
-                    <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-zinc-500" />
+                    <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-border" />
+                    <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-border" />
+                    <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-border" />
+                    <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-border" />
 
                     {/* Camera capture shutter button */}
                     {isCameraActive && !cameraError && (
@@ -560,7 +593,7 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                         <Button
                           type="button"
                           onClick={capturePhoto}
-                          className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
+                          className="bg-primary hover:bg-primary text-white font-bold rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
                         >
                           <Camera className="w-5 h-5" />
                         </Button>
@@ -579,8 +612,8 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                   {/* Hidden canvas for drawing frame */}
                   <canvas ref={canvasRef} className="hidden" />
 
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 h-36 overflow-y-auto font-mono text-[10px] text-emerald-400/90 flex flex-col gap-1 shadow-inner">
-                    <div className="flex items-center gap-1.5 text-zinc-500 border-b border-zinc-800 pb-1 mb-1">
+                  <div className="bg-muted border border-border rounded-xl p-3 h-36 overflow-y-auto font-mono text-[10px] text-primary/90 flex flex-col gap-1 shadow-inner">
+                    <div className="flex items-center gap-1.5 text-muted-foreground border-b border-border pb-1 mb-1">
                       <Terminal className="w-3.5 h-3.5" />
                       <span>LOGS DETALLADOS DEL FLUJO OCR</span>
                     </div>
@@ -595,27 +628,27 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                   
                   {/* Document matching state headers with correction helpers */}
                   {(licenseCurp || ineCurp || licenseDob || ineDob) && (
-                    <div className="bg-zinc-900/60 p-3 rounded-xl border border-zinc-800 text-xs space-y-2">
-                      <h4 className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">Verificación Cruzada INE vs Licencia</h4>
+                    <div className="bg-muted/60 p-3 rounded-xl border border-border text-xs space-y-2">
+                      <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Verificación Cruzada INE vs Licencia</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-zinc-400">Coincidencia de CURP:</span>
+                          <span className="text-muted-foreground">Coincidencia de CURP:</span>
                           {isCurpMismatch ? (
                             <span className="text-red-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Mismatch</span>
                           ) : (licenseCurp && ineCurp) ? (
-                            <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Válida</span>
+                            <span className="text-primary font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Válida</span>
                           ) : (
-                            <span className="text-zinc-500">Pendiente (falta doc)</span>
+                            <span className="text-muted-foreground">Pendiente (falta doc)</span>
                           )}
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-zinc-400">Coincidencia de F. Nacimiento:</span>
+                          <span className="text-muted-foreground">Coincidencia de F. Nacimiento:</span>
                           {isDobMismatch ? (
                             <span className="text-red-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Mismatch</span>
                           ) : (licenseDob && ineDob) ? (
-                            <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Válida</span>
+                            <span className="text-primary font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Válida</span>
                           ) : (
-                            <span className="text-zinc-500">Pendiente (falta doc)</span>
+                            <span className="text-muted-foreground">Pendiente (falta doc)</span>
                           )}
                         </div>
 
@@ -623,7 +656,7 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                           <Button
                             type="button"
                             onClick={syncLicenseWithIne}
-                            className="w-full mt-1.5 h-8 text-[10px] font-black uppercase tracking-wider bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-emerald-400 flex items-center justify-center gap-1.5 rounded-lg cursor-pointer"
+                            className="w-full mt-1.5 h-8 text-[10px] font-black uppercase tracking-wider bg-card border border-border hover:bg-accent text-primary flex items-center justify-center gap-1.5 rounded-lg cursor-pointer"
                           >
                             <Sparkles className="w-3.5 h-3.5" /> Sincronizar Licencia con Datos de INE
                           </Button>
@@ -633,24 +666,24 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                   )}
 
                   {/* Two separate triggers for camera vs file uploads */}
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3.5">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Escanear INE (Identificación)</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear INE (Identificación)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => startCamera("INE")}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <Camera className="w-4 h-4 text-emerald-400" /> Tomar Foto
+                        <Camera className="w-4 h-4 text-primary" /> Tomar Foto
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => ineFileRef.current?.click()}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <FolderOpen className="w-4 h-4 text-emerald-400" /> Subir Archivo
+                        <FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo
                       </Button>
                       <input
                         type="file"
@@ -662,31 +695,31 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                       <button
                         type="button"
                         onClick={() => triggerOcrScanDemo("INE")}
-                        className="col-span-2 text-[9px] text-zinc-500 hover:text-zinc-300 font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
                       >
                         Simular INE Demo
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3.5">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Escanear Licencia de Conducir</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear Licencia de Conducir</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => startCamera("LICENCIA")}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <Camera className="w-4 h-4 text-emerald-400" /> Tomar Foto
+                        <Camera className="w-4 h-4 text-primary" /> Tomar Foto
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => licFileRef.current?.click()}
-                        className="border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
-                        <FolderOpen className="w-4 h-4 text-emerald-400" /> Subir Archivo
+                        <FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo
                       </Button>
                       <input
                         type="file"
@@ -698,28 +731,28 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                       <button
                         type="button"
                         onClick={() => triggerOcrScanDemo("LICENCIA")}
-                        className="col-span-2 text-[9px] text-zinc-500 hover:text-zinc-300 font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
                       >
                         Simular Licencia Demo
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Datos Personales</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos Personales</h4>
                     <div className="grid grid-cols-1 gap-3">
                       <div className="min-w-0">
-                        <Label htmlFor="firstName" className="text-zinc-400 text-xs">Nombres</Label>
-                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                        <Label htmlFor="firstName" className="text-muted-foreground text-xs">Nombres</Label>
+                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="border-input bg-background rounded-xl w-full min-w-0" />
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         <div className="min-w-0">
-                          <Label htmlFor="patName" className="text-zinc-400 text-xs">Apellido Paterno</Label>
-                          <Input id="patName" value={paternalLastName} onChange={(e) => setPaternalLastName(e.target.value)} required className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="patName" className="text-muted-foreground text-xs">Apellido Paterno</Label>
+                          <Input id="patName" value={paternalLastName} onChange={(e) => setPaternalLastName(e.target.value)} required className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                         <div className="min-w-0">
-                          <Label htmlFor="matName" className="text-zinc-400 text-xs">Apellido Materno</Label>
-                          <Input id="matName" value={maternalLastName} onChange={(e) => setMaternalLastName(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="matName" className="text-muted-foreground text-xs">Apellido Materno</Label>
+                          <Input id="matName" value={maternalLastName} onChange={(e) => setMaternalLastName(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       </div>
                     </div>
@@ -727,90 +760,90 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
 
                   {/* Dynamic Suggested CURP Box */}
                   {suggestedCurp && (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
+                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl space-y-2">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-emerald-400 font-bold flex items-center gap-1 font-black">
+                        <span className="text-primary font-bold flex items-center gap-1 font-black">
                           <Sparkles className="w-4 h-4" /> Sugerencia de CURP Calculada:
                         </span>
                         <button
                           type="button"
                           onClick={applySuggestedCurp}
-                          className="text-[10px] font-black uppercase text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+                          className="text-[10px] font-black uppercase text-primary hover:text-primary/80 underline cursor-pointer"
                         >
                           Autocompletar
                         </button>
                       </div>
-                      <div className="font-mono text-sm text-zinc-200 font-bold tracking-wider text-center">
+                      <div className="font-mono text-sm text-foreground font-bold tracking-wider text-center">
                         {suggestedCurp}
                       </div>
                     </div>
                   )}
 
                   {/* Licencia Details */}
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Licencia de Conducir</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Licencia de Conducir</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 gap-3">
                         <div className="min-w-0">
-                          <Label htmlFor="licNo" className="text-zinc-400 text-xs">No. Licencia</Label>
-                          <Input id="licNo" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="licNo" className="text-muted-foreground text-xs">No. Licencia</Label>
+                          <Input id="licNo" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                         <div className="min-w-0">
-                          <Label htmlFor="licCurp" className="text-zinc-400 text-xs">CURP Licencia</Label>
-                          <Input id="licCurp" value={licenseCurp} onChange={(e) => setLicenseCurp(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="licCurp" className="text-muted-foreground text-xs">CURP Licencia</Label>
+                          <Input id="licCurp" value={licenseCurp} onChange={(e) => setLicenseCurp(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         <div className="min-w-0">
-                          <Label htmlFor="licDob" className="text-zinc-400 text-xs">F. Nacimiento (Licencia)</Label>
-                          <Input type="date" id="licDob" value={licenseDob} onChange={(e) => setLicenseDob(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="licDob" className="text-muted-foreground text-xs">F. Nacimiento (Licencia)</Label>
+                          <Input type="date" id="licDob" value={licenseDob} onChange={(e) => setLicenseDob(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                         <div className="min-w-0">
-                          <Label htmlFor="licIssue" className="text-zinc-400 text-xs">F. Expedición</Label>
-                          <Input type="date" id="licIssue" value={licenseIssueDate} onChange={(e) => setLicenseIssueDate(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="licIssue" className="text-muted-foreground text-xs">F. Expedición</Label>
+                          <Input type="date" id="licIssue" value={licenseIssueDate} onChange={(e) => setLicenseIssueDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       </div>
                       
                       <div className="flex items-center justify-between pt-1">
-                        <Label htmlFor="permanentLic" className="cursor-pointer text-zinc-300">¿Licencia Permanente?</Label>
+                        <Label htmlFor="permanentLic" className="cursor-pointer text-foreground">¿Licencia Permanente?</Label>
                         <Switch id="permanentLic" checked={licenseIsPermanent} onCheckedChange={setLicenseIsPermanent} />
                       </div>
 
                       {!licenseIsPermanent && (
                         <div className="min-w-0">
-                          <Label htmlFor="licExp" className="text-zinc-400 text-xs">F. Vencimiento</Label>
-                          <Input type="date" id="licExp" value={licenseExpirationDate} onChange={(e) => setLicenseExpirationDate(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="licExp" className="text-muted-foreground text-xs">F. Vencimiento</Label>
+                          <Input type="date" id="licExp" value={licenseExpirationDate} onChange={(e) => setLicenseExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* INE Details */}
-                  <div className="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 font-black">Datos INE</h4>
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos INE</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 gap-3">
                         <div className="min-w-0">
-                          <Label htmlFor="ineCurp" className="text-zinc-400 text-xs">CURP INE</Label>
-                          <Input id="ineCurp" value={ineCurp} onChange={(e) => setIneCurp(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="ineCurp" className="text-muted-foreground text-xs">CURP INE</Label>
+                          <Input id="ineCurp" value={ineCurp} onChange={(e) => setIneCurp(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                         <div className="min-w-0">
-                          <Label htmlFor="ineDob" className="text-zinc-400 text-xs">F. Nacimiento (INE)</Label>
-                          <Input type="date" id="ineDob" value={ineDob} onChange={(e) => setIneDob(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="ineDob" className="text-muted-foreground text-xs">F. Nacimiento (INE)</Label>
+                          <Input type="date" id="ineDob" value={ineDob} onChange={(e) => setIneDob(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       </div>
 
                       {/* Suggestion for Elector Key */}
                       {suggestedElectorKey && suggestedElectorKey !== ineElectorKey && (
-                        <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex justify-between items-center text-xs">
+                        <div className="p-2.5 bg-primary/10 border border-primary/20 rounded-xl flex justify-between items-center text-xs">
                           <div>
-                            <span className="text-emerald-400 font-bold block">¿Corregir Clave Elector?</span>
-                            <span className="font-mono text-zinc-300 tracking-wider text-[10px]">{suggestedElectorKey}</span>
+                            <span className="text-primary font-bold block">¿Corregir Clave Elector?</span>
+                            <span className="font-mono text-muted-foreground tracking-wider text-[10px]">{suggestedElectorKey}</span>
                           </div>
                           <button
                             type="button"
                             onClick={applySuggestedElectorKey}
-                            className="text-[9px] font-black uppercase text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+                            className="text-[9px] font-black uppercase text-primary hover:text-primary/80 underline cursor-pointer"
                           >
                             Aplicar
                           </button>
@@ -819,16 +852,16 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
 
                       <div className="grid grid-cols-1 gap-3">
                         <div className="min-w-0">
-                          <Label htmlFor="electorKey" className="text-zinc-400 text-xs">Clave Elector</Label>
-                          <Input id="electorKey" value={ineElectorKey} onChange={(e) => setIneElectorKey(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="electorKey" className="text-muted-foreground text-xs">Clave Elector</Label>
+                          <Input id="electorKey" value={ineElectorKey} onChange={(e) => setIneElectorKey(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                         <div className="min-w-0">
-                          <Label className="text-zinc-400 text-xs">Sexo</Label>
+                          <Label className="text-muted-foreground text-xs">Sexo</Label>
                           <Select value={ineSex} onValueChange={(val: "M" | "F" | "X") => setIneSex(val)}>
-                            <SelectTrigger className="w-full border-zinc-800 bg-zinc-900 rounded-xl">
+                            <SelectTrigger className="w-full border-input bg-background rounded-xl">
                               <SelectValue placeholder="Sexo" />
                             </SelectTrigger>
-                            <SelectContent className="border-zinc-850 bg-zinc-900 text-zinc-50">
+                            <SelectContent className="border-border bg-popover text-popover-foreground">
                               <SelectItem value="M">Masculino</SelectItem>
                               <SelectItem value="F">Femenino</SelectItem>
                               <SelectItem value="X">No Binario</SelectItem>
@@ -838,12 +871,12 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                       </div>
                       <div className="grid grid-cols-1 gap-2">
                         <div className="min-w-0">
-                          <Label className="text-zinc-400 text-xs font-semibold">Estado de Nacimiento (Para cálculo CURP)</Label>
+                          <Label className="text-muted-foreground text-xs font-semibold">Estado de Nacimiento (Para cálculo CURP)</Label>
                           <Select value={birthState} onValueChange={setBirthState}>
-                            <SelectTrigger className="w-full border-zinc-800 bg-zinc-900 rounded-xl">
+                            <SelectTrigger className="w-full border-input bg-background rounded-xl">
                               <SelectValue placeholder="Estado de nacimiento" />
                             </SelectTrigger>
-                            <SelectContent className="border-zinc-850 bg-zinc-900 text-zinc-50 max-h-48 overflow-y-auto">
+                            <SelectContent className="border-border bg-popover text-popover-foreground max-h-48 overflow-y-auto">
                               {MEXICAN_STATES.map((st) => (
                                 <SelectItem key={st.code} value={st.code}>
                                   {st.name}
@@ -853,8 +886,8 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                           </Select>
                         </div>
                         <div className="min-w-0">
-                          <Label htmlFor="ineAddr" className="text-zinc-400 text-xs">Domicilio</Label>
-                          <Input id="ineAddr" value={ineAddress} onChange={(e) => setIneAddress(e.target.value)} className="border-zinc-800 bg-zinc-900 rounded-xl w-full min-w-0" />
+                          <Label htmlFor="ineAddr" className="text-muted-foreground text-xs">Domicilio</Label>
+                          <Input id="ineAddr" value={ineAddress} onChange={(e) => setIneAddress(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       </div>
                     </div>
@@ -878,7 +911,7 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all cursor-pointer" disabled={isScanning || isCurpMismatch || isDobMismatch}>
+                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer" disabled={isScanning || isCurpMismatch || isDobMismatch}>
                     Guardar Conductor
                   </Button>
                 </form>
@@ -888,54 +921,72 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
         </Dialog>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3.5 w-4 h-4 text-zinc-500" />
-        <Input
-          placeholder="Buscar conductor por nombre o CURP..."
-          className="pl-9 bg-zinc-900 border-zinc-800 rounded-xl h-11 focus-visible:ring-emerald-500"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+
 
       <div className="space-y-3">
         {filteredDrivers.map((driver) => (
-          <Card key={driver.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-200">
+          <Card key={driver.id} className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200">
             <CardHeader className="p-4 pb-2.5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl">
-                    <User className="w-5 h-5 text-emerald-400" />
+                  <div className="p-2.5 bg-muted border border-border rounded-xl">
+                    <User className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-bold text-white">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</CardTitle>
-                    <CardDescription className="text-2xs font-mono font-bold text-zinc-500 tracking-wide pt-0.5">{driver.curp}</CardDescription>
+                    <CardTitle className="text-sm font-bold text-foreground">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</CardTitle>
+                    <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5">{driver.curp}</CardDescription>
+                    {(() => {
+                      const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
+                      return (
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold tracking-wide">
+                          {assignedVehicle ? (
+                            <span className="text-primary flex items-center gap-1.5 dark:text-blue-400">
+                              <Car className="w-3.5 h-3.5" /> {assignedVehicle.brand} {assignedVehicle.vehicle_name} ({assignedVehicle.plate_number})
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground flex items-center gap-1.5 opacity-60">
+                              <Car className="w-3.5 h-3.5" /> Sin Auto Asignado
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
-                {driver.license_is_permanent ? (
-                  <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md">
-                    Lic. Permanente
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Vence: {driver.license_expiration_date}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {driver.license_is_permanent ? (
+                    <span className="px-2 py-0.5 text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md">
+                      Lic. Permanente
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> Vence: {driver.license_expiration_date}
+                    </span>
+                  )}
+                  <Button
+                    onClick={() => handleDeleteDriver(driver.id)}
+                    variant="ghost"
+                    className="p-1.5 h-auto text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer shrink-0"
+                    title="Eliminar Chofer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-zinc-900 bg-zinc-950/20">
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-zinc-400">
+            <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-muted-foreground">
                 <div>
-                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Licencia</span>
-                  <span className="text-zinc-300 font-medium">{driver.license_number || "N/D"}</span>
+                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
+                  <span className="text-foreground font-medium">{driver.license_number || "N/D"}</span>
                 </div>
                 <div>
-                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Clave Elector</span>
-                  <span className="text-zinc-300 font-medium">{driver.ine_elector_key || "N/D"}</span>
+                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
+                  <span className="text-foreground font-medium">{driver.ine_elector_key || "N/D"}</span>
                 </div>
-                <div className="col-span-2 border-t border-zinc-900/60 pt-1.5 mt-0.5">
-                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-zinc-600">Domicilio INE</span>
-                  <span className="text-zinc-300 leading-snug">{driver.ine_address || "N/D"}</span>
+                <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5">
+                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
+                  <span className="text-foreground leading-snug">{driver.ine_address || "N/D"}</span>
                 </div>
               </div>
             </CardContent>
@@ -943,7 +994,7 @@ export default function DriversSlice({ onRefreshAlerts }: DriversSliceProps) {
         ))}
 
         {filteredDrivers.length === 0 && (
-          <div className="text-center py-8 text-zinc-500">
+          <div className="text-center py-8 text-muted-foreground">
             No se encontraron conductores.
           </div>
         )}

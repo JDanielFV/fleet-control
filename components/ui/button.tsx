@@ -15,18 +15,18 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <Comp
         className={cn(
-          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:pointer-events-none disabled:opacity-50 active:scale-98 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
+          "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 active:scale-98 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
           {
-            "bg-emerald-600 text-white shadow-md hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-950/20":
+            "bg-primary text-white shadow-md hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/20":
               variant === "default",
             "bg-red-600 text-white shadow-xs hover:bg-red-500": variant === "destructive",
-            "border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:text-zinc-50":
+            "border border-border bg-card hover:bg-secondary text-foreground":
               variant === "outline",
-            "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700":
+            "bg-secondary text-foreground hover:bg-secondary/80":
               variant === "secondary",
-            "hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-50":
+            "hover:bg-secondary hover:text-foreground text-foreground":
               variant === "ghost",
-            "text-emerald-600 underline-offset-4 hover:underline dark:text-emerald-400":
+            "text-primary underline-offset-4 hover:underline dark:text-primary":
               variant === "link",
           },
           {

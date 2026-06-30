@@ -48,6 +48,22 @@ export default function FinancesSlice() {
     loadData();
   };
 
+  const handlePaymentOpenChange = (open: boolean) => {
+    setIsPaymentOpen(open);
+    if (!open) {
+      setSelectedDriver("");
+      setSelectedWeek("");
+      setPaymentAmount(0);
+    }
+  };
+
+  const handleCardClick = (rental: WeeklyRental) => {
+    setSelectedDriver(rental.driver_id);
+    setSelectedWeek(rental.week_start);
+    setPaymentAmount(rental.accumulated_debt);
+    setIsPaymentOpen(true);
+  };
+
   const handleCreateRental = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRentalDriver || !weekStart || rentAmount <= 0) return;
@@ -76,7 +92,7 @@ export default function FinancesSlice() {
   };
 
   const getDriverName = (id: string) => {
-    const d = drivers.find((x) => x.id === id);
+    const d = drivers.find((drv) => drv.id === id);
     return d ? `${d.first_name} ${d.paternal_last_name}` : "Desconocido";
   };
 
@@ -84,68 +100,63 @@ export default function FinancesSlice() {
     return rentals.filter((r) => r.driver_id === driverId);
   };
 
-  // Financial statistics
   const totalCollected = rentals.reduce((acc, curr) => acc + curr.paid_amount, 0);
-  const totalDebt = rentals.reduce((acc, curr) => acc + curr.accumulated_debt, 0);
-  const paidRentalsCount = rentals.filter((r) => r.status === "PAID").length;
-  const totalRentalsCount = rentals.length || 1;
-  const recoveryRate = Math.round((paidRentalsCount / totalRentalsCount) * 100);
+  const totalPending = rentals.reduce((acc, curr) => acc + curr.accumulated_debt, 0);
 
   return (
     <div className="space-y-4">
-      {/* Visual financial health widget */}
-      <Card className="border-zinc-800 bg-zinc-900/30 overflow-hidden relative">
+      {/* Finances Overview stats */}
+      <Card className="p-5 relative overflow-hidden border-border bg-card">
         <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/5 rounded-full blur-3xl" />
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+        <div className="flex justify-between items-center pb-3 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
-              Resumen Contable
-            </h4>
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 border border-emerald-500/20 font-bold rounded-md">
-              Tasa Cobro: {recoveryRate}%
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-1">
-            <div className="space-y-1">
-              <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Total Cobrado</span>
-              <p className="text-xl font-black text-emerald-400 font-mono">${totalCollected}</p>
             </div>
-            <div className="space-y-1 border-l border-zinc-800 pl-4">
-              <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Cartera Vencida</span>
-              <p className="text-xl font-black text-red-400 font-mono">${totalDebt}</p>
-            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Rentas Cobradas</span>
           </div>
-        </CardContent>
+          <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 border border-emerald-500/20 font-bold rounded-md">
+            Total General
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-4 pt-4 text-center">
+          <div>
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Total Recaudado</span>
+            <p className="text-xl font-black text-emerald-400 font-mono">${totalCollected}</p>
+          </div>
+          <div>
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Deuda Pendiente</span>
+            <p className="text-xl font-black text-red-400 font-mono">${totalPending}</p>
+          </div>
+        </div>
       </Card>
 
       <div className="grid grid-cols-2 gap-3.5">
-        <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+        <Dialog open={isPaymentOpen} onOpenChange={handlePaymentOpenChange}>
           <DialogTrigger asChild>
-            <Button className="w-full h-14 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer" variant="outline">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+            <Button className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer" variant="outline">
+              <DollarSign className="w-5 h-5 text-primary" />
               <span className="text-[11px] font-bold">Registrar Pago</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="border border-zinc-800 bg-zinc-950 text-zinc-50 rounded-2xl">
+          <DialogContent className="border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white font-black text-lg">Registrar Pago de Renta</DialogTitle>
-              <DialogDescription className="text-zinc-400 text-xs">
+              <DialogTitle className="text-foreground font-black text-lg">Registrar Pago de Renta</DialogTitle>
+              <DialogDescription className="text-muted-foreground text-xs">
                 Aplica un pago parcial o total a la renta de un conductor.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handlePayment} className="space-y-4 pt-2">
               <div className="space-y-1">
-                <Label className="text-zinc-400 text-xs">Conductor</Label>
+                <Label className="text-muted-foreground text-xs">Conductor</Label>
                 <Select value={selectedDriver} onValueChange={(val) => {
                   setSelectedDriver(val);
                   setSelectedWeek("");
                 }}>
-                  <SelectTrigger className="border-zinc-800 bg-zinc-900 rounded-xl">
+                  <SelectTrigger className="border-input bg-background rounded-xl">
                     <SelectValue placeholder="Selecciona conductor" />
                   </SelectTrigger>
-                  <SelectContent className="border-zinc-850 bg-zinc-900 text-zinc-50">
+                  <SelectContent className="border-border bg-popover text-popover-foreground">
                     {drivers.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.first_name} {d.paternal_last_name}
@@ -157,12 +168,12 @@ export default function FinancesSlice() {
 
               {selectedDriver && (
                 <div className="space-y-1">
-                  <Label className="text-zinc-400 text-xs">Semana de Renta</Label>
+                  <Label className="text-muted-foreground text-xs">Semana de Renta</Label>
                   <Select value={selectedWeek} onValueChange={setSelectedWeek}>
-                    <SelectTrigger className="border-zinc-800 bg-zinc-900 rounded-xl">
+                    <SelectTrigger className="border-input bg-background rounded-xl">
                       <SelectValue placeholder="Selecciona semana" />
                     </SelectTrigger>
-                    <SelectContent className="border-zinc-850 bg-zinc-900 text-zinc-50">
+                    <SelectContent className="border-border bg-popover text-popover-foreground">
                       {getDriverWeeks(selectedDriver).map((r) => (
                         <SelectItem key={r.id} value={r.week_start}>
                           Semana: {r.week_start} (Adeudo: ${r.accumulated_debt})
@@ -174,19 +185,19 @@ export default function FinancesSlice() {
               )}
 
               <div className="space-y-1">
-                <Label htmlFor="payAmt" className="text-zinc-400 text-xs">Monto del Pago ($)</Label>
+                <Label htmlFor="payAmt" className="text-muted-foreground text-xs">Monto del Pago ($)</Label>
                 <Input
                   type="number"
                   id="payAmt"
                   value={paymentAmount || ""}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))}
                   placeholder="ej. 1500"
-                  className="border-zinc-800 bg-zinc-900 rounded-xl"
+                  className="border-input bg-background rounded-xl"
                   required
                 />
               </div>
 
-              <Button type="submit" className="w-full rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all cursor-pointer">
+              <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
                 Aplicar Pago
               </Button>
             </form>
@@ -195,26 +206,41 @@ export default function FinancesSlice() {
 
         <Dialog open={isRentalOpen} onOpenChange={setIsRentalOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full h-14 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-200 transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer">
-              <Plus className="w-5 h-5 text-emerald-400" />
+            <Button className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer">
+              <Plus className="w-5 h-5 text-primary" />
               <span className="text-[11px] font-bold">Nueva Renta</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="border border-zinc-800 bg-zinc-950 text-zinc-50 rounded-2xl">
+          <DialogContent className="border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white font-black text-lg">Establecer Nueva Renta</DialogTitle>
-              <DialogDescription className="text-zinc-400 text-xs">
-                Crea el cobro semanal para un conductor, arrastrando deuda acumulada anterior.
+              <DialogTitle className="text-foreground font-black text-lg">Nueva Renta Semanal</DialogTitle>
+              <DialogDescription className="text-muted-foreground text-xs">
+                Asigna un nuevo cobro semanal a un conductor.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateRental} className="space-y-4 pt-2">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newRentalDriver || !weekStart) return;
+              await db.createWeeklyRental({
+                driver_id: newRentalDriver,
+                week_start: weekStart,
+                rent_amount: rentAmount,
+                paid_amount: 0,
+                accumulated_debt: rentAmount,
+                status: "UNPAID"
+              });
+              setIsRentalOpen(false);
+              setNewRentalDriver("");
+              setWeekStart("");
+              loadData();
+            }} className="space-y-4 pt-2">
               <div className="space-y-1">
-                <Label className="text-zinc-400 text-xs">Conductor</Label>
+                <Label className="text-muted-foreground text-xs">Conductor</Label>
                 <Select value={newRentalDriver} onValueChange={setNewRentalDriver}>
-                  <SelectTrigger className="border-zinc-800 bg-zinc-900 rounded-xl">
+                  <SelectTrigger className="border-input bg-background rounded-xl">
                     <SelectValue placeholder="Selecciona conductor" />
                   </SelectTrigger>
-                  <SelectContent className="border-zinc-850 bg-zinc-900 text-zinc-50">
+                  <SelectContent className="border-border bg-popover text-popover-foreground">
                     {drivers.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.first_name} {d.paternal_last_name}
@@ -224,32 +250,29 @@ export default function FinancesSlice() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="weekStart" className="text-zinc-400 text-xs">Fecha Inicio (Lunes)</Label>
-                  <Input
-                    type="date"
-                    id="weekStart"
-                    value={weekStart}
-                    onChange={(e) => setWeekStart(e.target.value)}
-                    className="border-zinc-800 bg-zinc-900 rounded-xl text-xs"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="rentAmt" className="text-zinc-400 text-xs">Renta Semanal ($)</Label>
-                  <Input
-                    type="number"
-                    id="rentAmt"
-                    value={rentAmount || ""}
-                    onChange={(e) => setRentAmount(Number(e.target.value))}
-                    className="border-zinc-800 bg-zinc-900 rounded-xl"
-                    required
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-xs">Monto de Renta ($)</Label>
+                <Input
+                  type="number"
+                  value={rentAmount || ""}
+                  onChange={(e) => setRentAmount(Number(e.target.value))}
+                  className="border-input bg-background rounded-xl"
+                  required
+                />
               </div>
 
-              <Button type="submit" className="w-full rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all cursor-pointer">
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-xs">Lunes de Inicio de Semana</Label>
+                <Input
+                  type="date"
+                  value={weekStart}
+                  onChange={(e) => setWeekStart(e.target.value)}
+                  className="border-input bg-background rounded-xl"
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
                 Generar Cobro Renta
               </Button>
             </form>
@@ -258,20 +281,24 @@ export default function FinancesSlice() {
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Estado de Cuentas</h3>
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Estado de Cuentas</h3>
         {rentals.map((rental) => {
           const isOverdue = rental.status !== "PAID";
           return (
-            <Card key={rental.id} className="border-zinc-800 bg-zinc-900/30 overflow-hidden hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-200">
+            <Card 
+              key={rental.id} 
+              onClick={() => handleCardClick(rental)}
+              className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+            >
               <div className="p-4 flex items-center justify-between">
                 <div className="space-y-1 min-w-0">
-                  <h4 className="text-sm font-bold text-white truncate">
+                  <h4 className="text-sm font-bold text-foreground truncate">
                     {getDriverName(rental.driver_id)}
                   </h4>
-                  <p className="text-2xs text-zinc-500 font-medium">
+                  <p className="text-2xs text-muted-foreground font-medium">
                     Semana: <span className="font-mono">{rental.week_start}</span>
                   </p>
-                  <div className="flex gap-2 pt-1 text-[11px] text-zinc-400">
+                  <div className="flex gap-2 pt-1 text-[11px] text-muted-foreground">
                     <span>Monto: ${rental.rent_amount}</span>
                     <span>•</span>
                     <span>Pagado: ${rental.paid_amount}</span>
@@ -295,12 +322,12 @@ export default function FinancesSlice() {
               </div>
 
               {rental.payments_log.length > 0 && (
-                <div className="px-4 py-2.5 bg-zinc-950/40 border-t border-zinc-900 text-[10px] text-zinc-500 space-y-1.5">
-                  <span className="font-bold block uppercase tracking-wider text-zinc-600 text-[8px]">Historial de abonos:</span>
+                <div className="px-4 py-2.5 bg-muted/40 border-t border-border text-[10px] text-muted-foreground space-y-1.5">
+                  <span className="font-bold block uppercase tracking-wider text-muted-foreground/80 text-[8px]">Historial de abonos:</span>
                   {rental.payments_log.map((log, index) => (
                     <div key={index} className="flex justify-between font-medium">
-                      <span className="text-zinc-400">• Recibido: ${log.amount}</span>
-                      <span className="font-mono text-zinc-500">{log.date}</span>
+                      <span className="text-muted-foreground">• Recibido: ${log.amount}</span>
+                      <span className="font-mono text-muted-foreground">{log.date}</span>
                     </div>
                   ))}
                 </div>
@@ -310,7 +337,7 @@ export default function FinancesSlice() {
         })}
 
         {rentals.length === 0 && (
-          <div className="text-center py-8 text-zinc-500">
+          <div className="text-center py-8 text-muted-foreground">
             No hay registros de rentas ni cobros.
           </div>
         )}

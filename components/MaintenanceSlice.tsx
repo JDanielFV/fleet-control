@@ -69,8 +69,8 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight dark:text-zinc-50">Mantenimiento</h2>
-          <p className="text-sm text-zinc-500">Historial técnico de unidades</p>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Mantenimiento</h2>
+          <p className="text-sm text-muted-foreground">Historial técnico de unidades</p>
         </div>
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -163,15 +163,15 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
           <Card key={maint.id} className="overflow-hidden">
             <div className="p-4 flex items-start justify-between">
               <div className="flex gap-3">
-                <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full h-fit">
-                  <Wrench className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />
+                <div className="p-2 bg-muted rounded-full h-fit">
+                  <Wrench className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                  <h4 className="text-sm font-bold text-foreground">
                     {getVehicleName(maint.vehicle_id)}
                   </h4>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">{maint.description}</p>
-                  <div className="flex gap-2 text-[10px] text-zinc-500 pt-1">
+                  <p className="text-xs text-muted-foreground">{maint.description}</p>
+                  <div className="flex gap-2 text-[10px] text-muted-foreground pt-1">
                     <span>Servicio: {maint.maintenance_date}</span>
                     <span>•</span>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">Próximo: {maint.next_maintenance_date}</span>
@@ -179,7 +179,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50">
+                <p className="text-sm font-extrabold text-foreground">
                   ${maint.cost}
                 </p>
               </div>
@@ -188,7 +188,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
         ))}
 
         {maintenances.length === 0 && (
-          <div className="text-center py-8 text-zinc-500">
+          <div className="text-center py-8 text-muted-foreground">
             No se han registrado bitácoras de mantenimiento técnico.
           </div>
         )}

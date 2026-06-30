@@ -30,6 +30,7 @@ export interface Vehicle {
   insurance_policy_img: string; // Base64 or URL
   insurance_expiration_date: string;
   active_driver_id: string | null;
+  rent_cost: number;
   created_at: string;
 }
 
@@ -146,6 +147,7 @@ const seedVehicles: Vehicle[] = [
     insurance_policy_img: "",
     insurance_expiration_date: "2026-07-15", // Expiring soon
     active_driver_id: "d1",
+    rent_cost: 2500,
     created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
   },
   {
@@ -160,6 +162,7 @@ const seedVehicles: Vehicle[] = [
     insurance_policy_img: "",
     insurance_expiration_date: "2026-12-01",
     active_driver_id: null,
+    rent_cost: 2500,
     created_at: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString(),
   }
 ];
@@ -359,6 +362,36 @@ export const db = {
     return fullDriver;
   },
 
+  async deleteDriver(id: string): Promise<boolean> {
+    // 1. Clear active_driver_id on any vehicles that are assigned to this driver
+    const vehicles = getLocalData("vehicles", seedVehicles);
+    let updatedAny = false;
+    vehicles.forEach((v) => {
+      if (v.active_driver_id === id) {
+        v.active_driver_id = null;
+        updatedAny = true;
+      }
+    });
+    if (updatedAny) {
+      setLocalData("vehicles", vehicles);
+    }
+
+    // 2. Delete driver from local storage
+    const drivers = getLocalData("drivers", seedDrivers);
+    const filtered = drivers.filter((d) => d.id !== id);
+    setLocalData("drivers", filtered);
+
+    // 3. Delete from Supabase if active
+    if (supabase) {
+      if (updatedAny) {
+        await supabase.from("vehicles").update({ active_driver_id: null }).eq("active_driver_id", id);
+      }
+      const { error } = await supabase.from("drivers").delete().eq("id", id);
+      return !error;
+    }
+    return true;
+  },
+
   // --- Vehicles ---
   async getVehicles(): Promise<Vehicle[]> {
     if (supabase) {
@@ -389,6 +422,20 @@ export const db = {
     return fullVehicle;
   },
 
+  async deleteVehicle(id: string): Promise<boolean> {
+    // Delete vehicle from local storage
+    const vehicles = getLocalData("vehicles", seedVehicles);
+    const filtered = vehicles.filter((v) => v.id !== id);
+    setLocalData("vehicles", filtered);
+
+    // Delete from Supabase if active
+    if (supabase) {
+      const { error } = await supabase.from("vehicles").delete().eq("id", id);
+      return !error;
+    }
+    return true;
+  },
+
   // --- Assignments ---
   async getAssignments(): Promise<Assignment[]> {
     if (supabase) {
@@ -398,7 +445,7 @@ export const db = {
     return getLocalData("assignments", seedAssignments);
   },
 
-  async createAssignment(vehicleId: string, driverId: string, type: "ASSIGN" | "RELEASE", reason: string): Promise<Assignment> {
+  async createAssignment(vehicleId: string, driverId: string, type: "ASSIGN" | "RELEASE", reason: string, isFirstTime: boolean = false): Promise<Assignment> {
     const newAssignment: Assignment = {
       id: Math.random().toString(36).substring(2, 11),
       vehicle_id: vehicleId,
@@ -414,6 +461,43 @@ export const db = {
     if (vIndex >= 0) {
       vehicles[vIndex].active_driver_id = type === "ASSIGN" ? driverId : null;
       setLocalData("vehicles", vehicles);
+    }
+
+    // Auto-generate Weekly Rental if it's an ASSIGN action
+    if (type === "ASSIGN") {
+      // Get current Monday
+      const d = new Date();
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      const yyyy = monday.getFullYear();
+      const mm = String(monday.getMonth() + 1).padStart(2, '0');
+      const dd = String(monday.getDate()).padStart(2, '0');
+      const weekStart = `${yyyy}-${mm}-${dd}`;
+
+      const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
+      const exists = rentals.some((r) => r.driver_id === driverId && r.week_start === weekStart);
+      if (!exists) {
+        const vehicleObj = vehicles.find((v) => v.id === vehicleId);
+        const rentCost = vehicleObj?.rent_cost || 2500;
+
+        const newRental: WeeklyRental = {
+          id: Math.random().toString(36).substring(2, 11),
+          driver_id: driverId,
+          week_start: weekStart,
+          rent_amount: rentCost, // Dynamic rent cost from vehicle
+          paid_amount: 0,
+          accumulated_debt: isFirstTime ? rentCost * 2 : rentCost, // Rent + Deposit ($rentCost + $rentCost) if first time
+          status: "UNPAID",
+          payments_log: [],
+          created_at: new Date().toISOString(),
+        };
+        rentals.unshift(newRental);
+        setLocalData("weekly_rentals", rentals);
+        if (supabase) {
+          await supabase.from("weekly_rentals").insert(newRental);
+        }
+      }
     }
 
     if (supabase) {
@@ -453,6 +537,72 @@ export const db = {
     checklists.unshift(fullChecklist);
     setLocalData("checklists", checklists);
     return fullChecklist;
+  },
+
+  async autoGenerateMondayChecklists(): Promise<number> {
+    const today = new Date();
+    // 1 = Monday. Check if today is Monday
+    if (today.getDay() !== 1) return 0;
+
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const currentMondayStr = `${yyyy}-${mm}-${dd}`;
+
+    // Verify if already generated for this Monday
+    if (typeof window !== "undefined") {
+      const lastGen = localStorage.getItem("last_weekly_checklist_gen");
+      if (lastGen === currentMondayStr) {
+        return 0; // Already run
+      }
+    }
+
+    const vehicles = await this.getVehicles();
+    const checklists = await this.getChecklists();
+    let count = 0;
+
+    for (const vehicle of vehicles) {
+      if (vehicle.active_driver_id) {
+        // Check if there is already a WEEKLY_START checklist for this vehicle today
+        const hasTodayChecklist = checklists.some(
+          (c) =>
+            c.vehicle_id === vehicle.id &&
+            c.type === "WEEKLY_START" &&
+            c.created_at.startsWith(currentMondayStr)
+        );
+
+        if (!hasTodayChecklist) {
+          // Retrieve last recorded mileage
+          const vehicleChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
+          const lastMileage =
+            vehicleChecklists.length > 0
+              ? Math.max(...vehicleChecklists.map((c) => c.mileage))
+              : 0;
+
+          await this.saveChecklist({
+            vehicle_id: vehicle.id,
+            driver_id: vehicle.active_driver_id,
+            type: "WEEKLY_START",
+            mileage: lastMileage,
+            gasoline_level: "8/8",
+            checklist_items: {
+              lights: true,
+              brakes: true,
+              tires: true,
+              bodywork: true,
+              documents: true,
+            },
+            irregularities: "Checklist autogenerado de inicio de semana.",
+          });
+          count++;
+        }
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("last_weekly_checklist_gen", currentMondayStr);
+    }
+    return count;
   },
 
   // --- Weekly Rentals & Finance ---
@@ -716,6 +866,16 @@ export const db = {
       }
     });
 
-    return alerts;
+    const completed = getLocalData("completed_alerts", [] as string[]);
+    return alerts.filter((a) => !completed.includes(a.id));
+  },
+
+  async dismissAlert(alertId: string): Promise<boolean> {
+    const completed = getLocalData("completed_alerts", [] as string[]);
+    if (!completed.includes(alertId)) {
+      completed.push(alertId);
+      setLocalData("completed_alerts", completed);
+    }
+    return true;
   },
 };
