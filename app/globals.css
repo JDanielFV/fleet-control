@@ -69,6 +69,8 @@
 /* Ensure mobile viewport layout is 100% height without bounce issues */
 html, body {
   overflow: hidden;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   height: 100%;
   width: 100%;
   margin: 0;
