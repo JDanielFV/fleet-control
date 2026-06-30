@@ -690,7 +690,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                   </div>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSave} className="space-y-4 pt-2">
+                <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
+                  <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
                   
                   {/* Tarjeta de Circulación Photo / Upload picker */}
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
@@ -847,7 +848,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer" disabled={isScanning}>
+                  </div>
+
+                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0" disabled={isScanning}>
                     Guardar Vehículo
                   </Button>
                 </form>
