@@ -74,6 +74,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
   const [ineSex, setIneSex] = useState<"M" | "F" | "X">("M");
   const [ineElectorKey, setIneElectorKey] = useState("");
   const [birthState, setBirthState] = useState("DF"); // CDMX default
+  const [demoIndex, setDemoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadDrivers();
@@ -143,6 +144,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     setIneSex("M");
     setIneElectorKey("");
     setBirthState("DF");
+    setDemoIndex(null);
     stopCamera();
   };
 
@@ -409,6 +411,12 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
 
   // Simulated OCR Trigger for fast demo
   const triggerOcrScanDemo = (target: "INE" | "LICENCIA") => {
+    let idx = demoIndex;
+    if (idx === null) {
+      idx = Math.floor(Math.random() * 6);
+      setDemoIndex(idx);
+    }
+
     setIsScanning(true);
     setScanTarget(target);
     setOcrStep("align");
@@ -491,7 +499,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
             elector_key: "HRRAJZ93070408M600"
           }
         ];
-        const idx = Math.floor(Math.random() * demoDrivers.length);
         const choice = demoDrivers[idx];
 
         setFirstName(choice.first_name);
@@ -565,7 +572,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
             expiration: "2027-08-04"
           }
         ];
-        const idx = Math.floor(Math.random() * demoLicenses.length);
         const choice = demoLicenses[idx];
 
         setFirstName(choice.first_name);
