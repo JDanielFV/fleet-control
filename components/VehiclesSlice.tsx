@@ -24,6 +24,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
   const [search, setSearch] = useState("");
+  const [expandedVehicleLogs, setExpandedVehicleLogs] = useState<Record<string, boolean>>({});
+
+  const toggleLogs = (vehicleId: string) => {
+    setExpandedVehicleLogs(prev => ({
+      ...prev,
+      [vehicleId]: !prev[vehicleId]
+    }));
+  };
 
   const handleDeleteVehicle = async (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.")) {
@@ -1013,6 +1021,52 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                     <span className={rentStatusColor}>{rentStatusText}</span>
                   </div>
                 </div>
+
+                <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center">
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    {vehicleChecklists.length} bitácoras / checklists
+                  </span>
+                  <Button 
+                    onClick={() => toggleLogs(vehicle.id)}
+                    variant="ghost" 
+                    className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    {expandedVehicleLogs[vehicle.id] ? "Ocultar Historial" : "Ver Historial"}
+                  </Button>
+                </div>
+
+                {expandedVehicleLogs[vehicle.id] && (
+                  <div className="mt-3 pt-3 border-t border-border/80 space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                    {vehicleChecklists.length === 0 ? (
+                      <p className="text-2xs text-muted-foreground italic text-center py-2">No hay checklists registrados aún.</p>
+                    ) : (
+                      [...vehicleChecklists]
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .map((c) => (
+                          <div key={c.id} className="p-2 rounded-lg bg-muted/40 border border-border/40 text-2xs space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-foreground/90 uppercase tracking-wide">
+                                {c.type === "WEEKLY_START" ? "Semanal" : "Entrega"}
+                              </span>
+                              <span className="text-muted-foreground font-medium">
+                                {new Date(c.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
+                              <span>KM: <strong className="text-foreground">{c.mileage} km</strong></span>
+                              <span>Gas: <strong className="text-foreground">{c.gasoline_level}</strong></span>
+                            </div>
+                            {c.irregularities && (
+                              <p className="text-[10px] text-amber-500/90 font-medium">
+                                <span className="font-bold">Incidencia:</span> {c.irregularities}
+                              </p>
+                            )}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
