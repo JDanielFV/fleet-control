@@ -198,7 +198,7 @@ export default function Dashboard() {
               </div>
 
               {/* Center: Desktop horizontal segmented tab controllers */}
-              <div className="hidden md:flex items-center gap-0.5 bg-secondary/50 p-1 rounded-xl border border-border/40 select-none">
+              <div className="hidden md:flex md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 items-center gap-0.5 bg-secondary/50 p-1 rounded-xl border border-border/40 select-none">
                 {navigationItems.map((tab) => {
                   const Icon = tab.icon;
                   const isSelected = activeTab === tab.id;
