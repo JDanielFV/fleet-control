@@ -410,6 +410,9 @@ export const db = {
     if (supabase) {
       const { data, error } = await supabase.from("vehicles").upsert(fullVehicle).select().single();
       if (!error && data) return data;
+      if (error) {
+        console.error("Supabase saveVehicle error:", error.message, error.details);
+      }
     }
     const vehicles = getLocalData("vehicles", seedVehicles);
     const existingIndex = vehicles.findIndex((v) => v.id === fullVehicle.id);
