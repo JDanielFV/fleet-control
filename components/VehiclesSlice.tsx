@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles } from "lucide-react";
+import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface VehiclesSliceProps {
@@ -142,6 +142,32 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     setInsuranceExpirationDate("");
     setRentCost(2500);
     stopCamera();
+  };
+
+  const exportVehiclesCSV = () => {
+    if (vehicles.length === 0) return;
+    const headers = ["ID", "Marca", "Nombre", "Modelo", "Clase", "Placas", "VIN", "Vence Circulacion", "Vence Seguro", "Costo Renta Semanal"];
+    const rows = vehicles.map(v => [
+      v.id,
+      v.brand,
+      v.vehicle_name,
+      v.model || "",
+      v.class_type || "",
+      v.plate_number,
+      v.vin || "",
+      v.circulation_expiration_date || "",
+      v.insurance_expiration_date || "",
+      v.rent_cost || 2500
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `inventario_autos_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // WebRTC camera startup
@@ -540,16 +566,26 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
           <p className="text-sm text-muted-foreground">Administra los autos de la flota</p>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={(open) => {
-          setIsOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl bg-primary hover:bg-primary text-white font-bold active:scale-95 cursor-pointer" onClick={resetForm}>
-              <Car className="w-4 h-4 mr-2" />
-              Nuevo Vehículo
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button
+            onClick={exportVehiclesCSV}
+            variant="outline"
+            className="rounded-xl border-border bg-card hover:bg-accent text-foreground font-semibold active:scale-95 cursor-pointer text-xs flex items-center h-10 px-3"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+
+          <Dialog open={isOpen} onOpenChange={(open) => {
+            setIsOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button className="rounded-xl bg-primary hover:bg-primary text-white font-bold active:scale-95 cursor-pointer h-10" onClick={resetForm}>
+                <Car className="w-4 h-4 mr-2" />
+                Nuevo Vehículo
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-white font-black text-lg">Registro de Vehículo</DialogTitle>
@@ -804,6 +840,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       {/* Verification Schedule Visual Grid */}
       <Card className="border-border bg-card/30 overflow-hidden">

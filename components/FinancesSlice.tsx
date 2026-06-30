@@ -35,6 +35,35 @@ export default function FinancesSlice() {
     setRentals(rList);
   };
 
+  const exportFinancesCSV = () => {
+    if (rentals.length === 0) return;
+    const headers = ["ID", "Chofer ID", "Nombre Chofer", "Semana", "Monto Renta", "Monto Pagado", "Adeudo Acumulado", "Estatus"];
+    const rows = rentals.map(r => {
+      const d = drivers.find(x => x.id === r.driver_id);
+      const name = d ? `${d.first_name} ${d.paternal_last_name}` : "Desconocido";
+      const status = r.accumulated_debt <= 0 ? "Al corriente" : r.paid_amount > 0 ? "Abono Parcial" : "Pendiente de Pago";
+      return [
+        r.id,
+        r.driver_id,
+        name,
+        r.week_start,
+        r.rent_amount,
+        r.paid_amount,
+        r.accumulated_debt,
+        status
+      ];
+    });
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `reporte_finanzas_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDriver || !selectedWeek || paymentAmount <= 0) return;
@@ -131,7 +160,7 @@ export default function FinancesSlice() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-3 gap-3.5">
         <Dialog open={isPaymentOpen} onOpenChange={handlePaymentOpenChange}>
           <DialogTrigger asChild>
             <Button className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer" variant="outline">
@@ -278,6 +307,15 @@ export default function FinancesSlice() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <Button
+          onClick={exportFinancesCSV}
+          className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer"
+          variant="outline"
+        >
+          <FileSpreadsheet className="w-5 h-5 text-primary" />
+          <span className="text-[11px] font-bold">Exportar CSV</span>
+        </Button>
       </div>
 
       <div className="space-y-3">
