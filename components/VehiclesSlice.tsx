@@ -86,6 +86,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
   const [insurancePolicyImg, setInsurancePolicyImg] = useState("");
   const [insuranceExpirationDate, setInsuranceExpirationDate] = useState("");
   const [rentCost, setRentCost] = useState<number>(2500);
+  const [nextServiceMileage, setNextServiceMileage] = useState<string>("");
 
   useEffect(() => {
     loadData();
@@ -109,20 +110,24 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!brand || !vehicleName || !plateNumber) return;
+    if (!brand || !vehicleName || !plateNumber) {
+      alert("Por favor completa los campos obligatorios (*)");
+      return;
+    }
 
-    const formattedPlate = plateNumber.toUpperCase().replace(/\s+/g, "").trim();
+    const formattedPlate = plateNumber.toUpperCase().trim();
     const formattedVin = vin.toUpperCase().trim();
 
-    // Check for duplicates
-    const isDuplicate = vehicles.some(
-      (v) =>
-        v.plate_number.toUpperCase().replace(/\s+/g, "").trim() === formattedPlate ||
-        (v.vin && formattedVin && v.vin.toUpperCase().trim() === formattedVin)
-    );
+    // Prevent duplicates matching plates or serial (VIN)
+    const plateExists = vehicles.some((v) => v.plate_number === formattedPlate);
+    const vinExists = vin && vehicles.some((v) => v.vin === formattedVin);
 
-    if (isDuplicate) {
-      alert("Error: Ya existe un vehículo registrado con estas placas o número de serie (VIN).");
+    if (plateExists) {
+      alert(`Error: Ya existe un auto registrado con las placas "${formattedPlate}".`);
+      return;
+    }
+    if (vinExists) {
+      alert(`Error: Ya existe un auto registrado con el número de serie (VIN) "${formattedVin}".`);
       return;
     }
 
@@ -138,6 +143,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
       insurance_expiration_date: insuranceExpirationDate,
       active_driver_id: null,
       rent_cost: Number(rentCost),
+      next_service_mileage: nextServiceMileage ? parseInt(nextServiceMileage) : null,
     });
 
     resetForm();
@@ -157,12 +163,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     setInsurancePolicyImg("");
     setInsuranceExpirationDate("");
     setRentCost(2500);
+    setNextServiceMileage("");
     stopCamera();
   };
 
   const exportVehiclesCSV = () => {
     if (vehicles.length === 0) return;
-    const headers = ["ID", "Marca", "Nombre", "Modelo", "Clase", "Placas", "VIN", "Vence Circulacion", "Vence Seguro", "Costo Renta Semanal"];
+    const headers = ["ID", "Marca", "Nombre", "Modelo", "Clase", "Placas", "VIN", "Vence Circulacion", "Vence Seguro", "Costo Renta Semanal", "Km Prox Servicio"];
     const rows = vehicles.map(v => [
       v.id,
       v.brand,
@@ -173,7 +180,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
       v.vin || "",
       v.circulation_expiration_date || "",
       v.insurance_expiration_date || "",
-      v.rent_cost || 2500
+      v.rent_cost || 2500,
+      v.next_service_mileage || ""
     ]);
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -820,6 +828,10 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                         <Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label>
                         <Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" required />
                       </div>
+                      <div className="min-w-0">
+                        <Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label>
+                        <Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" />
+                      </div>
                     </div>
                   </div>
 
@@ -913,7 +925,52 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
             }
           }
           
-          // 4. Rent status check (si está pagada)
+          // 4. Next service prediction formula based on checklists and average daily mileage
+          const currentKm = lastChecklist ? lastChecklist.mileage : 0;
+          const targetKm = vehicle.next_service_mileage || null;
+          
+          let nextServiceText = "No programado";
+          let nextServiceEstimate = "N/D";
+          let isServiceOverdue = false;
+          let daysToService = 0;
+
+          if (targetKm) {
+            nextServiceText = `${targetKm.toLocaleString()} km`;
+            
+            // Calculate average daily usage
+            let averageDailyKm = 80; // default typical daily mileage for taxi/uber fleet (e.g. 80km/day)
+            if (vehicleChecklists.length >= 2) {
+              const sortedChecklists = [...vehicleChecklists].sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
+              const first = sortedChecklists[0];
+              const last = sortedChecklists[sortedChecklists.length - 1];
+              const kmDiff = last.mileage - first.mileage;
+              const daysDiff = (new Date(last.created_at).getTime() - new Date(first.created_at).getTime()) / (1000 * 60 * 60 * 24);
+              if (daysDiff > 0 && kmDiff > 0) {
+                averageDailyKm = kmDiff / daysDiff;
+              }
+            }
+
+            if (currentKm >= targetKm) {
+              isServiceOverdue = true;
+              const diff = currentKm - targetKm;
+              nextServiceEstimate = `Excedido por ${diff.toLocaleString()} km`;
+            } else {
+              const remainingKm = targetKm - currentKm;
+              daysToService = Math.ceil(remainingKm / averageDailyKm);
+              
+              const estDate = new Date();
+              estDate.setDate(estDate.getDate() + daysToService);
+              nextServiceEstimate = estDate.toLocaleDateString("es-MX", {
+                day: "numeric",
+                month: "short",
+                year: "numeric"
+              });
+            }
+          }
+
+          // 5. Rent status check (si está pagada)
           let rentStatusText = "Sin chofer";
           let rentStatusColor = "text-muted-foreground";
           if (vehicle.active_driver_id) {
@@ -1027,8 +1084,19 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                           <span className="text-foreground font-medium">{lastServiceDate}</span>
                         </div>
                         <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje Actual</span>
                           <span className="text-foreground font-medium">{mileage}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Próximo Servicio</span>
+                          <span className={`font-semibold ${isServiceOverdue ? "text-amber-500 animate-pulse font-bold" : "text-foreground font-medium"}`}>{nextServiceText}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Est. Fecha Servicio</span>
+                          <span className={`font-semibold flex items-center gap-1 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground font-medium"}`}>
+                            {isServiceOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
+                            {nextServiceEstimate}
+                          </span>
                         </div>
                         <div>
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Estatus Verificación</span>

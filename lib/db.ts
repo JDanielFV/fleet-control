@@ -31,6 +31,7 @@ export interface Vehicle {
   insurance_expiration_date: string;
   active_driver_id: string | null;
   rent_cost: number;
+  next_service_mileage?: number | null;
   created_at: string;
 }
 
