@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db, Alert } from "@/lib/db";
+import { db, Alert, Driver, Vehicle } from "@/lib/db";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
@@ -19,6 +19,9 @@ export default function Dashboard() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [stats, setStats] = useState({ vehicles: 0, drivers: 0, assigned: 0 });
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [collectionRate, setCollectionRate] = useState(100);
   const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
@@ -52,15 +55,40 @@ export default function Dashboard() {
     const vList = await db.getVehicles();
     const dList = await db.getDrivers();
     const aList = await db.getAssignments();
+    const rList = await db.getWeeklyRentals();
     
+    setVehicles(vList);
+    setDrivers(dList);
+
     const assigned = vList.filter(v => v.active_driver_id !== null).length;
     setStats({
       vehicles: vList.length,
       drivers: dList.length,
       assigned: assigned
     });
+
+    // Calculate Collection Rate percentage
+    const totalCollected = rList.reduce((acc, curr) => acc + curr.paid_amount, 0);
+    const totalPending = rList.reduce((acc, curr) => acc + curr.accumulated_debt, 0);
+    const totalDebtSum = totalCollected + totalPending;
+    const rate = totalDebtSum > 0 ? Math.round((totalCollected / totalDebtSum) * 100) : 100;
+    setCollectionRate(rate);
+
     setRecentAssignments(aList.slice(0, 4));
   };
+
+  const getVehicleDesc = (id: string) => {
+    const v = vListFind(id);
+    return v ? `${v.brand} ${v.vehicle_name} (${v.plate_number})` : "Vehículo";
+  };
+
+  const getDriverDesc = (id: string) => {
+    const d = dListFind(id);
+    return d ? `${d.first_name} ${d.paternal_last_name}` : "Conductor";
+  };
+
+  const vListFind = (id: string) => vehicles.find((x) => x.id === id);
+  const dListFind = (id: string) => drivers.find((x) => x.id === id);
 
   const triggerRefresh = () => {
     setRefreshTrigger((prev) => prev + 1);
@@ -270,27 +298,48 @@ export default function Dashboard() {
           >
             {activeTab === "dashboard" && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-max">
-
                 {/* BENTO TILE 4: Fleet Overview Quick Stats (Spans 1 column on PC) */}
-                <Card className="p-5 border-border bg-card flex flex-col justify-between min-h-[160px]">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resumen de Flota</h3>
-                  <div className="grid grid-cols-3 gap-2 text-center pt-2">
-                    <div>
-                      <span className="block text-2xl font-black text-foreground">{stats.vehicles}</span>
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Autos</span>
-                    </div>
-                    <div>
-                      <span className="block text-2xl font-black text-primary">{stats.assigned}</span>
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Activos</span>
-                    </div>
-                    <div>
-                      <span className="block text-2xl font-black text-foreground">{stats.drivers}</span>
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Choferes</span>
+                <Card className="p-5 border-border bg-card flex flex-col justify-between min-h-[160px] space-y-4">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resumen de Flota</h3>
+                    <div className="grid grid-cols-3 gap-2 text-center pt-2">
+                      <div>
+                        <span className="block text-2xl font-black text-foreground">{stats.vehicles}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Autos</span>
+                      </div>
+                      <div>
+                        <span className="block text-2xl font-black text-primary">{stats.assigned}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Activos</span>
+                      </div>
+                      <div>
+                        <span className="block text-2xl font-black text-foreground">{stats.drivers}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Choferes</span>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-[9px] text-muted-foreground leading-tight pt-3 border-t border-border/50 mt-2">
-                    Flota activa al {stats.vehicles > 0 ? Math.round((stats.assigned / stats.vehicles) * 100) : 0}% de capacidad.
-                  </p>
+
+                  {/* Progress bars (KPIs) */}
+                  <div className="space-y-3 pt-2 border-t border-border/50">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[9px] font-extrabold uppercase text-muted-foreground">
+                        <span>Ocupación de Flota</span>
+                        <span>{stats.vehicles > 0 ? Math.round((stats.assigned / stats.vehicles) * 100) : 0}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-muted border border-border/40 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${stats.vehicles > 0 ? (stats.assigned / stats.vehicles) * 100 : 0}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[9px] font-extrabold uppercase text-muted-foreground">
+                        <span>Cobranza Semanal</span>
+                        <span>{collectionRate}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-muted border border-border/40 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500" style={{ width: `${collectionRate}%` }} />
+                      </div>
+                    </div>
+                  </div>
                 </Card>
 
                 {/* BENTO TILE 5: Acciones Rápidas Shortcuts (Spans 1 column on PC) */}
@@ -326,17 +375,22 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground italic py-4 text-center">No hay movimientos registrados.</p>
                     ) : (
                       recentAssignments.map((asg) => (
-                        <Card key={asg.id} className="p-3 border-border bg-muted/20 text-xs">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className={`px-1.5 py-0.5 text-[8px] font-black rounded-md ${asg.action_type === "ASSIGN" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
+                        <Card key={asg.id} className="p-3 border-border bg-muted/20 text-xs space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className={`px-1.5 py-0.5 text-[8px] font-black rounded-md uppercase ${asg.action_type === "ASSIGN" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}>
                               {asg.action_type === "ASSIGN" ? "Asignado" : "Retirado"}
                             </span>
-                            <span className="text-[8px] text-muted-foreground">{new Date(asg.created_at).toLocaleDateString()}</span>
+                            <span className="text-[8px] text-muted-foreground font-semibold">{new Date(asg.created_at).toLocaleDateString()}</span>
                           </div>
-                          <p className="font-semibold text-foreground/90 truncate">
-                            Placa: {asg.vehicle_id.substring(0, 5)}...
-                          </p>
-                          <p className="text-[10px] text-muted-foreground truncate">Motivo: {asg.reason}</p>
+                          <div>
+                            <p className="font-bold text-foreground/95 text-[11px] leading-tight">
+                              {getDriverDesc(asg.driver_id)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {getVehicleDesc(asg.vehicle_id)}
+                            </p>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground italic leading-none pt-0.5 border-t border-border/40">Motivo: {asg.reason}</p>
                         </Card>
                       ))
                     )}
