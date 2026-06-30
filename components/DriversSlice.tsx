@@ -75,6 +75,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
   const [ineElectorKey, setIneElectorKey] = useState("");
   const [birthState, setBirthState] = useState("DF"); // CDMX default
   const [demoIndex, setDemoIndex] = useState<number | null>(null);
+  const [expandedDriverDetails, setExpandedDriverDetails] = useState<Record<string, boolean>>({});
+
+  const toggleDriverDetails = (driverId: string) => {
+    setExpandedDriverDetails(prev => ({
+      ...prev,
+      [driverId]: !prev[driverId]
+    }));
+  };
 
   useEffect(() => {
     loadDrivers();
@@ -1110,22 +1118,34 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-muted-foreground">
-                <div>
-                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
-                  <span className="text-foreground font-medium">{driver.license_number || "N/D"}</span>
+            {expandedDriverDetails[driver.id] && (
+              <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-muted-foreground">
+                  <div>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
+                    <span className="text-foreground font-medium">{driver.license_number || "N/D"}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
+                    <span className="text-foreground font-medium">{driver.ine_elector_key || "N/D"}</span>
+                  </div>
+                  <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5">
+                    <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
+                    <span className="text-foreground leading-snug">{driver.ine_address || "N/D"}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
-                  <span className="text-foreground font-medium">{driver.ine_elector_key || "N/D"}</span>
-                </div>
-                <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5">
-                  <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
-                  <span className="text-foreground leading-snug">{driver.ine_address || "N/D"}</span>
-                </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
+
+            <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10">
+              <Button
+                onClick={() => toggleDriverDetails(driver.id)}
+                variant="ghost"
+                className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
+              >
+                {expandedDriverDetails[driver.id] ? "Ocultar Detalles" : "Ver Detalles"}
+              </Button>
+            </div>
           </Card>
         ))}
 
