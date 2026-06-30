@@ -979,105 +979,125 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                   </div>
                 </div>
               </CardHeader>
-              {expandedVehicleDetails[vehicle.id] && (
-                <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-muted-foreground">
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
-                      <span className="font-semibold text-foreground">
-                        {getDriverName(vehicle.active_driver_id)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
-                      <span className="text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado Verificación</span>
-                      <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                        <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block" style={{
-                          backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
-                                          schedule.color === "Rosa" ? "#ec4899" :
-                                          schedule.color === "Rojo" ? "#ef4444" :
-                                          schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
-                        }} />
-                        {schedule.color}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Seguro Vigente</span>
-                      <span className="flex items-center gap-1 text-foreground font-medium">
-                        <Shield className="w-3.5 h-3.5 text-primary" />
-                        {vehicle.insurance_expiration_date || "No registrada"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Último Servicio</span>
-                      <span className="text-foreground font-medium">{lastServiceDate}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
-                      <span className="text-foreground font-medium">{mileage}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Estatus Verificación</span>
-                      <span className={`font-semibold ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
-                        {verificationStatus}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta Semanal</span>
-                      <span className={rentStatusColor}>{rentStatusText}</span>
-                    </div>
-                  </div>
+              <AnimatePresence initial={false}>
+                {expandedVehicleDetails[vehicle.id] && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-muted-foreground">
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
+                          <span className="font-semibold text-foreground">
+                            {getDriverName(vehicle.active_driver_id)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
+                          <span className="text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado Verificación</span>
+                          <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                            <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block" style={{
+                              backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
+                                              schedule.color === "Rosa" ? "#ec4899" :
+                                              schedule.color === "Rojo" ? "#ef4444" :
+                                              schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
+                            }} />
+                            {schedule.color}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Seguro Vigente</span>
+                          <span className="flex items-center gap-1 text-foreground font-medium">
+                            <Shield className="w-3.5 h-3.5 text-primary" />
+                            {vehicle.insurance_expiration_date || "No registrada"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Último Servicio</span>
+                          <span className="text-foreground font-medium">{lastServiceDate}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                          <span className="text-foreground font-medium">{mileage}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Estatus Verificación</span>
+                          <span className={`font-semibold ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
+                            {verificationStatus}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta Semanal</span>
+                          <span className={rentStatusColor}>{rentStatusText}</span>
+                        </div>
+                      </div>
 
-                  <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground font-semibold">
-                      {vehicleChecklists.length} bitácoras / checklists
-                    </span>
-                    <Button 
-                      onClick={() => toggleLogs(vehicle.id)}
-                      variant="ghost" 
-                      className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      {expandedVehicleLogs[vehicle.id] ? "Ocultar Historial" : "Ver Historial"}
-                    </Button>
-                  </div>
+                      <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center">
+                        <span className="text-[10px] text-muted-foreground font-semibold">
+                          {vehicleChecklists.length} bitácoras / checklists
+                        </span>
+                        <Button 
+                          onClick={() => toggleLogs(vehicle.id)}
+                          variant="ghost" 
+                          className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer animate-pulse"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          {expandedVehicleLogs[vehicle.id] ? "Ocultar Historial" : "Ver Historial"}
+                        </Button>
+                      </div>
 
-                  {expandedVehicleLogs[vehicle.id] && (
-                    <div className="mt-3 pt-3 border-t border-border/80 space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                      {vehicleChecklists.length === 0 ? (
-                        <p className="text-2xs text-muted-foreground italic text-center py-2">No hay checklists registrados aún.</p>
-                      ) : (
-                        [...vehicleChecklists]
-                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                          .map((c) => (
-                            <div key={c.id} className="p-2 rounded-lg bg-muted/40 border border-border/40 text-2xs space-y-1.5">
-                              <div className="flex justify-between items-center">
-                                <span className="font-bold text-foreground/90 uppercase tracking-wide">
-                                  {c.type === "WEEKLY_START" ? "Semanal" : "Entrega"}
-                                </span>
-                                <span className="text-muted-foreground font-medium">
-                                  {new Date(c.created_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
-                                <span>KM: <strong className="text-foreground">{c.mileage} km</strong></span>
-                                <span>Gas: <strong className="text-foreground">{c.gasoline_level}</strong></span>
-                              </div>
-                              {c.irregularities && (
-                                <p className="text-[10px] text-amber-500/90 font-medium">
-                                  <span className="font-bold">Incidencia:</span> {c.irregularities}
-                                </p>
+                      <AnimatePresence initial={false}>
+                        {expandedVehicleLogs[vehicle.id] && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 pt-3 border-t border-border/80 space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                              {vehicleChecklists.length === 0 ? (
+                                <p className="text-2xs text-muted-foreground italic text-center py-2">No hay checklists registrados aún.</p>
+                              ) : (
+                                [...vehicleChecklists]
+                                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                  .map((c) => (
+                                    <div key={c.id} className="p-2 rounded-lg bg-muted/40 border border-border/40 text-2xs space-y-1.5">
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-foreground/90 uppercase tracking-wide">
+                                          {c.type === "WEEKLY_START" ? "Semanal" : "Entrega"}
+                                        </span>
+                                        <span className="text-muted-foreground font-medium">
+                                          {new Date(c.created_at).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
+                                        <span>KM: <strong className="text-foreground">{c.mileage} km</strong></span>
+                                        <span>Gas: <strong className="text-foreground">{c.gasoline_level}</strong></span>
+                                      </div>
+                                      {c.irregularities && (
+                                        <p className="text-[10px] text-amber-500/90 font-medium">
+                                          <span className="font-bold">Incidencia:</span> {c.irregularities}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))
                               )}
                             </div>
-                          ))
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10">
                 <Button
