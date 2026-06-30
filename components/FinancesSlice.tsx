@@ -160,7 +160,7 @@ export default function FinancesSlice() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         <Dialog open={isPaymentOpen} onOpenChange={handlePaymentOpenChange}>
           <DialogTrigger asChild>
             <Button className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer" variant="outline">
