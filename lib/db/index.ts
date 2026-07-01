@@ -239,6 +239,28 @@ export const db = {
     return newAssignment;
   },
 
+  async removeAssignment(assignmentId: string, reason: string): Promise<void> {
+    if (supabase) {
+      const { error } = await supabase.from("assignments").delete().match({ id: assignmentId });
+      if (error) throw error;
+      console.log(`Assignment ${assignmentId} removed. Reason: ${reason}`);
+    } else {
+      const assignments = getLocalData("assignments", seedAssignments);
+      const filtered = assignments.filter(a => a.id !== assignmentId);
+      setLocalData("assignments", filtered);
+    }
+  },
+
+  async getAvailableVehicles(): Promise<Vehicle[]> {
+    const vehicles = await this.getVehicles();
+    return vehicles.filter(v => !v.driver_id);
+  },
+
+  async getAvailableDrivers(): Promise<Driver[]> {
+    const drivers = await this.getDrivers();
+    return drivers.filter(d => !d.vehicle_id);
+  },
+
   // --- Checklists ---
   async getChecklists(): Promise<Checklist[]> {
     if (supabase) {
