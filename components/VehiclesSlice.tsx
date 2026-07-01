@@ -1116,13 +1116,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         </div>
                       </div>
 
-                      <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center">
+                      <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
                         <span className="text-[10px] text-muted-foreground font-semibold">
                           {vehicleChecklists.length} bitácoras / checklists
                         </span>
-                        <Button 
-                          onClick={() => toggleLogs(vehicle.id)}
-                          variant="ghost" 
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); toggleLogs(vehicle.id); }}
+                          variant="ghost"
                           className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer animate-pulse"
                         >
                           <FileText className="w-3.5 h-3.5" />
@@ -1175,9 +1175,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 )}
               </AnimatePresence>
 
-              <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10">
+              <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10" onClick={(e) => e.stopPropagation()}>
                 <Button
-                  onClick={() => toggleVehicleDetails(vehicle.id)}
+                  onClick={(e) => { e.stopPropagation(); toggleVehicleDetails(vehicle.id); }}
                   variant="ghost"
                   className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
                 >

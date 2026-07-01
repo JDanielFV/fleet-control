@@ -1168,14 +1168,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   <span className="text-[15px] font-bold text-foreground truncate">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</span>
                   
                   {/* Subtle actions toolbar */}
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                     {driver.license_is_permanent ? (
                       <span className="px-1.5 py-0.5 text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
                         P
                       </span>
                     ) : (
                       <button
-                        onClick={() => handleRenewLicense(driver)}
+                        onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}
                         className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1 cursor-pointer transition-colors shrink-0"
                         title={`Renovar licencia (Vence: ${driver.license_expiration_date ?? "—"})`}
                       >
@@ -1183,14 +1183,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       </button>
                     )}
                     <button
-                      onClick={() => handleEditDriver(driver)}
+                      onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}
                       className="p-1 text-muted-foreground hover:text-primary active:scale-90 transition-all cursor-pointer"
                       title="Editar"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDeleteDriver(driver.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}
                       className="p-1 text-red-500 hover:text-red-400 active:scale-90 transition-all cursor-pointer"
                       title="Eliminar"
                     >
@@ -1253,9 +1253,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
               )}
             </AnimatePresence>
 
-            <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10">
+            <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10" onClick={(e) => e.stopPropagation()}>
               <Button
-                onClick={() => toggleDriverDetails(driver.id)}
+                onClick={(e) => { e.stopPropagation(); toggleDriverDetails(driver.id); }}
                 variant="ghost"
                 className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
               >
