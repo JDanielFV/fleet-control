@@ -31,15 +31,6 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
   const [assignType, setAssignType] = useState<"ASSIGN" | "RELEASE">("ASSIGN");
   const [assignSubtype, setAssignSubtype] = useState<"FIRST_TIME" | "CAR_CHANGE">("FIRST_TIME");
 
-  useEffect(() => {
-    if (selectedDriver) {
-      const hasPriorAssignment = assignments.some(
-        (a) => a.driver_id === selectedDriver && a.action_type === "ASSIGN"
-      );
-      setAssignSubtype(hasPriorAssignment ? "CAR_CHANGE" : "FIRST_TIME");
-    }
-  }, [selectedDriver, assignments]);
-
   const [checklistVehicle, setChecklistVehicle] = useState("");
   const [checklistDriver, setChecklistDriver] = useState("");
   const [checklistType, setChecklistType] = useState<"DELIVERY" | "WEEKLY_START">("DELIVERY");
