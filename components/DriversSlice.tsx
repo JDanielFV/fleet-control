@@ -52,6 +52,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
     setIneSex(d.ine_sex);
     setIneElectorKey(d.ine_elector_key);
     setDriverPhotoImg(d.driver_photo_img ?? "");
+    setAddressProofImg(d.address_proof_img ?? "");
     setIsOpen(true);
   };
 
@@ -93,8 +94,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
   const [renewExpirationDate, setRenewExpirationDate] = useState("");
   const [renewIsPermanent, setRenewIsPermanent] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"INE" | "LICENCIA" | "CHOFER" | null>(null);
+  const [scanTarget, setScanTarget] = useState<"INE" | "LICENCIA" | "CHOFER" | "DOMICILIO" | null>(null);
   const [driverPhotoImg, setDriverPhotoImg] = useState("");
+  const [addressProofImg, setAddressProofImg] = useState("");
   
   // OCR logs
   const [ocrStep, setOcrStep] = useState<"align" | "scan" | "extract" | "done">("align");
@@ -111,6 +113,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
   const ineFileRef = useRef<HTMLInputElement>(null);
   const licFileRef = useRef<HTMLInputElement>(null);
   const photoFileRef = useRef<HTMLInputElement>(null);
+  const addressProofFileRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [firstName, setFirstName] = useState("");
@@ -192,6 +195,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
       ine_sex: ineSex,
       ine_elector_key: ineElectorKey,
       driver_photo_img: driverPhotoImg || null,
+      address_proof_img: addressProofImg || null,
     });
 
     resetForm();
@@ -218,13 +222,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
     setIneElectorKey("");
     setBirthState("DF");
     setDriverPhotoImg("");
+    setAddressProofImg("");
     setDemoIndex(null);
     setEditingDriverId(null);
     stopCamera();
   };
 
   // WebRTC camera startup
-  const startCamera = async (target: "INE" | "LICENCIA" | "CHOFER") => {
+  const startCamera = async (target: "INE" | "LICENCIA" | "CHOFER" | "DOMICILIO") => {
     setScanTarget(target);
     setIsScanning(true);
     setIsCameraActive(true);
@@ -242,7 +247,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-      const successMsg = `[Cámara] Acceso concedido. Encuadre su rostro en el centro.`;
+      const successMsg = target === "CHOFER"
+        ? `[Cámara] Acceso concedido. Encuadre su rostro en el centro.`
+        : `[Cámara] Acceso concedido. Coloque el documento frente a la lente.`;
       console.log(successMsg);
       setOcrLogs(prev => [...prev, successMsg]);
     } catch (err: any) {
@@ -302,7 +309,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      if (scanTarget !== "CHOFER") {
+      if (scanTarget !== "CHOFER" && scanTarget !== "DOMICILIO") {
         preprocessCanvasForOcr(canvas);
       }
       stopCamera();
@@ -314,6 +321,10 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
         
         if (scanTarget === "CHOFER") {
           setDriverPhotoImg(dataUrl);
+          setIsScanning(false);
+          setScanTarget(null);
+        } else if (scanTarget === "DOMICILIO") {
+          setAddressProofImg(dataUrl);
           setIsScanning(false);
           setScanTarget(null);
         } else {
@@ -1020,6 +1031,66 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
                     </div>
                   </div>
 
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Comprobante de Domicilio</h4>
+                      {addressProofImg && (
+                        <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-bold">
+                          Cargado
+                        </span>
+                      )}
+                    </div>
+                    {addressProofImg && (
+                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <img src={addressProofImg} alt="Comprobante de Domicilio" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setAddressProofImg("")}
+                          className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90"
+                          title="Eliminar comprobante"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => startCamera("DOMICILIO")}
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                      >
+                        <Camera className="w-4 h-4 text-primary" /> Tomar Foto
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => addressProofFileRef.current?.click()}
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
+                      >
+                        <FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={addressProofFileRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              if (event.target?.result) {
+                                setAddressProofImg(event.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos Personales</h4>
                     <div className="grid grid-cols-1 gap-3">
@@ -1322,6 +1393,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
                         <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
                         <span className="text-foreground leading-snug">{driver.ine_address || "N/D"}</span>
                       </div>
+                      {driver.address_proof_img && (
+                        <div className="col-span-2 border-t border-border/60 pt-2 mt-1">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 mb-1">Comprobante de Domicilio</span>
+                          <div className="relative rounded-lg overflow-hidden border border-border/70 max-h-32 w-fit bg-card">
+                            <img src={driver.address_proof_img} alt="Comprobante" className="max-h-32 object-contain" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </motion.div>

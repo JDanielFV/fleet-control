@@ -16,6 +16,7 @@ export interface Driver {
   ine_sex: "M" | "F" | "X";
   ine_elector_key: string;
   driver_photo_img?: string | null;
+  address_proof_img?: string | null;
   created_at: string;
 }
 

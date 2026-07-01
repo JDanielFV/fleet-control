@@ -1118,6 +1118,27 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
                           </span>
                         )}
                       </div>
+                      {/* Alerta de revisión semanal de lunes */}
+                      {(() => {
+                        const d = new Date();
+                        const day = d.getDay();
+                        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                        const monday = new Date(d.setDate(diff));
+                        monday.setHours(0, 0, 0, 0);
+
+                        const hasThisWeeksChecklist = vehicleChecklists.some(
+                          c => new Date(c.created_at) >= monday
+                        );
+                        if (!hasThisWeeksChecklist) {
+                          return (
+                            <div className="mt-1.5 px-2 py-0.5 w-fit bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-[9px] font-extrabold rounded-md flex items-center gap-1 animate-pulse">
+                              <AlertTriangle className="w-3 h-3 shrink-0" />
+                              <span>Revisión de Lunes Pendiente</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">

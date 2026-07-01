@@ -9,7 +9,7 @@ import FinancesSlice from "./FinancesSlice";
 import MaintenanceSlice from "./MaintenanceSlice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Menu, X, Search, Command, Sparkles, TrendingUp } from "lucide-react";
+import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Menu, X, Search, Command, Sparkles, TrendingUp, Gauge } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Dashboard() {
@@ -22,6 +22,9 @@ export default function Dashboard() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [collectionRate, setCollectionRate] = useState(100);
+  const [totalMileage, setTotalMileage] = useState<number>(0);
+  const [avgDailyMileage, setAvgDailyMileage] = useState<number>(80);
+  const [avgFuelConsumption, setAvgFuelConsumption] = useState<number>(6.7);
   const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
@@ -63,6 +66,7 @@ export default function Dashboard() {
     const dList = await db.getDrivers();
     const aList = await db.getAssignments();
     const rList = await db.getWeeklyRentals();
+    const cList = await db.getChecklists();
 
     setVehicles(vList);
     setDrivers(dList);
@@ -81,6 +85,37 @@ export default function Dashboard() {
     setCollectionRate(rate);
 
     setRecentAssignments(aList.slice(0, 4));
+
+    // Compute mileage statistics
+    let totalKmSum = 0;
+    let totalDailyRateSum = 0;
+    let vehiclesWithRate = 0;
+
+    vList.forEach((vehicle) => {
+      const vChecklists = cList.filter((c) => c.vehicle_id === vehicle.id);
+      if (vChecklists.length > 0) {
+        const sorted = [...vChecklists].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const latest = sorted[0];
+        totalKmSum += latest.mileage;
+
+        if (vChecklists.length >= 2) {
+          const first = sorted[sorted.length - 1];
+          const daysDiff = Math.max(1, Math.round((new Date(latest.created_at).getTime() - new Date(first.created_at).getTime()) / (1000 * 60 * 60 * 24)));
+          const diffKm = latest.mileage - first.mileage;
+          if (diffKm > 0) {
+            totalDailyRateSum += diffKm / daysDiff;
+            vehiclesWithRate++;
+          }
+        }
+      }
+    });
+
+    const finalAvgDaily = vehiclesWithRate > 0 ? Math.round(totalDailyRateSum / vehiclesWithRate) : 80;
+    const finalAvgFuel = Math.round((finalAvgDaily / 12) * 10) / 10; // Est. 12 km/l
+
+    setTotalMileage(totalKmSum);
+    setAvgDailyMileage(finalAvgDaily);
+    setAvgFuelConsumption(finalAvgFuel);
   };
 
   const getVehicleDesc = (id: string) => {
@@ -374,6 +409,46 @@ export default function Dashboard() {
                     </Card>
                   </motion.div>
 
+                  {/* BENTO TILE 4b: Mileage & Fuel/Consumption Analytics */}
+                  <motion.div custom={4.5} initial="hidden" animate="visible" variants={tileVariants}>
+                    <Card className="p-5 border-border bg-card shadow-md h-full flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-label">Kilometraje y Consumo</h3>
+                          <Gauge className="w-3.5 h-3.5 text-primary" />
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Kilometraje Flota</span>
+                            <p className="text-2xl font-black text-foreground font-mono leading-none pt-1">
+                              {totalMileage.toLocaleString()} <span className="text-xs text-muted-foreground font-medium">km</span>
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+                            <div>
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Media Diaria</span>
+                              <p className="text-sm font-bold text-foreground font-mono mt-0.5">
+                                {avgDailyMileage} <span className="text-[9px] text-muted-foreground font-normal">km/d</span>
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Consumo Est.</span>
+                              <p className="text-sm font-bold text-primary font-mono mt-0.5">
+                                {avgFuelConsumption} <span className="text-[9px] text-muted-foreground font-normal">L/d</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-[9px] text-muted-foreground pt-3 border-t border-border/40 mt-3 leading-relaxed">
+                        Cálculo dinámico basado en checklists (Consumo est. urbano de 12 km/L).
+                      </p>
+                    </Card>
+                  </motion.div>
+
                   {/* BENTO TILE 5: Alerts — full width, redesigned */}
                   <motion.div custom={5} initial="hidden" animate="visible" variants={tileVariants} className="md:col-span-3 space-y-3">
                     <div className="flex items-center justify-between px-1">
@@ -439,6 +514,33 @@ export default function Dashboard() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Mobile Bottom Tab Bar for Direct Navigation */}
+      <nav className="md:hidden glass-nav border-t border-border bg-card/85 backdrop-blur-lg flex items-center justify-around h-14 w-full fixed bottom-0 left-0 z-40 px-2 pb-[env(safe-area-inset-bottom,0px)]">
+        {navigationItems.map((tab) => {
+          const Icon = tab.icon;
+          const isSelected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id as any)}
+              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] transition-all active:scale-95 cursor-pointer relative ${
+                isSelected ? "text-primary font-bold" : "text-muted-foreground"
+              }`}
+            >
+              <Icon className={`w-5 h-5 mb-0.5 transition-transform ${isSelected ? "scale-105" : ""}`} />
+              <span>{tab.label}</span>
+              {isSelected && (
+                <motion.div
+                  layoutId="activeBottomIndicator"
+                  className="absolute top-0 w-8 h-[2.5px] bg-primary rounded-full"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
       {/* Mobile Drawer */}
       <AnimatePresence>
