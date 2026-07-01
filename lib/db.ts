@@ -334,6 +334,16 @@ export function getVerificationSchedule(plate: string): VerificationSchedule {
   }
 }
 
+// Generate a unique id. Prefer crypto.randomUUID (122 bits, available in
+// secure contexts: localhost + https) over the legacy Math.random base36
+// scheme (~45 bits). Fall back for non-secure-context plain-HTTP hosts.
+function genId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 11);
+}
+
 // Postgres DATE columns reject empty strings ("invalid input syntax for type
 // date: \"\""). Normalize any empty-string date field to null before upsert so
 // forms that leave dates blank (e.g. permanent-license drivers) still save.
@@ -361,7 +371,7 @@ export const db = {
 
   async saveDriver(driver: Omit<Driver, "id" | "created_at"> & { id?: string }): Promise<Driver> {
     const fullDriver: Driver = normalizeEmptyDates({
-      id: driver.id || Math.random().toString(36).substring(2, 11),
+      id: driver.id || genId(),
       created_at: new Date().toISOString(),
       ...driver,
     }, DRIVER_DATE_KEYS) as Driver;
@@ -424,7 +434,7 @@ export const db = {
 
   async saveVehicle(vehicle: Omit<Vehicle, "id" | "created_at"> & { id?: string }): Promise<Vehicle> {
     const fullVehicle: Vehicle = normalizeEmptyDates({
-      id: vehicle.id || Math.random().toString(36).substring(2, 11),
+      id: vehicle.id || genId(),
       created_at: new Date().toISOString(),
       ...vehicle,
     }, VEHICLE_DATE_KEYS) as Vehicle;
@@ -471,7 +481,7 @@ export const db = {
 
   async createAssignment(vehicleId: string, driverId: string, type: "ASSIGN" | "RELEASE", reason: string, isFirstTime: boolean = false): Promise<Assignment> {
     const newAssignment: Assignment = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: genId(),
       vehicle_id: vehicleId,
       driver_id: driverId,
       action_type: type,
@@ -506,7 +516,7 @@ export const db = {
         const rentCost = vehicleObj?.rent_cost || 2500;
 
         const newRental: WeeklyRental = {
-          id: Math.random().toString(36).substring(2, 11),
+          id: genId(),
           driver_id: driverId,
           week_start: weekStart,
           rent_amount: rentCost, // Dynamic rent cost from vehicle
@@ -549,7 +559,7 @@ export const db = {
 
   async saveChecklist(checklist: Omit<Checklist, "id" | "created_at">): Promise<Checklist> {
     const fullChecklist: Checklist = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: genId(),
       created_at: new Date().toISOString(),
       ...checklist,
     };
@@ -669,7 +679,7 @@ export const db = {
       // Create new rental record for the driver
       const newAccumulatedDebt = Math.max(0, 2500 - amount);
       updatedRental = {
-        id: Math.random().toString(36).substring(2, 11),
+        id: genId(),
         driver_id: driverId,
         week_start: weekStart,
         rent_amount: 2500,
@@ -694,7 +704,7 @@ export const db = {
 
   async createWeeklyRental(rental: Omit<WeeklyRental, "id" | "created_at" | "payments_log">): Promise<WeeklyRental> {
     const fullRental: WeeklyRental = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: genId(),
       payments_log: [],
       created_at: new Date().toISOString(),
       ...rental,
@@ -720,7 +730,7 @@ export const db = {
 
   async saveMaintenance(maintenance: Omit<Maintenance, "id" | "created_at">): Promise<Maintenance> {
     const fullMaint: Maintenance = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: genId(),
       created_at: new Date().toISOString(),
       ...maintenance,
     };
