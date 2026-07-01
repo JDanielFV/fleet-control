@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car } from "lucide-react";
+import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DriversSliceProps {
@@ -34,14 +34,66 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     }
   };
 
+  const handleEditDriver = (d: Driver) => {
+    setEditingDriverId(d.id);
+    setFirstName(d.first_name);
+    setPaternalLastName(d.paternal_last_name);
+    setMaternalLastName(d.maternal_last_name);
+    setLicenseCurp(d.curp);
+    setIneCurp(d.curp);
+    setLicenseDob(d.dob);
+    setIneDob(d.dob);
+    setLicenseNumber(d.license_number);
+    setLicenseIssueDate(d.license_issue_date);
+    setLicenseExpirationDate(d.license_expiration_date);
+    setLicenseIsPermanent(d.license_is_permanent);
+    setIneAddress(d.ine_address);
+    setIneSex(d.ine_sex);
+    setIneElectorKey(d.ine_elector_key);
+    setDriverPhotoImg(d.driver_photo_img ?? "");
+    setIsOpen(true);
+  };
+
+  const handleRenewLicense = (d: Driver) => {
+    setRenewingDriver(d);
+    setRenewNumber(d.license_number);
+    setRenewIssueDate(d.license_issue_date);
+    setRenewExpirationDate(d.license_expiration_date);
+    setRenewIsPermanent(d.license_is_permanent);
+    setIsRenewOpen(true);
+  };
+
+  const submitLicenseRenewal = async () => {
+    if (!renewingDriver) return;
+    await db.saveDriver({
+      ...renewingDriver,
+      license_number: renewNumber,
+      license_issue_date: renewIssueDate,
+      license_expiration_date: renewIsPermanent ? "" : renewExpirationDate,
+      license_is_permanent: renewIsPermanent,
+    });
+    setIsRenewOpen(false);
+    setRenewingDriver(null);
+    loadDrivers();
+    onRefreshAlerts();
+  };
+
   useEffect(() => {
     if (searchQuery !== undefined) {
       setSearch(searchQuery);
     }
   }, [searchQuery]);
   const [isOpen, setIsOpen] = useState(false);
+  const [editingDriverId, setEditingDriverId] = useState<string | null>(null);
+  const [isRenewOpen, setIsRenewOpen] = useState(false);
+  const [renewingDriver, setRenewingDriver] = useState<Driver | null>(null);
+  const [renewNumber, setRenewNumber] = useState("");
+  const [renewIssueDate, setRenewIssueDate] = useState("");
+  const [renewExpirationDate, setRenewExpirationDate] = useState("");
+  const [renewIsPermanent, setRenewIsPermanent] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"INE" | "LICENCIA" | null>(null);
+  const [scanTarget, setScanTarget] = useState<"INE" | "LICENCIA" | "CHOFER" | null>(null);
+  const [driverPhotoImg, setDriverPhotoImg] = useState("");
   
   // OCR logs
   const [ocrStep, setOcrStep] = useState<"align" | "scan" | "extract" | "done">("align");
@@ -57,6 +109,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
   // File picker refs
   const ineFileRef = useRef<HTMLInputElement>(null);
   const licFileRef = useRef<HTMLInputElement>(null);
+  const photoFileRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [firstName, setFirstName] = useState("");
@@ -91,6 +144,12 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     };
   }, []);
 
+  // Reload when parent signals a refresh (license renewals, etc.).
+  useEffect(() => {
+    loadDrivers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRefreshAlerts]);
+
   const loadDrivers = async () => {
     const list = await db.getDrivers();
     const vList = await db.getVehicles();
@@ -102,12 +161,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     e.preventDefault();
     if (!firstName || !paternalLastName || !licenseCurp) return;
 
-    // Check for duplicates
+    // Check for duplicates (skip the driver being edited)
     const isDuplicate = drivers.some(
       (d) =>
+        d.id !== editingDriverId && (
         d.curp.toLowerCase().trim() === licenseCurp.toLowerCase().trim() ||
         (d.license_number && licenseNumber && d.license_number.toLowerCase().trim() === licenseNumber.toLowerCase().trim()) ||
         (d.ine_elector_key && ineElectorKey && d.ine_elector_key.toLowerCase().trim() === ineElectorKey.toLowerCase().trim())
+      )
     );
 
     if (isDuplicate) {
@@ -116,6 +177,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     }
 
     await db.saveDriver({
+      id: editingDriverId || undefined,
       first_name: firstName,
       paternal_last_name: paternalLastName,
       maternal_last_name: maternalLastName,
@@ -128,9 +190,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
       ine_address: ineAddress,
       ine_sex: ineSex,
       ine_elector_key: ineElectorKey,
+      driver_photo_img: driverPhotoImg || null,
     });
 
     resetForm();
+    setEditingDriverId(null);
     setIsOpen(false);
     loadDrivers();
     onRefreshAlerts();
@@ -152,12 +216,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     setIneSex("M");
     setIneElectorKey("");
     setBirthState("DF");
+    setDriverPhotoImg("");
     setDemoIndex(null);
+    setEditingDriverId(null);
     stopCamera();
   };
 
   // WebRTC camera startup
-  const startCamera = async (target: "INE" | "LICENCIA") => {
+  const startCamera = async (target: "INE" | "LICENCIA" | "CHOFER") => {
     setScanTarget(target);
     setIsScanning(true);
     setIsCameraActive(true);
@@ -169,13 +235,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: target === "CHOFER" ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-      const successMsg = `[Cámara] Acceso concedido. Coloque el documento frente a la lente.`;
+      const successMsg = `[Cámara] Acceso concedido. Encuadre su rostro en el centro.`;
       console.log(successMsg);
       setOcrLogs(prev => [...prev, successMsg]);
     } catch (err: any) {
@@ -235,14 +301,23 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      preprocessCanvasForOcr(canvas);
+      if (scanTarget !== "CHOFER") {
+        preprocessCanvasForOcr(canvas);
+      }
       stopCamera();
 
       try {
         const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
         console.log(`[Captura] Data URL generado con éxito. Longitud cadena: ${dataUrl.length}`);
         setOcrLogs(prev => [...prev, `[Captura] Fotograma capturado en Base64.`]);
-        processOcrOnImageSource(dataUrl, scanTarget);
+        
+        if (scanTarget === "CHOFER") {
+          setDriverPhotoImg(dataUrl);
+          setIsScanning(false);
+          setScanTarget(null);
+        } else {
+          processOcrOnImageSource(dataUrl, scanTarget);
+        }
       } catch (err) {
         console.error("[Captura] Error generating Data URL:", err);
         setOcrLogs(prev => [...prev, "❌ Error al capturar imagen en formato compatible"]);
@@ -680,9 +755,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-foreground font-black text-lg">Registro de Conductor</DialogTitle>
+              <DialogTitle className="text-foreground font-black text-lg">
+                {editingDriverId ? "Editar Conductor" : "Registro de Conductor"}
+              </DialogTitle>
               <DialogDescription className="text-muted-foreground text-xs">
-                Crea el expediente escaneando documentos o llenando los campos.
+                {editingDriverId
+                  ? "Modifica los datos del conductor. Los cambios se aplican al instante."
+                  : "Crea el expediente escaneando documentos o llenando los campos."}
               </DialogDescription>
             </DialogHeader>
 
@@ -770,6 +849,64 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
                 /* Standard form view */
                 <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                   <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
+                  
+                  {/* Foto de Perfil del Chofer */}
+                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 flex flex-col items-center text-center">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black self-start">Foto de Perfil del Chofer</h4>
+                    <div className="relative w-24 h-24 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner group">
+                      {driverPhotoImg ? (
+                        <img src={driverPhotoImg} alt="Foto Chofer" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-12 h-12 text-muted-foreground/60" />
+                      )}
+                      {driverPhotoImg && (
+                        <button
+                          type="button"
+                          onClick={() => setDriverPhotoImg("")}
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-2xs font-bold transition-opacity duration-200 cursor-pointer"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => startCamera("CHOFER")}
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-9 cursor-pointer"
+                      >
+                        <Camera className="w-4 h-4 text-primary" /> Tomar Foto
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => photoFileRef.current?.click()}
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-9 cursor-pointer"
+                      >
+                        <FolderOpen className="w-4 h-4 text-primary" /> Subir Foto
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={photoFileRef}
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              if (event.target?.result) {
+                                setDriverPhotoImg(event.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                   
                   {/* Document matching state headers with correction helpers */}
                   {(licenseCurp || ineCurp || licenseDob || ineDob) && (
@@ -1076,8 +1213,12 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
             <CardHeader className="p-4 pb-2.5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-muted border border-border rounded-xl">
-                    <User className="w-5 h-5 text-primary" />
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-border shrink-0 bg-muted flex items-center justify-center">
+                    {driver.driver_photo_img ? (
+                      <img src={driver.driver_photo_img} alt="Foto Chofer" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <div>
                     <CardTitle className="text-sm font-bold text-foreground">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</CardTitle>
@@ -1100,16 +1241,28 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
                     })()}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {driver.license_is_permanent ? (
                     <span className="px-2 py-0.5 text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md">
                       Lic. Permanente
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> Vence: {driver.license_expiration_date}
-                    </span>
+                    <button
+                      onClick={() => handleRenewLicense(driver)}
+                      className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Renovar licencia"
+                    >
+                      <RefreshCcw className="w-3 h-3" /> Vence: {driver.license_expiration_date}
+                    </button>
                   )}
+                  <Button
+                    onClick={() => handleEditDriver(driver)}
+                    variant="ghost"
+                    className="p-1.5 h-auto text-primary hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer shrink-0"
+                    title="Editar conductor"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button
                     onClick={() => handleDeleteDriver(driver.id)}
                     variant="ghost"
@@ -1168,6 +1321,77 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
           </div>
         )}
       </div>
+
+      {/* License Renewal Dialog — quick update of license data without touching the rest of the file */}
+      <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingDriver(null); }}>
+        <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground font-black text-base flex items-center gap-2">
+              <RefreshCcw className="w-4 h-4 text-primary" />
+              Renovar Licencia
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              {renewingDriver ? `${renewingDriver.first_name} ${renewingDriver.paternal_last_name} ${renewingDriver.maternal_last_name}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            <div>
+              <Label className="text-muted-foreground text-xs">Número de Licencia</Label>
+              <Input
+                value={renewNumber}
+                onChange={(e) => setRenewNumber(e.target.value)}
+                placeholder="ej. 12345678"
+                className="mt-1.5 border-input bg-background rounded-xl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-muted-foreground text-xs">Fecha Expedición</Label>
+                <Input
+                  type="date"
+                  value={renewIssueDate}
+                  onChange={(e) => setRenewIssueDate(e.target.value)}
+                  className="mt-1.5 border-input bg-background rounded-xl"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">Fecha Vigencia</Label>
+                <Input
+                  type="date"
+                  value={renewExpirationDate}
+                  onChange={(e) => setRenewExpirationDate(e.target.value)}
+                  disabled={renewIsPermanent}
+                  className="mt-1.5 border-input bg-background rounded-xl disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/40 cursor-pointer">
+              <span className="text-xs font-semibold text-foreground">Licencia Permanente</span>
+              <Switch checked={renewIsPermanent} onCheckedChange={setRenewIsPermanent} />
+            </label>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setIsRenewOpen(false); setRenewingDriver(null); }}
+                className="flex-1 rounded-xl border-border"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={submitLicenseRenewal}
+                disabled={!renewNumber}
+                className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50"
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

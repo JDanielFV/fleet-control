@@ -15,6 +15,7 @@ export interface Driver {
   ine_address: string;
   ine_sex: "M" | "F" | "X";
   ine_elector_key: string;
+  driver_photo_img?: string | null;
   created_at: string;
 }
 
@@ -24,6 +25,7 @@ export interface Vehicle {
   vehicle_name: string;
   model: string;
   class_type: string;
+  color?: string | null;
   circulation_expiration_date: string;
   vin: string;
   plate_number: string;

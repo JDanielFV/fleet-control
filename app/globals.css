@@ -1,49 +1,51 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Light Mode Values */
-  --background: #f5f5f7;
-  --foreground: #1d1d1f;
+  --background: #fbfbfd;
+  --foreground: #0a0a0c;
   --card: #ffffff;
-  --card-foreground: #1d1d1f;
+  --card-foreground: #0a0a0c;
   --popover: #ffffff;
-  --popover-foreground: #1d1d1f;
+  --popover-foreground: #0a0a0c;
   --primary: #0071e3;
   --primary-foreground: #ffffff;
-  --secondary: #f5f5f7;
-  --secondary-foreground: #86868b;
+  --secondary: #f0f0f3;
+  --secondary-foreground: #5a5a60;
   --muted: #f5f5f7;
-  --muted-foreground: #86868b;
+  --muted-foreground: #5a5a60;
   --accent: #0071e3;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #d2d2d7;
-  --input: #d2d2d7;
+  --border: #d8d8de;
+  --input: #d8d8de;
   --ring: #0071e3;
 }
 
 .dark {
-  /* Dark Mode Values */
+  /* Dark Mode Values - True black with refined greys */
   --background: #000000;
   --foreground: #f5f5f7;
-  --card: #161617;
+  --card: #0a0a0c;
   --card-foreground: #f5f5f7;
-  --popover: #161617;
+  --popover: #0a0a0c;
   --popover-foreground: #f5f5f7;
-  --primary: #0071e3;
+  --primary: #0a84ff;
   --primary-foreground: #ffffff;
   --secondary: #1c1c1e;
-  --secondary-foreground: #86868b;
+  --secondary-foreground: #98989d;
   --muted: #1c1c1e;
-  --muted-foreground: #86868b;
-  --accent: #0071e3;
+  --muted-foreground: #98989d;
+  --accent: #0a84ff;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #fafafa;
-  --border: #333336;
-  --input: #333336;
-  --ring: #0071e3;
+  --border: #1f1f22;
+  --input: #1f1f22;
+  --ring: #0a84ff;
 }
 
 @theme inline {
@@ -64,6 +66,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: #34C759;
+  --color-warning: #FFCC00;
+  --color-critical: #FF3B30;
 }
 
 /* Ensure mobile viewport layout is 100% height without bounce issues */
@@ -78,16 +83,40 @@ html, body {
   padding: 0;
   background-color: var(--background);
   color: var(--foreground);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-feature-settings: "ss01", "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Custom Scrollbar styling */
+/* Aurora background gradient — soft color wash that complements both themes */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0, 113, 227, 0.04), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(52, 199, 89, 0.03), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(175, 82, 222, 0.02), transparent 50%);
+  transition: opacity 0.4s ease;
+}
+
+.dark body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(10, 132, 255, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(48, 209, 88, 0.06), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(94, 92, 230, 0.08), transparent 50%);
+}
+
+/* Custom Scrollbar — Vercel thin */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -97,36 +126,166 @@ html, body {
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 99px;
+  transition: background 0.2s ease;
 }
 
-/* Smooth glass effect helper */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ============================================
+   LAYERED GLASS SYSTEM
+   ============================================ */
 .glass {
-  background: var(--card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+    0 4px 16px -4px rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass {
+  background: rgba(10, 10, 12, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 4px 24px -4px rgba(0, 0, 0, 0.4);
 }
 
 .glass-header {
-  background: var(--card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
+  background: rgba(251, 251, 253, 0.78);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.5) inset;
   transition: background-color 0.3s ease, border-color 0.3s ease;
-  
-  /* Apply top notch safe area padding */
   padding-top: calc(env(safe-area-inset-top) + 0.875rem) !important;
 }
 
-.glass-nav {
-  background: var(--card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+.dark .glass-header {
+  background: rgba(0, 0, 0, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset;
+}
 
-  /* Apply bottom indicator safe area padding natively */
+.glass-nav {
+  background: rgba(251, 251, 253, 0.78);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -1px 0 0 rgba(255, 255, 255, 0.5) inset;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
   padding-bottom: env(safe-area-inset-bottom) !important;
+}
+
+.dark .glass-nav {
+  background: rgba(0, 0, 0, 0.72);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 -1px 0 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+/* ============================================
+   TYPOGRAPHY SCALE — SF Pro inspired
+   ============================================ */
+.text-display {
+  font-size: 2.25rem;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--foreground);
+}
+
+.text-h1 {
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--foreground);
+}
+
+.text-h2 {
+  font-size: 1.125rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.text-label {
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+.text-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--muted-foreground) 90%, transparent);
+}
+
+/* ============================================
+   ELEVATION & COLOR SHADOWS
+   ============================================ */
+.elevation-1 {
+  box-shadow:
+    0 1px 2px 0 rgba(0, 0, 0, 0.04),
+    0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.elevation-2 {
+  box-shadow:
+    0 1px 2px 0 rgba(0, 0, 0, 0.04),
+    0 4px 12px -2px rgba(0, 0, 0, 0.08);
+}
+
+.dark .elevation-2 {
+  box-shadow:
+    0 1px 2px 0 rgba(0, 0, 0, 0.4),
+    0 4px 16px -2px rgba(0, 0, 0, 0.5);
+}
+
+.shadow-primary-glow {
+  box-shadow:
+    0 0 0 1px rgba(0, 113, 227, 0.1),
+    0 8px 24px -4px rgba(0, 113, 227, 0.3);
+}
+
+.dark .shadow-primary-glow {
+  box-shadow:
+    0 0 0 1px rgba(10, 132, 255, 0.2),
+    0 8px 32px -4px rgba(10, 132, 255, 0.4);
+}
+
+/* Primary gradient pill — Apple system style */
+.gradient-pill {
+  background: linear-gradient(135deg, #0071e3 0%, #0a84ff 50%, #5856d6 100%);
+}
+
+.dark .gradient-pill {
+  background: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 50%, #bf5af2 100%);
+}
+
+/* Subtle shimmer for the "premium" feel on key surfaces */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
 }
 
 /* Neon glow animations */
@@ -176,7 +335,6 @@ html, body {
   }
 }
 
-/* Animation triggers */
 .dialog-overlay-animate[data-state="open"] {
   animation: dialogFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

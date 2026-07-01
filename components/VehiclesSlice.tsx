@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download } from "lucide-react";
+import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download, Pencil, RefreshCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface VehiclesSliceProps {
@@ -51,12 +51,62 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     }
   };
 
+  const handleEditVehicle = (v: Vehicle) => {
+    setEditingVehicleId(v.id);
+    setBrand(v.brand);
+    setVehicleName(v.vehicle_name);
+    setModel(v.model);
+    setClassType(v.class_type);
+    setCirculationExpirationDate(v.circulation_expiration_date);
+    setVin(v.vin);
+    setPlateNumber(v.plate_number);
+    setInsurancePolicyImg(v.insurance_policy_img);
+    setInsuranceExpirationDate(v.insurance_expiration_date);
+    setRentCost(v.rent_cost);
+    setNextServiceMileage(v.next_service_mileage?.toString() ?? "");
+    setColor(v.color ?? "");
+    setIsOpen(true);
+  };
+
+  const handleRenewDocument = (v: Vehicle, target: "CIRCULACION" | "SEGURO") => {
+    setRenewingVehicle(v);
+    setRenewTarget(target);
+    setRenewExpirationDate(target === "CIRCULACION" ? v.circulation_expiration_date : v.insurance_expiration_date);
+    setRenewPolicyImg(target === "SEGURO" ? v.insurance_policy_img : "");
+    setIsRenewOpen(true);
+  };
+
+  const submitRenewal = async () => {
+    if (!renewingVehicle) return;
+    const patch: Partial<Vehicle> = {};
+    if (renewTarget === "CIRCULACION") {
+      patch.circulation_expiration_date = renewExpirationDate;
+    } else {
+      patch.insurance_expiration_date = renewExpirationDate;
+      if (renewPolicyImg) patch.insurance_policy_img = renewPolicyImg;
+    }
+    await db.saveVehicle({ ...renewingVehicle, ...patch });
+    setIsRenewOpen(false);
+    setRenewingVehicle(null);
+    setRenewTarget(null);
+    setRenewExpirationDate("");
+    setRenewPolicyImg("");
+    loadData();
+    onRefreshAlerts();
+  };
+
   useEffect(() => {
     if (searchQuery !== undefined) {
       setSearch(searchQuery);
     }
   }, [searchQuery]);
   const [isOpen, setIsOpen] = useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+  const [isRenewOpen, setIsRenewOpen] = useState(false);
+  const [renewingVehicle, setRenewingVehicle] = useState<Vehicle | null>(null);
+  const [renewTarget, setRenewTarget] = useState<"CIRCULACION" | "SEGURO" | null>(null);
+  const [renewExpirationDate, setRenewExpirationDate] = useState("");
+  const [renewPolicyImg, setRenewPolicyImg] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanTarget, setScanTarget] = useState<"CIRCULACION" | "SEGURO" | null>(null);
 
@@ -87,6 +137,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
   const [insuranceExpirationDate, setInsuranceExpirationDate] = useState("");
   const [rentCost, setRentCost] = useState<number>(2500);
   const [nextServiceMileage, setNextServiceMileage] = useState<string>("");
+  const [color, setColor] = useState("");
 
   useEffect(() => {
     loadData();
@@ -94,6 +145,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
       stopCamera();
     };
   }, []);
+
+  // Reload when parent signals a refresh (e.g. a checklist was created in
+  // another tab). The `triggerRefresh` function in Dashboard is recreated on
+  // each refresh, so this effect re-runs whenever that happens.
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRefreshAlerts]);
 
   const loadData = async () => {
     const list = await db.getVehicles();
@@ -118,9 +177,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     const formattedPlate = plateNumber.toUpperCase().trim();
     const formattedVin = vin.toUpperCase().trim();
 
-    // Prevent duplicates matching plates or serial (VIN)
-    const plateExists = vehicles.some((v) => v.plate_number === formattedPlate);
-    const vinExists = vin && vehicles.some((v) => v.vin === formattedVin);
+    // Prevent duplicates matching plates or serial (VIN) — skip the current edited vehicle
+    const plateExists = vehicles.some((v) => v.plate_number === formattedPlate && v.id !== editingVehicleId);
+    const vinExists = vin && vehicles.some((v) => v.vin === formattedVin && v.id !== editingVehicleId);
 
     if (plateExists) {
       alert(`Error: Ya existe un auto registrado con las placas "${formattedPlate}".`);
@@ -132,21 +191,26 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     }
 
     await db.saveVehicle({
+      id: editingVehicleId || undefined,
       brand,
       vehicle_name: vehicleName,
       model,
       class_type: classType,
+      color: color.trim() || null,
       circulation_expiration_date: circulationExpirationDate,
       vin: formattedVin,
       plate_number: formattedPlate,
       insurance_policy_img: insurancePolicyImg,
       insurance_expiration_date: insuranceExpirationDate,
-      active_driver_id: null,
+      active_driver_id: editingVehicleId
+        ? vehicles.find((v) => v.id === editingVehicleId)?.active_driver_id ?? null
+        : null,
       rent_cost: Number(rentCost),
       next_service_mileage: nextServiceMileage ? parseInt(nextServiceMileage) : null,
     });
 
     resetForm();
+    setEditingVehicleId(null);
     setIsOpen(false);
     loadData();
     onRefreshAlerts();
@@ -164,18 +228,21 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     setInsuranceExpirationDate("");
     setRentCost(2500);
     setNextServiceMileage("");
+    setColor("");
+    setEditingVehicleId(null);
     stopCamera();
   };
 
   const exportVehiclesCSV = () => {
     if (vehicles.length === 0) return;
-    const headers = ["ID", "Marca", "Nombre", "Modelo", "Clase", "Placas", "VIN", "Vence Circulacion", "Vence Seguro", "Costo Renta Semanal", "Km Prox Servicio"];
+    const headers = ["ID", "Marca", "Nombre", "Modelo", "Clase", "Color", "Placas", "VIN", "Vence Circulacion", "Vence Seguro", "Costo Renta Semanal", "Km Prox Servicio"];
     const rows = vehicles.map(v => [
       v.id,
       v.brand,
       v.vehicle_name,
       v.model || "",
       v.class_type || "",
+      v.color || "",
       v.plate_number,
       v.vin || "",
       v.circulation_expiration_date || "",
@@ -612,9 +679,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
             </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white font-black text-lg">Registro de Vehículo</DialogTitle>
+              <DialogTitle className="text-white font-black text-lg">
+                {editingVehicleId ? "Editar Vehículo" : "Registro de Vehículo"}
+              </DialogTitle>
               <DialogDescription className="text-muted-foreground text-xs">
-                Ingresa datos o usa OCR de la tarjeta de circulación y póliza.
+                {editingVehicleId
+                  ? "Modifica los datos del vehículo. Los cambios se aplican al instante."
+                  : "Ingresa datos o usa OCR de la tarjeta de circulación y póliza."}
               </DialogDescription>
             </DialogHeader>
 
@@ -832,6 +903,10 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                         <Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label>
                         <Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" />
                       </div>
+                      <div className="min-w-0">
+                        <Label htmlFor="color" className="text-muted-foreground text-xs">Color del Auto</Label>
+                        <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. Rojo, Blanco, Gris" />
+                      </div>
                     </div>
                   </div>
 
@@ -1024,10 +1099,18 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="px-2.5 py-1 text-xs font-black font-mono tracking-wide border border-border bg-card/80 text-foreground rounded-lg shadow-sm">
                       {vehicle.plate_number}
                     </span>
+                    <Button
+                      onClick={() => handleEditVehicle(vehicle)}
+                      variant="ghost"
+                      className="p-1.5 h-auto text-primary hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer shrink-0"
+                      title="Editar vehículo"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
                     <Button
                       onClick={() => handleDeleteVehicle(vehicle.id)}
                       variant="ghost"
@@ -1061,6 +1144,10 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                           <span className="text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
                         </div>
                         <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Color</span>
+                          <span className="text-foreground font-medium">{vehicle.color || "Sin registrar"}</span>
+                        </div>
+                        <div>
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado Verificación</span>
                           <span className="flex items-center gap-1.5 font-semibold text-foreground">
                             <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block" style={{
@@ -1073,11 +1160,29 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                           </span>
                         </div>
                         <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Seguro Vigente</span>
-                          <span className="flex items-center gap-1 text-foreground font-medium">
-                            <Shield className="w-3.5 h-3.5 text-primary" />
-                            {vehicle.insurance_expiration_date || "No registrada"}
-                          </span>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Circulación</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-foreground font-medium">{vehicle.circulation_expiration_date || "—"}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
+                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5"
+                            >
+                              <RefreshCcw className="w-3 h-3" /> Renovar
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
+                          <div className="flex items-center gap-1.5">
+                            <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span className="text-foreground font-medium">{vehicle.insurance_expiration_date || "—"}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
+                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5"
+                            >
+                              <RefreshCcw className="w-3 h-3" /> Renovar
+                            </button>
+                          </div>
                         </div>
                         <div>
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Último Servicio</span>
@@ -1189,6 +1294,70 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
           </div>
         )}
       </div>
+
+      {/* Renewal Dialog — quick update of circulation card or insurance policy */}
+      <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingVehicle(null); }}>
+        <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white font-black text-base flex items-center gap-2">
+              <RefreshCcw className="w-4 h-4 text-primary" />
+              Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : "Póliza de Seguro"}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              {renewingVehicle ? `${renewingVehicle.brand} ${renewingVehicle.vehicle_name} · ${renewingVehicle.plate_number}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {renewTarget === "SEGURO" && (
+              <div>
+                <Label className="text-muted-foreground text-xs">Foto de Póliza</Label>
+                <div className="mt-1.5 border border-dashed border-border rounded-xl p-3 text-center">
+                  {renewPolicyImg ? (
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="w-4 h-4" /> Póliza Cargada
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-xs">
+                      <Shield className="w-5 h-5 mx-auto mb-1 opacity-60" />
+                      Sin cambios en imagen
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-muted-foreground text-xs">
+                Nueva fecha de vigencia {renewTarget === "CIRCULACION" ? "de circulación" : "del seguro"}
+              </Label>
+              <Input
+                type="date"
+                value={renewExpirationDate}
+                onChange={(e) => setRenewExpirationDate(e.target.value)}
+                className="mt-1.5 border-input bg-background rounded-xl"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setIsRenewOpen(false); setRenewingVehicle(null); }}
+                className="flex-1 rounded-xl border-border"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={submitRenewal}
+                disabled={!renewExpirationDate}
+                className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50"
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
