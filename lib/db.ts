@@ -334,6 +334,20 @@ export function getVerificationSchedule(plate: string): VerificationSchedule {
   }
 }
 
+// Postgres DATE columns reject empty strings ("invalid input syntax for type
+// date: \"\""). Normalize any empty-string date field to null before upsert so
+// forms that leave dates blank (e.g. permanent-license drivers) still save.
+function normalizeEmptyDates<T extends Record<string, unknown>>(obj: T, dateKeys: readonly string[]): T {
+  const out = { ...obj };
+  for (const key of dateKeys) {
+    if (out[key] === "") (out as Record<string, unknown>)[key] = null;
+  }
+  return out;
+}
+
+const DRIVER_DATE_KEYS = ["dob", "license_issue_date", "license_expiration_date"] as const;
+const VEHICLE_DATE_KEYS = ["circulation_expiration_date", "insurance_expiration_date"] as const;
+
 // --- Live DB API Layer ---
 export const db = {
   // --- Drivers ---
@@ -346,14 +360,17 @@ export const db = {
   },
 
   async saveDriver(driver: Omit<Driver, "id" | "created_at"> & { id?: string }): Promise<Driver> {
-    const fullDriver: Driver = {
+    const fullDriver: Driver = normalizeEmptyDates({
       id: driver.id || Math.random().toString(36).substring(2, 11),
       created_at: new Date().toISOString(),
       ...driver,
-    };
+    }, DRIVER_DATE_KEYS) as Driver;
     if (supabase) {
       const { data, error } = await supabase.from("drivers").upsert(fullDriver).select().single();
       if (!error && data) return data;
+      if (error) {
+        console.error("Supabase saveDriver error:", error.message, error.details, error.hint);
+      }
     }
     const drivers = getLocalData("drivers", seedDrivers);
     const existingIndex = drivers.findIndex((d) => d.id === fullDriver.id);
@@ -406,16 +423,16 @@ export const db = {
   },
 
   async saveVehicle(vehicle: Omit<Vehicle, "id" | "created_at"> & { id?: string }): Promise<Vehicle> {
-    const fullVehicle: Vehicle = {
+    const fullVehicle: Vehicle = normalizeEmptyDates({
       id: vehicle.id || Math.random().toString(36).substring(2, 11),
       created_at: new Date().toISOString(),
       ...vehicle,
-    };
+    }, VEHICLE_DATE_KEYS) as Vehicle;
     if (supabase) {
       const { data, error } = await supabase.from("vehicles").upsert(fullVehicle).select().single();
       if (!error && data) return data;
       if (error) {
-        console.error("Supabase saveVehicle error:", error.message, error.details);
+        console.error("Supabase saveVehicle error:", error.message, error.details, error.hint);
       }
     }
     const vehicles = getLocalData("vehicles", seedVehicles);
