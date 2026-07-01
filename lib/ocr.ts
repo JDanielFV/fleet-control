@@ -69,8 +69,8 @@ export function calculateCurp(params: {
     const cleanStr = (s: string) => s.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z]/g, "").trim();
     
     let first = cleanStr(params.firstName);
-    let pat = cleanStr(params.paternalLastName);
-    let mat = cleanStr(params.maternalLastName || "X");
+    const pat = cleanStr(params.paternalLastName);
+    const mat = cleanStr(params.maternalLastName || "X");
 
     if (!first || !pat) return "";
 
@@ -143,7 +143,7 @@ function cleanAndRepairKeyString(raw: string): string {
 
 // Fuzzy repair for CURP (swaps common OCR errors like O instead of 0)
 function repairFuzzyCurp(raw: string): string {
-  let chars = raw.toUpperCase().split("");
+  const chars = raw.toUpperCase().split("");
   if (chars.length !== 18) return raw;
 
   // CURP structure: 4 letters, 6 numbers, 6 letters, 2 alphanumeric/numeric
@@ -217,7 +217,7 @@ export function parseOcrText(text: string, type: "INE" | "LICENCIA" | "CIRCULACI
       
       if (cleanWord.length >= 17 && cleanWord.length <= 20) {
         const candidate = cleanWord.substring(0, 18);
-        let chars = candidate.split("");
+        const chars = candidate.split("");
         for (let i = 6; i <= 13; i++) {
           if (chars[i] === "O") chars[i] = "0";
           if (chars[i] === "I" || chars[i] === "L") chars[i] = "1";
@@ -237,7 +237,7 @@ export function parseOcrText(text: string, type: "INE" | "LICENCIA" | "CIRCULACI
         const combined = cleanAndRepairKeyString(words[i] + words[i + 1]);
         if (combined.length >= 17 && combined.length <= 20) {
           const candidate = combined.substring(0, 18);
-          let chars = candidate.split("");
+          const chars = candidate.split("");
           for (let i = 6; i <= 13; i++) {
             if (chars[i] === "O") chars[i] = "0";
             if (chars[i] === "I" || chars[i] === "L") chars[i] = "1";
@@ -361,9 +361,9 @@ export function parseOcrText(text: string, type: "INE" | "LICENCIA" | "CIRCULACI
     if (parts[0].length === 4) {
       result.expirationDate = rawDate.replace(/\//g, "-");
     } else {
-      let day = parts[0];
+      const day = parts[0];
       let month = parts[1];
-      let year = parts[2];
+      const year = parts[2];
       
       if (parseInt(month, 10) > 12) {
         month = "11";
