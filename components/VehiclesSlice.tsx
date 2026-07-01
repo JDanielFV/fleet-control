@@ -957,17 +957,17 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
               <CardHeader className="p-4 pb-2.5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-muted border border-border rounded-xl">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="p-2.5 bg-muted border border-border rounded-xl shrink-0">
                       <Car className="w-5 h-5 text-primary" />
                     </div>
-                    <div>
-                      <CardTitle className="text-sm font-bold text-foreground">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</CardTitle>
-                      <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5">{vehicle.vin}</CardDescription>
-                      <div className="mt-1 text-[10px] font-bold">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-sm font-bold text-foreground truncate">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</CardTitle>
+                      <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5 truncate block">{vehicle.vin}</CardDescription>
+                      <div className="mt-1 text-[10px] font-bold truncate">
                         {vehicle.active_driver_id ? (
-                          <span className="text-primary dark:text-blue-400">
+                          <span className="text-primary dark:text-blue-400 truncate block">
                             Asignado a: {getDriverName(drivers, vehicle.active_driver_id)}
                           </span>
                         ) : (
@@ -1000,12 +1000,12 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                       })()}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2.5 py-1 text-xs font-black font-mono tracking-wide border border-border bg-card/80 text-foreground rounded-lg shadow-sm">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="px-2.5 py-1 text-xs font-black font-mono tracking-wide border border-border bg-card/80 text-foreground rounded-lg shadow-sm whitespace-nowrap">
                       {vehicle.plate_number}
                     </span>
                     <Button
-                      onClick={() => handleEditVehicle(vehicle)}
+                      onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}
                       variant="ghost"
                       className="p-1.5 h-auto text-primary hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer shrink-0"
                       title="Editar vehículo"
@@ -1013,7 +1013,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                       <Pencil className="w-4 h-4" />
                     </Button>
                     <Button
-                      onClick={() => handleDeleteVehicle(vehicle.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}
                       variant="ghost"
                       className="p-1.5 h-auto text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer shrink-0"
                       title="Eliminar Vehículo"
@@ -1034,85 +1034,85 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   >
                     <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
                       <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-muted-foreground">
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
-                          <span className="font-semibold text-foreground">
+                          <span className="font-semibold text-foreground truncate block">
                             {getDriverName(drivers, vehicle.active_driver_id)}
                           </span>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
-                          <span className="text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
+                          <span className="text-foreground font-medium truncate block">{vehicle.class_type || "Sedán"}</span>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Color</span>
-                          <span className="text-foreground font-medium">{vehicle.color || "Sin registrar"}</span>
+                          <span className="text-foreground font-medium truncate block">{vehicle.color || "Sin registrar"}</span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado Verificación</span>
-                          <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                            <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block" style={{
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado</span>
+                          <span className="flex items-center gap-1.5 font-semibold text-foreground truncate">
+                            <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
                               backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
                                               schedule.color === "Rosa" ? "#ec4899" :
                                               schedule.color === "Rojo" ? "#ef4444" :
                                               schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
                             }} />
-                            {schedule.color}
+                            <span className="truncate">{schedule.color}</span>
                           </span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Circulación</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-foreground font-medium">{vehicle.circulation_expiration_date || "—"}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Circ.</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-foreground font-medium truncate">{vehicle.circulation_expiration_date || "—"}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
-                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5"
+                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
                             >
                               <RefreshCcw className="w-3 h-3" /> Renovar
                             </button>
                           </div>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
-                            <span className="text-foreground font-medium">{vehicle.insurance_expiration_date || "—"}</span>
+                            <span className="text-foreground font-medium truncate">{vehicle.insurance_expiration_date || "—"}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
-                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5"
+                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
                             >
                               <RefreshCcw className="w-3 h-3" /> Renovar
                             </button>
                           </div>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Último Servicio</span>
-                          <span className="text-foreground font-medium">{lastServiceDate}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
+                          <span className="text-foreground font-medium truncate block">{lastServiceDate}</span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje Actual</span>
-                          <span className="text-foreground font-medium">{mileage}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                          <span className="text-foreground font-medium truncate block">{mileage}</span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Próximo Servicio</span>
-                          <span className={`font-semibold ${isServiceOverdue ? "text-amber-500 animate-pulse font-bold" : "text-foreground font-medium"}`}>{nextServiceText}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Próx. Servicio</span>
+                          <span className={`font-semibold truncate block ${isServiceOverdue ? "text-amber-500 animate-pulse font-bold" : "text-foreground font-medium"}`}>{nextServiceText}</span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Est. Fecha Servicio</span>
-                          <span className={`font-semibold flex items-center gap-1 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground font-medium"}`}>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Est. Fecha</span>
+                          <span className={`font-semibold flex items-center gap-1 min-w-0 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground font-medium"}`}>
                             {isServiceOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
-                            {nextServiceEstimate}
+                            <span className="truncate">{nextServiceEstimate}</span>
                           </span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Estatus Verificación</span>
-                          <span className={`font-semibold ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Verificación</span>
+                          <span className={`font-semibold truncate block ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
                             {verificationStatus}
                           </span>
                         </div>
-                        <div>
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta Semanal</span>
-                          <span className={rentStatusColor}>{rentStatusText}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta</span>
+                          <span className={`truncate block ${rentStatusColor}`}>{rentStatusText}</span>
                         </div>
                       </div>
 

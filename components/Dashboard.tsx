@@ -221,9 +221,9 @@ export default function Dashboard() {
   const occupancy = stats.vehicles > 0 ? Math.round((stats.assigned / stats.vehicles) * 100) : 0;
 
   return (
-    <div className="relative flex flex-col h-[100dvh] w-screen bg-background text-foreground overflow-hidden font-sans antialiased">
+    <div className="relative flex flex-col h-[100dvh] w-screen max-w-[100vw] overflow-x-hidden bg-background text-foreground overflow-hidden font-sans antialiased">
       {/* Main Content */}
-      <main className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(env(safe-area-inset-bottom,0px)+32px)] scroll-smooth max-w-6xl mx-auto w-full">
+      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(env(safe-area-inset-bottom,0px)+32px)] scroll-smooth max-w-6xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

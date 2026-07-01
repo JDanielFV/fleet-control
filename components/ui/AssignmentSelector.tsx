@@ -30,20 +30,21 @@ export const AssignmentSelector = ({ selecting, onSelect, onCancel }: Assignment
   }, [selecting]);
 
   return (
-    <div className="flex flex-col h-full max-h-[70vh]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+    <div className="flex flex-col h-full max-h-full">
+      <div className="flex items-center justify-between py-3 border-b border-slate-100">
         <h3 className="font-bold text-slate-900">
           {selecting === "vehicle" ? "Seleccionar Vehículo" : "Seleccionar Conductor"}
         </h3>
-        <button 
+        <button
           onClick={onCancel}
-          className="text-slate-400 hover:text-slate-600 p-2"
+          className="text-slate-400 hover:text-slate-600 p-2 -mr-2"
+          aria-label="Volver"
         >
-          ✕
+          ←
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-2 overscroll-contain">
         {isLoading ? (
           <div className="flex items-center justify-center py-10 text-slate-400">
             Cargando disponibles...
@@ -59,14 +60,14 @@ export const AssignmentSelector = ({ selecting, onSelect, onCancel }: Assignment
               onClick={() => onSelect(item.id)}
               className="w-full text-left p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
             >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-800 group-hover:text-blue-700">
-                  {selecting === "vehicle" 
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="font-semibold text-slate-800 group-hover:text-blue-700 truncate">
+                  {selecting === "vehicle"
                     ? `${(item as Vehicle).brand} ${(item as Vehicle).vehicle_name} (${(item as Vehicle).plate_number})`
                     : `${(item as Driver).first_name} ${(item as Driver).paternal_last_name}`}
                 </span>
-                <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-                  ID: {item.id.slice(0, 4)}
+                <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
+                  {item.id.slice(0, 4)}
                 </span>
               </div>
             </button>

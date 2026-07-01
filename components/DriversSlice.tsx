@@ -1200,15 +1200,15 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                 </div>
 
                 {/* CURP & Assignment Row */}
-                <div className="flex justify-between items-center text-[11px] font-medium pt-2 text-foreground/90">
-                  <span className="font-bold font-mono text-foreground tracking-tight">{driver.curp}</span>
-                  
+                <div className="flex justify-between items-center gap-2 text-[11px] font-medium pt-2 text-foreground/90 min-w-0">
+                  <span className="font-bold font-mono text-foreground tracking-tight truncate">{driver.curp}</span>
+
                   {(() => {
                     const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
                     return (
-                      <span className="flex items-center gap-1 font-semibold text-foreground/80">
+                      <span className="flex items-center gap-1 font-semibold text-foreground/80 shrink-0">
                         <Car className="w-3.5 h-3.5 text-foreground/75" />
-                        {assignedVehicle ? "Con auto asignado" : "Sin auto asignado"}
+                        {assignedVehicle ? "Con auto" : "Sin auto"}
                       </span>
                     );
                   })()}
@@ -1227,17 +1227,17 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                 >
                   <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
                     <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-muted-foreground">
-                      <div>
+                      <div className="min-w-0">
                         <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
-                        <span className="text-foreground font-medium">{driver.license_number || "N/D"}</span>
+                        <span className="text-foreground font-medium truncate block">{driver.license_number || "N/D"}</span>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
-                        <span className="text-foreground font-medium">{driver.ine_elector_key || "N/D"}</span>
+                        <span className="text-foreground font-medium truncate block">{driver.ine_elector_key || "N/D"}</span>
                       </div>
-                      <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5">
+                      <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5 min-w-0">
                         <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
-                        <span className="text-foreground leading-snug">{driver.ine_address || "N/D"}</span>
+                        <span className="text-foreground leading-snug break-words">{driver.ine_address || "N/D"}</span>
                       </div>
                       {driver.address_proof_img && (
                         <div className="col-span-2 border-t border-border/60 pt-2 mt-1">
