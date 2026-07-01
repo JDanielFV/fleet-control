@@ -97,8 +97,9 @@ No incluyas formateo de markdown (como \`\`\`json) en tu respuesta, devuelve est
     console.log("[OCR API] Gemini successfully parsed:", parsedData);
     
     return NextResponse.json(parsedData);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[OCR API] Route handler error:", err);
-    return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
