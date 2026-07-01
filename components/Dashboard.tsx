@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db, Alert, Driver, Vehicle } from "@/lib/db";
+import { db, Alert, Driver, Vehicle, Assignment } from "@/lib/db";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
@@ -10,10 +10,12 @@ import MaintenanceSlice from "./MaintenanceSlice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Menu, X, Search, Command, Sparkles, TrendingUp, Gauge } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+
+type TabId = "dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance";
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance">("dashboard");
+  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -25,36 +27,10 @@ export default function Dashboard() {
   const [totalMileage, setTotalMileage] = useState<number>(0);
   const [avgDailyMileage, setAvgDailyMileage] = useState<number>(80);
   const [avgFuelConsumption, setAvgFuelConsumption] = useState<number>(6.7);
-  const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
+  const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
-
-  useEffect(() => {
-    loadAlerts();
-    loadStats();
-    db.autoGenerateMondayChecklists().then((count) => {
-      if (count > 0) {
-        console.log(`[Checklists] Se generaron ${count} checklists semanales automáticamente para unidades activas.`);
-        triggerRefresh();
-      }
-    });
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" || "dark";
-    setTheme(savedTheme);
-    if (savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
-  }, [refreshTrigger]);
 
   const loadAlerts = async () => {
     const list = await db.getAlerts();
@@ -118,6 +94,36 @@ export default function Dashboard() {
     setAvgFuelConsumption(finalAvgFuel);
   };
 
+  const triggerRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  useEffect(() => {
+    loadAlerts();
+    loadStats();
+    db.autoGenerateMondayChecklists().then((count) => {
+      if (count > 0) {
+        console.log(`[Checklists] Se generaron ${count} checklists semanales automáticamente para unidades activas.`);
+        triggerRefresh();
+      }
+    });
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" || "dark";
+    setTheme(savedTheme);
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, [refreshTrigger]);
+
   const getVehicleDesc = (id: string) => {
     const v = vListFind(id);
     return v ? `${v.brand} ${v.vehicle_name}` : "Vehículo";
@@ -131,11 +137,7 @@ export default function Dashboard() {
   const vListFind = (id: string) => vehicles.find((x) => x.id === id);
   const dListFind = (id: string) => drivers.find((x) => x.id === id);
 
-  const triggerRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
-  const handleTabChange = (tab: any) => {
+  const handleTabChange = (tab: TabId) => {
     setActiveTab(tab);
     setGlobalSearch("");
     setIsMobileSearchActive(false);
@@ -177,7 +179,7 @@ export default function Dashboard() {
     { id: "maintenance", label: "Taller", icon: Wrench },
   ];
 
-  const tileVariants: any = {
+  const tileVariants: Variants = {
     hidden: { opacity: 0, y: 24, scale: 0.96 },
     visible: (i: number) => ({
       opacity: 1,
@@ -523,7 +525,7 @@ export default function Dashboard() {
           return (
             <button
               key={tab.id}
-              onClick={() => handleTabChange(tab.id as any)}
+              onClick={() => handleTabChange(tab.id as TabId)}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] transition-all active:scale-95 cursor-pointer relative ${
                 isSelected ? "text-primary font-bold" : "text-muted-foreground"
               }`}
@@ -585,7 +587,7 @@ export default function Dashboard() {
                     <button
                       key={tab.id}
                       onClick={() => {
-                        setActiveTab(tab.id as any);
+                        setActiveTab(tab.id as TabId);
                         setIsMenuOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all cursor-pointer text-left ${
@@ -612,7 +614,7 @@ export default function Dashboard() {
   );
 }
 
-function QuickActionButton({ icon: Icon, label, onClick, span = 1 }: { icon: any; label: string; onClick: () => void; span?: number }) {
+function QuickActionButton({ icon: Icon, label, onClick, span = 1 }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; span?: number }) {
   return (
     <button
       onClick={onClick}
