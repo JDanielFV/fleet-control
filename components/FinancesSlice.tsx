@@ -265,22 +265,7 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
                 Asigna un nuevo cobro semanal a un conductor.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!newRentalDriver || !weekStart) return;
-              await db.createWeeklyRental({
-                driver_id: newRentalDriver,
-                week_start: weekStart,
-                rent_amount: rentAmount,
-                paid_amount: 0,
-                accumulated_debt: rentAmount,
-                status: "UNPAID"
-              });
-              setIsRentalOpen(false);
-              setNewRentalDriver("");
-              setWeekStart("");
-              loadData();
-            }} className="space-y-4 pt-2">
+            <form onSubmit={handleCreateRental} className="space-y-4 pt-2">
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">Conductor</Label>
                 <Select value={newRentalDriver} onValueChange={setNewRentalDriver}>
