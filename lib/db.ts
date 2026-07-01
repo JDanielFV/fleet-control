@@ -268,6 +268,55 @@ function setLocalData<T>(key: string, data: T[]): void {
   }
 }
 
+// --- Pending-sync tracking ---
+// When Supabase is configured but a write fails, the record is stored in
+// localStorage as a fallback. Without tracking, subsequent reads (which prefer
+// Supabase) would mask that fallback record. We track the ids of records that
+// only exist in localStorage so reads can merge them back in. Once a record
+// reappears in Supabase, its pending id is cleared.
+function getPendingIds(table: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(`fleet_pending_${table}`) || "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+function setPendingIds(table: string, ids: string[]): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(`fleet_pending_${table}`, JSON.stringify(ids));
+  }
+}
+function addPendingId(table: string, id: string): void {
+  const ids = getPendingIds(table);
+  if (!ids.includes(id)) {
+    ids.push(id);
+    setPendingIds(table, ids);
+  }
+}
+function clearPendingIds(table: string, idsToRemove: string[]): void {
+  if (!idsToRemove.length) return;
+  setPendingIds(table, getPendingIds(table).filter((id) => !idsToRemove.includes(id)));
+}
+
+// Merge any pending (fallback-only) localStorage records into the Supabase
+// result. `remote` is the Supabase list (possibly empty); if null, Supabase
+// failed entirely and we fall back to plain localStorage. Only records whose
+// ids are marked pending AND absent from remote are prepended, so seed data is
+// never injected into a live Supabase list.
+function mergePendingLocal<T extends { id: string }>(table: string, remote: T[] | null, seed: T[]): T[] {
+  if (!remote) return getLocalData(table, seed);
+  const pending = getPendingIds(table);
+  if (!pending.length) return remote;
+  const remoteIds = new Set(remote.map((r) => r.id));
+  // Clear pending ids that have now appeared in Supabase (synced).
+  const synced = pending.filter((id) => remoteIds.has(id));
+  if (synced.length) clearPendingIds(table, synced);
+  const local = getLocalData(table, seed);
+  const orphans = local.filter((l) => getPendingIds(table).includes(l.id) && !remoteIds.has(l.id));
+  return orphans.length ? [...orphans, ...remote] : remote;
+}
+
 // Mexican Verification Rules Helper
 // Returns the months and color based on the last numeric digit of the license plate
 export interface VerificationSchedule {
@@ -364,7 +413,7 @@ export const db = {
   async getDrivers(): Promise<Driver[]> {
     if (supabase) {
       const { data, error } = await supabase.from("drivers").select("*").order("created_at", { ascending: false });
-      if (!error && data) return data;
+      if (!error) return mergePendingLocal("drivers", data, seedDrivers);
     }
     return getLocalData("drivers", seedDrivers);
   },
@@ -377,7 +426,10 @@ export const db = {
     }, DRIVER_DATE_KEYS) as Driver;
     if (supabase) {
       const { data, error } = await supabase.from("drivers").upsert(fullDriver).select().single();
-      if (!error && data) return data;
+      if (!error && data) {
+        clearPendingIds("drivers", [fullDriver.id]);
+        return data;
+      }
       if (error) {
         console.error("Supabase saveDriver error:", error.message, error.details, error.hint);
       }
@@ -390,6 +442,7 @@ export const db = {
       drivers.unshift(fullDriver);
     }
     setLocalData("drivers", drivers);
+    addPendingId("drivers", fullDriver.id);
     return fullDriver;
   },
 
@@ -427,7 +480,7 @@ export const db = {
   async getVehicles(): Promise<Vehicle[]> {
     if (supabase) {
       const { data, error } = await supabase.from("vehicles").select("*").order("created_at", { ascending: false });
-      if (!error && data) return data;
+      if (!error) return mergePendingLocal("vehicles", data, seedVehicles);
     }
     return getLocalData("vehicles", seedVehicles);
   },
@@ -440,7 +493,10 @@ export const db = {
     }, VEHICLE_DATE_KEYS) as Vehicle;
     if (supabase) {
       const { data, error } = await supabase.from("vehicles").upsert(fullVehicle).select().single();
-      if (!error && data) return data;
+      if (!error && data) {
+        clearPendingIds("vehicles", [fullVehicle.id]);
+        return data;
+      }
       if (error) {
         console.error("Supabase saveVehicle error:", error.message, error.details, error.hint);
       }
@@ -453,6 +509,7 @@ export const db = {
       vehicles.unshift(fullVehicle);
     }
     setLocalData("vehicles", vehicles);
+    addPendingId("vehicles", fullVehicle.id);
     return fullVehicle;
   },
 
@@ -474,7 +531,7 @@ export const db = {
   async getAssignments(): Promise<Assignment[]> {
     if (supabase) {
       const { data, error } = await supabase.from("assignments").select("*").order("created_at", { ascending: false });
-      if (!error && data) return data;
+      if (!error) return mergePendingLocal("assignments", data, seedAssignments);
     }
     return getLocalData("assignments", seedAssignments);
   },
@@ -529,7 +586,8 @@ export const db = {
         rentals.unshift(newRental);
         setLocalData("weekly_rentals", rentals);
         if (supabase) {
-          await supabase.from("weekly_rentals").insert(newRental);
+          const { error: rErr } = await supabase.from("weekly_rentals").insert(newRental);
+          if (rErr) addPendingId("weekly_rentals", newRental.id);
         }
       }
     }
@@ -544,6 +602,7 @@ export const db = {
     const assignments = getLocalData("assignments", seedAssignments);
     assignments.unshift(newAssignment);
     setLocalData("assignments", assignments);
+    addPendingId("assignments", newAssignment.id);
 
     return newAssignment;
   },
@@ -552,7 +611,7 @@ export const db = {
   async getChecklists(): Promise<Checklist[]> {
     if (supabase) {
       const { data, error } = await supabase.from("checklists").select("*").order("created_at", { ascending: false });
-      if (!error && data) return data;
+      if (!error) return mergePendingLocal("checklists", data, seedChecklists);
     }
     return getLocalData("checklists", seedChecklists);
   },
@@ -565,11 +624,15 @@ export const db = {
     };
     if (supabase) {
       const { data, error } = await supabase.from("checklists").insert(fullChecklist).select().single();
-      if (!error && data) return data;
+      if (!error && data) {
+        clearPendingIds("checklists", [fullChecklist.id]);
+        return data;
+      }
     }
     const checklists = getLocalData("checklists", seedChecklists);
     checklists.unshift(fullChecklist);
     setLocalData("checklists", checklists);
+    addPendingId("checklists", fullChecklist.id);
     return fullChecklist;
   },
 
@@ -643,7 +706,7 @@ export const db = {
   async getWeeklyRentals(): Promise<WeeklyRental[]> {
     if (supabase) {
       const { data, error } = await supabase.from("weekly_rentals").select("*").order("week_start", { ascending: false });
-      if (!error && data) return data;
+      if (!error) return mergePendingLocal("weekly_rentals", data, seedWeeklyRentals);
     }
     return getLocalData("weekly_rentals", seedWeeklyRentals);
   },
@@ -696,8 +759,12 @@ export const db = {
 
     if (supabase) {
       const { data, error } = await supabase.from("weekly_rentals").upsert(updatedRental).select().single();
-      if (!error && data) return data;
+      if (!error && data) {
+        clearPendingIds("weekly_rentals", [updatedRental.id]);
+        return data;
+      }
     }
+    addPendingId("weekly_rentals", updatedRental.id);
 
     return updatedRental;
   },
@@ -711,11 +778,15 @@ export const db = {
     };
     if (supabase) {
       const { data, error } = await supabase.from("weekly_rentals").insert(fullRental).select().single();
-      if (!error && data) return data;
+      if (!error && data) {
+        clearPendingIds("weekly_rentals", [fullRental.id]);
+        return data;
+      }
     }
     const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
     rentals.unshift(fullRental);
     setLocalData("weekly_rentals", rentals);
+    addPendingId("weekly_rentals", fullRental.id);
     return fullRental;
   },
 
@@ -723,7 +794,7 @@ export const db = {
   async getMaintenances(): Promise<Maintenance[]> {
     if (supabase) {
       const { data, error } = await supabase.from("maintenances").select("*").order("created_at", { ascending: false });
-      if (!error && data) return data;
+      if (!error) return mergePendingLocal("maintenances", data, seedMaintenances);
     }
     return getLocalData("maintenances", seedMaintenances);
   },
@@ -736,11 +807,15 @@ export const db = {
     };
     if (supabase) {
       const { data, error } = await supabase.from("maintenances").insert(fullMaint).select().single();
-      if (!error && data) return data;
+      if (!error && data) {
+        clearPendingIds("maintenances", [fullMaint.id]);
+        return data;
+      }
     }
     const maintenances = getLocalData("maintenances", seedMaintenances);
     maintenances.unshift(fullMaint);
     setLocalData("maintenances", maintenances);
+    addPendingId("maintenances", fullMaint.id);
     return fullMaint;
   },
 
