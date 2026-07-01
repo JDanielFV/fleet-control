@@ -212,7 +212,15 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
                 <>
                   <div className="space-y-1">
                     <Label className="text-muted-foreground text-xs">Conductor</Label>
-                    <Select value={selectedDriver} onValueChange={setSelectedDriver}>
+                    <Select value={selectedDriver} onValueChange={(driverId) => {
+                      setSelectedDriver(driverId);
+                      if (driverId) {
+                        const hasPriorAssignment = assignments.some(
+                          (a) => a.driver_id === driverId && a.action_type === "ASSIGN"
+                        );
+                        setAssignSubtype(hasPriorAssignment ? "CAR_CHANGE" : "FIRST_TIME");
+                      }
+                    }}>
                       <SelectTrigger className="border-input bg-background rounded-xl">
                         <SelectValue placeholder="Selecciona conductor" />
                       </SelectTrigger>
