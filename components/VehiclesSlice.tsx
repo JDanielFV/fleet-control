@@ -271,6 +271,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // WebRTC camera startup
@@ -671,7 +672,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
             </DialogTrigger>
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white font-black text-lg">
+              <DialogTitle className="text-foreground font-black text-lg">
                 {editingVehicleId ? "Editar Vehículo" : "Registro de Vehículo"}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground text-xs">

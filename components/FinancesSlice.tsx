@@ -67,6 +67,7 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handlePayment = async (e: React.FormEvent) => {
