@@ -9,6 +9,7 @@ import AssignmentsSlice from "./AssignmentsSlice";
 import FinancesSlice from "./FinancesSlice";
 import MaintenanceSlice from "./MaintenanceSlice";
 import { EntityActionSheet } from "./EntityActionSheet";
+import { ChecklistSheet } from "./ChecklistSheet";
 import { Card } from "@/components/ui/card";
 import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, TrendingUp, Gauge } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [currentTime, setCurrentTime] = useState("");
   const [actionSheet, setActionSheet] = useState<{ open: boolean, entity: Driver | Vehicle, type: "driver" | "vehicle" } | null>(null);
+  const [checklistSheet, setChecklistSheet] = useState<{ open: boolean, vehicle: Vehicle | null }>({ open: false, vehicle: null });
 
   // Display current time in the greeting area.
   const greeting = useMemo(() => {
@@ -170,9 +172,33 @@ export default function Dashboard() {
     setActionSheet({ open: true, entity, type });
   };
 
-  const handleActionComplete = () => {
-    triggerRefresh();
+  const openChecklistSheet = (vehicle: Vehicle) => {
     setActionSheet(null);
+    setChecklistSheet({ open: true, vehicle });
+  };
+
+  // Always serve the freshest entity reference from the latest state so the
+  // sheet reflects the current assignment status (e.g. after a successful
+  // assign/remove the new vehicles/drivers data is rendered immediately).
+  const activeEntity = useMemo(() => {
+    if (!actionSheet?.entity) return null;
+    if (actionSheet.type === "driver") {
+      return drivers.find(d => d.id === (actionSheet.entity as Driver).id) ?? actionSheet.entity;
+    }
+    return vehicles.find(v => v.id === (actionSheet.entity as Vehicle).id) ?? actionSheet.entity;
+  }, [actionSheet, drivers, vehicles]);
+
+  const isEntityAssigned = !!activeEntity && (
+    actionSheet?.type === "driver"
+      ? vehicles.some(v => v.active_driver_id === activeEntity.id)
+      : !!(activeEntity as Vehicle | null)?.active_driver_id
+  );
+
+  const handleActionComplete = () => {
+    // Trigger a parent refresh so vehicles/drivers state picks up the change.
+    // The sheet stays open and the parent re-renders with the fresh entity
+    // reference, so the next view shows the updated assignment status.
+    triggerRefresh();
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
@@ -541,17 +567,21 @@ export default function Dashboard() {
         </AnimatePresence>
       </main>
 
-      <EntityActionSheet 
-        isOpen={!!actionSheet?.open && !!actionSheet} 
-        entity={actionSheet?.entity ?? null} 
-        type={actionSheet?.type || "driver"} 
-        isAssigned={
-          actionSheet?.type === "driver"
-            ? vehicles.some(v => v.active_driver_id === actionSheet.entity?.id)
-            : !!(actionSheet?.type === "vehicle" && (actionSheet.entity as Vehicle | undefined)?.active_driver_id)
-        }
+      <EntityActionSheet
+        isOpen={!!actionSheet?.open}
+        entity={activeEntity}
+        type={actionSheet?.type || "driver"}
+        isAssigned={isEntityAssigned}
         onActionComplete={handleActionComplete}
-        onClose={() => setActionSheet(null)} 
+        onRequestChecklist={openChecklistSheet}
+        onClose={() => setActionSheet(null)}
+      />
+
+      <ChecklistSheet
+        isOpen={checklistSheet.open}
+        vehicle={checklistSheet.vehicle}
+        onClose={() => setChecklistSheet({ open: false, vehicle: null })}
+        onComplete={handleActionComplete}
       />
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}

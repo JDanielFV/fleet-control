@@ -10,23 +10,24 @@ interface EntityActionSheetProps {
   type: "driver" | "vehicle";
   isAssigned: boolean;
   onActionComplete?: () => void;
+  onRequestChecklist?: (vehicle: Vehicle) => void;
 }
 
 type View = "main" | "assign" | "remove";
 
-export const EntityActionSheet = ({ isOpen, onClose, entity, type, isAssigned, onActionComplete }: EntityActionSheetProps) => {
+export const EntityActionSheet = ({ isOpen, onClose, entity, type, isAssigned, onActionComplete, onRequestChecklist }: EntityActionSheetProps) => {
   const [view, setView] = useState<View>("main");
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const sheetRef = useRef<HTMLDivElement | null>(null);
 
-  // Reset state when opening fresh so the next session starts clean.
+  // Reset state when the sheet closes so the next session starts clean.
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
       setView("main");
       setReason("");
     }
-  }, [isOpen, entity?.id]);
+  }, [isOpen]);
 
   if (!isOpen || !entity) return null;
 
@@ -68,7 +69,7 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type, isAssigned, o
       });
 
       if (!current) throw new Error("No se encontró asignación activa");
-      
+
       await db.removeAssignment(current.id, reason);
       setReason("");
       setView("main");
@@ -81,9 +82,9 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type, isAssigned, o
   };
 
   const handleChecklist = () => {
-    const id = type === "vehicle" ? (entity as Vehicle).id : (entity as Driver).id;
-    window.location.hash = `checklist/${id}`;
-    onClose();
+    if (type === "vehicle" && onRequestChecklist) {
+      onRequestChecklist(entity as Vehicle);
+    }
   };
 
   return (
