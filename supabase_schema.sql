@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS drivers (
     ine_address TEXT,
     ine_sex TEXT CHECK (ine_sex IN ('M', 'F', 'X')),
     ine_elector_key TEXT,
+    driver_photo_img TEXT,
+    address_proof_img TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -29,6 +31,9 @@ CREATE TABLE IF NOT EXISTS vehicles (
     insurance_policy_img TEXT,
     insurance_expiration_date DATE,
     active_driver_id TEXT REFERENCES drivers(id) ON DELETE SET NULL,
+    color TEXT,
+    rent_cost NUMERIC(10, 2) NOT NULL DEFAULT 2500.00,
+    next_service_mileage INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
