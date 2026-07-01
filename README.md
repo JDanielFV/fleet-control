@@ -4,7 +4,16 @@ This is a premium, mobile-first management system built with **Next.js 16 (App R
 
 ---
 
-## 🚀 Slices y Arquitectura del Proyecto
+## Security Notice
+
+> **Row Level Security (RLS) is intentionally disabled while the app is in demo mode.**
+> The Supabase project uses the `anon` key from the client, so anyone with the key can read and write all tables.
+> **Do not deploy to production with real data until RLS policies are enabled and authentication is implemented.**
+> See `supabase/migrations/20250701160000_fleet_control_schema.sql` for a starter schema and commented RLS section.
+
+---
+
+## Slices y Arquitectura del Proyecto
 
 Este proyecto fue desarrollado bajo una arquitectura de **Vertical Slices** y un esquema híbrido de base de datos que corre localmente con fallback automático a `localStorage` y se sincroniza con **Supabase** si las credenciales de entorno se especifican.
 
