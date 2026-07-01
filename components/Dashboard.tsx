@@ -163,7 +163,7 @@ export default function Dashboard() {
   return (
     <div className="relative flex flex-col h-[100dvh] w-screen bg-background text-foreground overflow-hidden font-sans antialiased">
       {/* Main Content */}
-      <main className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 py-5 pb-8 scroll-smooth max-w-6xl mx-auto w-full">
+      <main className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-8 scroll-smooth max-w-6xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
