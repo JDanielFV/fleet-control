@@ -93,6 +93,25 @@ ALTER TABLE weekly_rentals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE maintenances ENABLE ROW LEVEL SECURITY;
 
 -- Create permissive policies so client-side API works directly without auth
+--
+-- NOTE: These policies are intentionally wide-open (USING (true) WITH CHECK (true)).
+-- The app currently runs as an anonymous client using only the Supabase anon
+-- publishable key — there is NO user authentication. Tightening RLS (e.g.
+-- restricting rows by auth.uid()) would break every client-side read/write,
+-- because the anon role has no identity to filter on, and the Supabase path
+-- would silently return empty results (the app would then fall back to the
+-- localStorage seed data).
+--
+-- This is acceptable for the local/demo fleet-control single-operator scope.
+-- Before exposing this to multiple users or the public internet, RLS must be
+-- hardened, which requires one of:
+--   1. Adding Supabase Auth and scoping each policy to the authenticated role
+--      (e.g. USING (auth.uid() = owner_id)) plus an owner_id column per table.
+--   2. Moving all writes behind a server-side API (Edge Function / Route
+--      Handler) that uses the service-role key, and keeping RLS read-only for
+--      the anon key.
+-- Tracking this hardening as a deferred, separate task — do NOT tighten these
+-- policies in place without one of the above, or the app's Supabase sync breaks.
 CREATE POLICY "Allow public read drivers" ON drivers FOR SELECT USING (true);
 CREATE POLICY "Allow public write drivers" ON drivers FOR ALL USING (true) WITH CHECK (true);
 
