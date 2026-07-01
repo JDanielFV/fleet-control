@@ -3,22 +3,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import { db, Vehicle, getVerificationSchedule, Driver, Maintenance, Checklist, WeeklyRental } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
+import { downloadCSV, formatDate, sortByDateDesc } from "@/lib/utils";
+import { getDriverName } from "@/lib/lookups";
 import Tesseract from "tesseract.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download, Pencil, RefreshCcw, Menu, Mic } from "lucide-react";
+import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SliceHeader from "@/components/SliceHeader";
 
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
-  onToggleMenu?: () => void;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMenu }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: VehiclesSliceProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -262,16 +264,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
       v.rent_cost || 2500,
       v.next_service_mileage || ""
     ]);
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `inventario_autos_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadCSV("inventario_autos", headers, rows);
   };
 
   // WebRTC camera startup
@@ -629,12 +622,6 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
     }, 3200);
   };
 
-  const getDriverName = (driverId: string | null) => {
-    if (!driverId) return "No asignado";
-    const d = drivers.find((x) => x.id === driverId);
-    return d ? `${d.first_name} ${d.paternal_last_name}` : "Desconocido";
-  };
-
   const filteredVehicles = vehicles.filter(
     (v) =>
       `${v.brand} ${v.vehicle_name}`.toLowerCase().includes(search.toLowerCase()) ||
@@ -656,11 +643,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
   return (
     <div className="space-y-4">
       {/* Header Row: Title on Left, Actions on Right */}
-      <div className="flex items-center justify-between px-1">
-        <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-none">Vehículos</h1>
-        
-        <div className="flex items-center gap-2">
-          {/* Dialog configuration */}
+      <SliceHeader
+        title="Vehículos"
+        action={
           <Dialog open={isOpen} onOpenChange={(open) => {
             setIsOpen(open);
             if (!open) resetForm();
@@ -938,16 +923,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
             </AnimatePresence>
           </DialogContent>
         </Dialog>
-
-        <button
-          onClick={() => onToggleMenu?.()}
-          className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
-          aria-label="Toggle Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
+        }
+      />
 
     {/* iOS styled Search Bar with Export CSV next to it */}
     <div className="flex items-center gap-2 mb-4 mt-2">
@@ -1004,14 +981,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
           // 1. Last service calculation
           const vehicleMaints = maintenances.filter((m) => m.vehicle_id === vehicle.id);
           const lastMaint = vehicleMaints.length > 0
-            ? [...vehicleMaints].sort((a, b) => new Date(b.maintenance_date).getTime() - new Date(a.maintenance_date).getTime())[0]
+            ? sortByDateDesc(vehicleMaints, "maintenance_date")[0]
             : null;
           const lastServiceDate = lastMaint ? lastMaint.maintenance_date : "Sin registros";
           
           // 2. Mileage calculation
           const vehicleChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
           const lastChecklist = vehicleChecklists.length > 0
-            ? [...vehicleChecklists].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+            ? sortByDateDesc(vehicleChecklists, "created_at")[0]
             : null;
           const mileage = lastChecklist ? `${lastChecklist.mileage} km` : "Sin registros";
           
@@ -1113,7 +1090,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
                       <div className="mt-1 text-[10px] font-bold">
                         {vehicle.active_driver_id ? (
                           <span className="text-primary dark:text-blue-400">
-                            Asignado a: {getDriverName(vehicle.active_driver_id)}
+                            Asignado a: {getDriverName(drivers, vehicle.active_driver_id)}
                           </span>
                         ) : (
                           <span className="text-amber-500">
@@ -1181,7 +1158,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
                         <div>
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
                           <span className="font-semibold text-foreground">
-                            {getDriverName(vehicle.active_driver_id)}
+                            {getDriverName(drivers, vehicle.active_driver_id)}
                           </span>
                         </div>
                         <div>
@@ -1287,8 +1264,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
                               {vehicleChecklists.length === 0 ? (
                                 <p className="text-2xs text-muted-foreground italic text-center py-2">No hay checklists registrados aún.</p>
                               ) : (
-                                [...vehicleChecklists]
-                                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                sortByDateDesc(vehicleChecklists, "created_at")
                                   .map((c) => (
                                     <div key={c.id} className="p-2 rounded-lg bg-muted/40 border border-border/40 text-2xs space-y-1.5">
                                       <div className="flex justify-between items-center">
@@ -1296,7 +1272,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
                                           {c.type === "WEEKLY_START" ? "Semanal" : "Entrega"}
                                         </span>
                                         <span className="text-muted-foreground font-medium">
-                                          {new Date(c.created_at).toLocaleDateString()}
+                                          {formatDate(c.created_at)}
                                         </span>
                                       </div>
                                       <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">

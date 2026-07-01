@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { db, Driver, WeeklyRental } from "@/lib/db";
+import { downloadCSV, sortByDateDesc } from "@/lib/utils";
+import { getDriverName } from "@/lib/lookups";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Plus, History, AlertCircle, FileSpreadsheet, CheckCircle2, AlertTriangle, TrendingUp, Menu } from "lucide-react";
+import { DollarSign, Plus, History, AlertCircle, FileSpreadsheet, CheckCircle2, AlertTriangle, TrendingUp } from "lucide-react";
+import SliceHeader from "@/components/SliceHeader";
 
-interface FinancesSliceProps {
-  onToggleMenu?: () => void;
-}
-
-export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
+export default function FinancesSlice() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [rentals, setRentals] = useState<WeeklyRental[]>([]);
   
@@ -44,13 +43,11 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
     if (rentals.length === 0) return;
     const headers = ["ID", "Chofer ID", "Nombre Chofer", "Semana", "Monto Renta", "Monto Pagado", "Adeudo Acumulado", "Estatus"];
     const rows = rentals.map(r => {
-      const d = drivers.find(x => x.id === r.driver_id);
-      const name = d ? `${d.first_name} ${d.paternal_last_name}` : "Desconocido";
       const status = r.accumulated_debt <= 0 ? "Al corriente" : r.paid_amount > 0 ? "Abono Parcial" : "Pendiente de Pago";
       return [
         r.id,
         r.driver_id,
-        name,
+        getDriverName(drivers, r.driver_id),
         r.week_start,
         r.rent_amount,
         r.paid_amount,
@@ -58,16 +55,7 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
         status
       ];
     });
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `reporte_finanzas_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadCSV("reporte_finanzas", headers, rows);
   };
 
   const handlePayment = async (e: React.FormEvent) => {
@@ -106,7 +94,7 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
     const driverRentals = rentals.filter((r) => r.driver_id === newRentalDriver);
     let prevDebt = 0;
     if (driverRentals.length > 0) {
-      const sorted = [...driverRentals].sort((a, b) => new Date(b.week_start).getTime() - new Date(a.week_start).getTime());
+      const sorted = sortByDateDesc(driverRentals, "week_start");
       prevDebt = sorted[0].accumulated_debt;
     }
 
@@ -126,11 +114,6 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
     loadData();
   };
 
-  const getDriverName = (id: string) => {
-    const d = drivers.find((drv) => drv.id === id);
-    return d ? `${d.first_name} ${d.paternal_last_name}` : "Desconocido";
-  };
-
   const getDriverWeeks = (driverId: string) => {
     return rentals.filter((r) => r.driver_id === driverId);
   };
@@ -141,17 +124,7 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
   return (
     <div className="space-y-4">
       {/* Header Row: Title on Left, Actions on Right */}
-      <div className="flex items-center justify-between px-1 mb-2">
-        <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-none">Finanzas</h1>
-        
-        <button
-          onClick={() => onToggleMenu?.()}
-          className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
-          aria-label="Toggle Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
+      <SliceHeader title="Finanzas" />
 
       {/* Finances Overview stats */}
       <Card className="p-5 relative overflow-hidden border-border bg-card">
@@ -343,7 +316,7 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
               <div className="p-4 flex items-center justify-between">
                 <div className="space-y-1 min-w-0">
                   <h4 className="text-sm font-bold text-foreground truncate">
-                    {getDriverName(rental.driver_id)}
+                    {getDriverName(drivers, rental.driver_id)}
                   </h4>
                   <p className="text-2xs text-muted-foreground font-medium">
                     Semana: <span className="font-mono">{rental.week_start}</span>

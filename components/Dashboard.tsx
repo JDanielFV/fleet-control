@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { db, Alert, Driver, Vehicle, Assignment } from "@/lib/db";
+import { formatDate, sortByDateDesc } from "@/lib/utils";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
@@ -69,7 +70,7 @@ export default function Dashboard() {
     vList.forEach((vehicle) => {
       const vChecklists = cList.filter((c) => c.vehicle_id === vehicle.id);
       if (vChecklists.length > 0) {
-        const sorted = [...vChecklists].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const sorted = sortByDateDesc(vChecklists, "created_at");
         const latest = sorted[0];
         totalKmSum += latest.mileage;
 
@@ -394,7 +395,7 @@ export default function Dashboard() {
                                 <span className={`inline-block px-2 py-0.5 text-[9px] font-bold rounded-md uppercase tracking-wider ${asg.action_type === "ASSIGN" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
                                   {asg.action_type === "ASSIGN" ? "Asignado" : "Retirado"}
                                 </span>
-                                <p className="text-[10px] text-muted-foreground mt-1">{new Date(asg.created_at).toLocaleDateString()}</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">{formatDate(asg.created_at)}</p>
                               </div>
                             </div>
                           ))

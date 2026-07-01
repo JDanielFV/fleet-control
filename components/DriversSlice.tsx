@@ -11,16 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw, Menu, Mic } from "lucide-react";
+import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SliceHeader from "@/components/SliceHeader";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
-  onToggleMenu?: () => void;
 }
 
-export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMenu }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
@@ -752,11 +752,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
   return (
     <div className="space-y-4">
       {/* Header Row: Title on Left, Actions on Right */}
-      <div className="flex items-center justify-between px-1">
-        <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-none">Conductores</h1>
-        
-        <div className="flex items-center gap-2">
-          {/* Dialog configuration */}
+      <SliceHeader
+        title="Conductores"
+        action={
           <Dialog open={isOpen} onOpenChange={(open) => {
             setIsOpen(open);
             if (!open) resetForm();
@@ -1276,16 +1274,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
             </AnimatePresence>
           </DialogContent>
         </Dialog>
-
-        <button
-          onClick={() => onToggleMenu?.()}
-          className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
-          aria-label="Toggle Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
+        }
+      />
 
     {/* iOS styled Search Bar */}
     <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-full h-11 px-4 flex items-center gap-2 w-full shadow-inner mb-4 mt-2">

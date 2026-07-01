@@ -2,21 +2,23 @@
 
 import React, { useState, useEffect } from "react";
 import { db, Vehicle, Driver, Assignment, Checklist } from "@/lib/db";
+import { formatDate } from "@/lib/utils";
+import { getDriverName, getVehicleName } from "@/lib/lookups";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Key, ArrowLeftRight, CheckSquare, ShieldAlert, ListChecks, Calendar, Gauge, Check, Menu } from "lucide-react";
+import { Key, ArrowLeftRight, CheckSquare, ShieldAlert, ListChecks, Calendar, Gauge, Check } from "lucide-react";
 import { motion } from "framer-motion";
+import SliceHeader from "@/components/SliceHeader";
 
 interface AssignmentsSliceProps {
   onRefreshAll: () => void;
-  onToggleMenu?: () => void;
 }
 
-export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: AssignmentsSliceProps) {
+export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -126,16 +128,6 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
     onRefreshAll();
   };
 
-  const getDriverName = (id: string) => {
-    const d = drivers.find((x) => x.id === id);
-    return d ? `${d.first_name} ${d.paternal_last_name}` : "Desconocido";
-  };
-
-  const getVehicleName = (id: string) => {
-    const v = vehicles.find((x) => x.id === id);
-    return v ? `${v.brand} ${v.vehicle_name} (${v.plate_number})` : "Desconocido";
-  };
-
   // Clickable Octave Fuel segments
   const fuelLevels = ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"];
   const getFuelColor = (level: string) => {
@@ -149,17 +141,7 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
   return (
     <div className="space-y-5">
       {/* Header Row: Title on Left, Actions on Right */}
-      <div className="flex items-center justify-between px-1 mb-2">
-        <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-none">Asignaciones</h1>
-        
-        <button
-          onClick={() => onToggleMenu?.()}
-          className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
-          aria-label="Toggle Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
+      <SliceHeader title="Asignaciones" />
 
       <div className="grid grid-cols-2 gap-3.5">
         <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
@@ -463,11 +445,11 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
                       </span>
                     )}
                   </div>
-                  <h4 className="text-sm font-bold text-foreground">{getVehicleName(asg.vehicle_id)}</h4>
-                  <p className="text-xs text-muted-foreground">Conductor: {getDriverName(asg.driver_id)}</p>
+                  <h4 className="text-sm font-bold text-foreground">{getVehicleName(vehicles, asg.vehicle_id)}</h4>
+                  <p className="text-xs text-muted-foreground">Conductor: {getDriverName(drivers, asg.driver_id)}</p>
                   <p className="text-xs text-muted-foreground italic leading-snug border-l border-border pl-2">“{asg.reason}”</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium">{new Date(asg.created_at).toLocaleDateString()}</span>
+                <span className="text-[10px] text-muted-foreground font-medium">{formatDate(asg.created_at)}</span>
               </div>
             </Card>
           ))}
