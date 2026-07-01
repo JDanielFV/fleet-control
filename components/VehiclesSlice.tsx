@@ -295,9 +295,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
       const successMsg = `[Cámara] Transmisión activa en alta resolución. Coloque el documento en foco.`;
       console.log(successMsg);
       setOcrLogs(prev => [...prev, successMsg]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Cámara] Error al abrir el video:", err);
-      const errMsg = `[Cámara] Error: ${err.message || "Permisos denegados."}`;
+      const errMsg = `[Cámara] Error: ${err instanceof Error ? err.message : "Permisos denegados."}`;
       setCameraError(errMsg);
       setOcrLogs(prev => [...prev, errMsg]);
     }
@@ -473,9 +473,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
         setScanTarget(null);
       }, 2000);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[OCR] Error al transcribir documento:", err);
-      const errorMsg = `❌ [OCR] Fallo: ${err.message || err}`;
+      const errorMsg = `❌ [OCR] Fallo: ${err instanceof Error ? err.message : String(err)}`;
       setOcrLogs(prev => [...prev, errorMsg]);
       setTimeout(() => {
         setIsScanning(false);

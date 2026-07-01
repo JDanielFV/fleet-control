@@ -263,9 +263,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
         : `[Cámara] Acceso concedido. Coloque el documento frente a la lente.`;
       console.log(successMsg);
       setOcrLogs(prev => [...prev, successMsg]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Cámara] Error al abrir el stream:", err);
-      const errMsg = `[Cámara] Error: ${err.message || "Permiso denegado."}`;
+      const errMsg = `[Cámara] Error: ${err instanceof Error ? err.message : "Permiso denegado."}`;
       setCameraError(errMsg);
       setOcrLogs(prev => [...prev, errMsg]);
     }
@@ -466,9 +466,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
         setScanTarget(null);
       }, 2000);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[OCR] Fallo en la transcripción local:", err);
-      const errorMsg = `❌ [OCR] Error: ${err.message || err}`;
+      const errorMsg = `❌ [OCR] Error: ${err instanceof Error ? err.message : String(err)}`;
       setOcrLogs(prev => [...prev, errorMsg]);
       setTimeout(() => {
         setIsScanning(false);
