@@ -159,7 +159,7 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
     <div className="space-y-5">
       {/* Header Row: Title on Left, Actions on Right */}
       <div className="flex items-center justify-between px-1 mb-2">
-        <h1 className="text-[32px] font-black tracking-tight text-foreground leading-none">Asignaciones</h1>
+        <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-none">Asignaciones</h1>
         
         <button
           onClick={() => onToggleMenu?.()}

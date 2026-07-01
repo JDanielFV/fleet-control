@@ -184,7 +184,7 @@ export default function Dashboard() {
                   className="flex items-center justify-between gap-4 pt-2 px-1 animate-in fade-in slide-in-from-top-4 duration-300"
                 >
                   <div>
-                    <h1 className="text-[32px] font-black tracking-tight leading-none text-foreground">
+                    <h1 className="text-[26px] font-bold tracking-tight leading-none text-foreground">
                       Buenos días.
                     </h1>
                     <p className="text-xs text-muted-foreground mt-1.5">
