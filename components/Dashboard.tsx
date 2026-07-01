@@ -558,7 +558,7 @@ export default function Dashboard() {
               </>
             )}
 
-            {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
+            {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onToggleMenu={() => setIsMenuOpen(true)} />}
             {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
             {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} />}
             {activeTab === "finances" && <FinancesSlice />}

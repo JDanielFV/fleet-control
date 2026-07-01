@@ -11,15 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw } from "lucide-react";
+import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw, Menu, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
+  onToggleMenu?: () => void;
 }
 
-export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMenu }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
@@ -737,23 +738,22 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Conductores</h2>
-          <p className="text-sm text-muted-foreground">Expedientes de choferes registrados</p>
-        </div>
-
-        <Dialog open={isOpen} onOpenChange={(open) => {
-          setIsOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl bg-primary hover:bg-primary text-white font-bold active:scale-95 cursor-pointer" onClick={resetForm}>
-              <UserCheck className="w-4 h-4 mr-2" />
-              Nuevo Conductor
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
+      {/* Header Row: Title on Left, Actions on Right */}
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-[32px] font-black tracking-tight text-foreground leading-none">Conductores</h1>
+        
+        <div className="flex items-center gap-2">
+          {/* Dialog configuration */}
+          <Dialog open={isOpen} onOpenChange={(open) => {
+            setIsOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-xs font-bold px-5 h-10 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
+                Registrar conductor
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-foreground font-black text-lg">
                 {editingDriverId ? "Editar Conductor" : "Registro de Conductor"}
@@ -1203,77 +1203,102 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
             </AnimatePresence>
           </DialogContent>
         </Dialog>
+
+        <button
+          onClick={() => onToggleMenu?.()}
+          className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
+          aria-label="Toggle Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
+    </div>
+
+    {/* iOS styled Search Bar */}
+    <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-full h-11 px-4 flex items-center gap-2 w-full shadow-inner mb-4 mt-2">
+      <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+      <input
+        type="text"
+        placeholder="Search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
+      />
+      <Mic className="w-4 h-4 text-muted-foreground/60 shrink-0 cursor-pointer" />
+    </div>
 
 
 
       <div className="space-y-3">
         {filteredDrivers.map((driver) => (
-          <Card key={driver.id} className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200">
-            <CardHeader className="p-4 pb-2.5">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-border shrink-0 bg-muted flex items-center justify-center">
-                    {driver.driver_photo_img ? (
-                      <img src={driver.driver_photo_img} alt="Foto Chofer" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-5 h-5 text-primary" />
-                    )}
+          <Card key={driver.id} className="border border-[#F2F2F2] dark:border-border/60 bg-white dark:bg-card/45 rounded-[20px] overflow-hidden hover:border-border/80 transition-all duration-200 shadow-2xs">
+            <div className="p-3.5 flex items-center gap-4">
+              {/* Profile Image Avatar Circle/Square */}
+              <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0 shadow-inner">
+                {driver.driver_photo_img ? (
+                  <img src={driver.driver_photo_img} alt="Foto Chofer" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-[#E0E0E0] dark:bg-muted/80 flex items-center justify-center">
+                    <User className="w-6 h-6 text-muted-foreground/60" />
                   </div>
-                  <div>
-                    <CardTitle className="text-sm font-bold text-foreground">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</CardTitle>
-                    <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5">{driver.curp}</CardDescription>
-                    {(() => {
-                      const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
-                      return (
-                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold tracking-wide">
-                          {assignedVehicle ? (
-                            <span className="text-primary flex items-center gap-1.5 dark:text-blue-400">
-                              <Car className="w-3.5 h-3.5" /> {assignedVehicle.brand} {assignedVehicle.vehicle_name} ({assignedVehicle.plate_number})
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground flex items-center gap-1.5 opacity-60">
-                              <Car className="w-3.5 h-3.5" /> Sin Auto Asignado
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
+                )}
+              </div>
+
+              {/* Info Block */}
+              <div className="flex-1 min-w-0">
+                {/* Name with subtle border under it */}
+                <div className="border-b border-[#F0F0F0] dark:border-border/40 pb-1.5 flex justify-between items-center">
+                  <span className="text-[15px] font-bold text-foreground truncate">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</span>
+                  
+                  {/* Subtle actions toolbar */}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    {driver.license_is_permanent ? (
+                      <span className="px-1.5 py-0.5 text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
+                        P
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleRenewLicense(driver)}
+                        className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                        title={`Renovar licencia (Vence: ${driver.license_expiration_date})`}
+                      >
+                        <RefreshCcw className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEditDriver(driver)}
+                      className="p-1 text-muted-foreground hover:text-primary active:scale-90 transition-all cursor-pointer"
+                      title="Editar"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDriver(driver.id)}
+                      className="p-1 text-red-500 hover:text-red-400 active:scale-90 transition-all cursor-pointer"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {driver.license_is_permanent ? (
-                    <span className="px-2 py-0.5 text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md">
-                      Lic. Permanente
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleRenewLicense(driver)}
-                      className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Renovar licencia"
-                    >
-                      <RefreshCcw className="w-3 h-3" /> Vence: {driver.license_expiration_date}
-                    </button>
-                  )}
-                  <Button
-                    onClick={() => handleEditDriver(driver)}
-                    variant="ghost"
-                    className="p-1.5 h-auto text-primary hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer shrink-0"
-                    title="Editar conductor"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={() => handleDeleteDriver(driver.id)}
-                    variant="ghost"
-                    className="p-1.5 h-auto text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer shrink-0"
-                    title="Eliminar Chofer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+
+                {/* CURP & Assignment Row */}
+                <div className="flex justify-between items-center text-[11px] font-medium pt-2 text-foreground/90">
+                  <span className="font-bold font-mono text-foreground tracking-tight">{driver.curp}</span>
+                  
+                  {(() => {
+                    const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
+                    return (
+                      <span className="flex items-center gap-1 font-semibold text-foreground/80">
+                        <Car className="w-3.5 h-3.5 text-foreground/75" />
+                        {assignedVehicle ? "Con auto asignado" : "Sin auto asignado"}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
-            </CardHeader>
+            </div>
+
             <AnimatePresence initial={false}>
               {expandedDriverDetails[driver.id] && (
                 <motion.div
