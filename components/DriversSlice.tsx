@@ -42,11 +42,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
     setMaternalLastName(d.maternal_last_name);
     setLicenseCurp(d.curp);
     setIneCurp(d.curp);
-    setLicenseDob(d.dob);
-    setIneDob(d.dob);
+    setLicenseDob(d.dob ?? "");
+    setIneDob(d.dob ?? "");
     setLicenseNumber(d.license_number);
-    setLicenseIssueDate(d.license_issue_date);
-    setLicenseExpirationDate(d.license_expiration_date);
+    setLicenseIssueDate(d.license_issue_date ?? "");
+    setLicenseExpirationDate(d.license_expiration_date ?? "");
     setLicenseIsPermanent(d.license_is_permanent);
     setIneAddress(d.ine_address);
     setIneSex(d.ine_sex);
@@ -59,8 +59,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
   const handleRenewLicense = (d: Driver) => {
     setRenewingDriver(d);
     setRenewNumber(d.license_number);
-    setRenewIssueDate(d.license_issue_date);
-    setRenewExpirationDate(d.license_expiration_date);
+    setRenewIssueDate(d.license_issue_date ?? "");
+    setRenewExpirationDate(d.license_expiration_date ?? "");
     setRenewIsPermanent(d.license_is_permanent);
     setIsRenewOpen(true);
   };
@@ -1333,7 +1333,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
                       <button
                         onClick={() => handleRenewLicense(driver)}
                         className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1 cursor-pointer transition-colors shrink-0"
-                        title={`Renovar licencia (Vence: ${driver.license_expiration_date})`}
+                        title={`Renovar licencia (Vence: ${driver.license_expiration_date ?? "—"})`}
                       >
                         <RefreshCcw className="w-2.5 h-2.5" />
                       </button>

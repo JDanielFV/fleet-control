@@ -7,10 +7,10 @@ export interface Driver {
   paternal_last_name: string;
   maternal_last_name: string;
   curp: string;
-  dob: string;
+  dob: string | null;
   license_number: string;
-  license_issue_date: string;
-  license_expiration_date: string;
+  license_issue_date: string | null;
+  license_expiration_date: string | null;
   license_is_permanent: boolean;
   ine_address: string;
   ine_sex: "M" | "F" | "X";
@@ -27,11 +27,11 @@ export interface Vehicle {
   model: string;
   class_type: string;
   color?: string | null;
-  circulation_expiration_date: string;
+  circulation_expiration_date: string | null;
   vin: string;
   plate_number: string;
   insurance_policy_img: string; // Base64 or URL
-  insurance_expiration_date: string;
+  insurance_expiration_date: string | null;
   active_driver_id: string | null;
   rent_cost: number;
   next_service_mileage?: number | null;
@@ -88,7 +88,7 @@ export interface Maintenance {
   cost: number;
   description: string;
   maintenance_date: string;
-  next_maintenance_date: string;
+  next_maintenance_date: string | null;
   created_at: string;
 }
 

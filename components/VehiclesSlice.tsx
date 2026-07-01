@@ -58,11 +58,11 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
     setVehicleName(v.vehicle_name);
     setModel(v.model);
     setClassType(v.class_type);
-    setCirculationExpirationDate(v.circulation_expiration_date);
+    setCirculationExpirationDate(v.circulation_expiration_date ?? "");
     setVin(v.vin);
     setPlateNumber(v.plate_number);
     setInsurancePolicyImg(v.insurance_policy_img);
-    setInsuranceExpirationDate(v.insurance_expiration_date);
+    setInsuranceExpirationDate(v.insurance_expiration_date ?? "");
     setRentCost(v.rent_cost);
     setNextServiceMileage(v.next_service_mileage?.toString() ?? "");
     setColor(v.color ?? "");
@@ -72,7 +72,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
   const handleRenewDocument = (v: Vehicle, target: "CIRCULACION" | "SEGURO") => {
     setRenewingVehicle(v);
     setRenewTarget(target);
-    setRenewExpirationDate(target === "CIRCULACION" ? v.circulation_expiration_date : v.insurance_expiration_date);
+    setRenewExpirationDate((target === "CIRCULACION" ? v.circulation_expiration_date : v.insurance_expiration_date) ?? "");
     setRenewPolicyImg(target === "SEGURO" ? v.insurance_policy_img : "");
     setIsRenewOpen(true);
   };
