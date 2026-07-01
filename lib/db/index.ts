@@ -1,248 +1,40 @@
 import { createClient } from "@supabase/supabase-js";
+import type {
+  Driver,
+  Vehicle,
+  Assignment,
+  Checklist,
+  WeeklyRental,
+  Maintenance,
+  Alert,
+} from "./types";
+export type * from "./types";
+export { getVerificationSchedule, genId, normalizeEmptyDates } from "./utils";
 
-// --- Types ---
-export interface Driver {
-  id: string;
-  first_name: string;
-  paternal_last_name: string;
-  maternal_last_name: string;
-  curp: string;
-  dob: string | null;
-  license_number: string;
-  license_issue_date: string | null;
-  license_expiration_date: string | null;
-  license_is_permanent: boolean;
-  ine_address: string;
-  ine_sex: "M" | "F" | "X";
-  ine_elector_key: string;
-  driver_photo_img?: string | null;
-  address_proof_img?: string | null;
-  created_at: string;
-}
+import {
+  seedDrivers,
+  seedVehicles,
+  seedAssignments,
+  seedChecklists,
+  seedWeeklyRentals,
+  seedMaintenances,
+} from "./seed";
+import {
+  getLocalData,
+  setLocalData,
+  mergePendingLocal,
+  addPendingId,
+  clearPendingIds,
+} from "./localStorage";
+import {
+  DRIVER_DATE_KEYS,
+  VEHICLE_DATE_KEYS,
+  genId,
+  normalizeEmptyDates,
+  getVerificationSchedule,
+} from "./utils";
 
-export interface Vehicle {
-  id: string;
-  brand: string;
-  vehicle_name: string;
-  model: string;
-  class_type: string;
-  color?: string | null;
-  circulation_expiration_date: string | null;
-  vin: string;
-  plate_number: string;
-  insurance_policy_img: string; // Base64 or URL
-  insurance_expiration_date: string | null;
-  active_driver_id: string | null;
-  rent_cost: number;
-  next_service_mileage?: number | null;
-  created_at: string;
-}
-
-export interface Assignment {
-  id: string;
-  vehicle_id: string;
-  driver_id: string;
-  action_type: "ASSIGN" | "RELEASE";
-  reason: string;
-  created_at: string;
-}
-
-export interface Checklist {
-  id: string;
-  vehicle_id: string;
-  driver_id: string;
-  type: "DELIVERY" | "WEEKLY_START";
-  mileage: number;
-  gasoline_level: string; // "1/8", "2/8", ..., "8/8"
-  checklist_items: {
-    lights: boolean;
-    brakes: boolean;
-    tires: boolean;
-    bodywork: boolean;
-    documents: boolean;
-  };
-  irregularities: string;
-  created_at: string;
-}
-
-export interface Payment {
-  amount: number;
-  date: string;
-}
-
-export interface WeeklyRental {
-  id: string;
-  driver_id: string;
-  week_start: string; // YYYY-MM-DD (typically a Monday)
-  rent_amount: number;
-  paid_amount: number;
-  accumulated_debt: number;
-  status: "PAID" | "PARTIAL" | "UNPAID";
-  payments_log: Payment[];
-  created_at: string;
-}
-
-export interface Maintenance {
-  id: string;
-  vehicle_id: string;
-  cost: number;
-  description: string;
-  maintenance_date: string;
-  next_maintenance_date: string | null;
-  created_at: string;
-}
-
-export interface Alert {
-  id: string;
-  type: "LICENSE" | "INSURANCE" | "VERIFICATION" | "MAINTENANCE";
-  title: string;
-  description: string;
-  targetId: string; // vehicle_id or driver_id
-  severity: "critical" | "warning" | "info";
-  dueDate: string;
-}
-
-// --- Seed Data ---
-const seedDrivers: Driver[] = [
-  {
-    id: "d1",
-    first_name: "Juan Carlos",
-    paternal_last_name: "Pérez",
-    maternal_last_name: "García",
-    curp: "PEGC850615HDFRRN01",
-    dob: "1985-06-15",
-    license_number: "LIC-982736-A",
-    license_issue_date: "2024-01-10",
-    license_expiration_date: "2027-01-10",
-    license_is_permanent: false,
-    ine_address: "Av. Chapultepec 340, Roma Norte, CDMX",
-    ine_sex: "M",
-    ine_elector_key: "PRGRJC85061509M100",
-    created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: "d2",
-    first_name: "María Elena",
-    paternal_last_name: "López",
-    maternal_last_name: "Sánchez",
-    curp: "LOSM901123MDFLNN02",
-    dob: "1990-11-23",
-    license_number: "LIC-342890-B",
-    license_issue_date: "2022-05-15",
-    license_expiration_date: "",
-    license_is_permanent: true,
-    ine_address: "Calle 10 Num 45, Col. Centro, Guadalajara, Jal.",
-    ine_sex: "F",
-    ine_elector_key: "LPSMEM90112314F200",
-    created_at: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString(),
-  }
-];
-
-const seedVehicles: Vehicle[] = [
-  {
-    id: "v1",
-    brand: "Nissan",
-    vehicle_name: "Versa",
-    model: "2022",
-    class_type: "Sedán - Tsuru Class",
-    circulation_expiration_date: "2026-10-15",
-    vin: "3N1CN81D7NL123456",
-    plate_number: "982-WXY",
-    insurance_policy_img: "",
-    insurance_expiration_date: "2026-07-15", // Expiring soon
-    active_driver_id: "d1",
-    rent_cost: 2500,
-    created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: "v2",
-    brand: "Chevrolet",
-    vehicle_name: "Aveo",
-    model: "2021",
-    class_type: "Sedán - Económico",
-    circulation_expiration_date: "2027-04-20",
-    vin: "KL1TA54B9MC654321",
-    plate_number: "145-ABC",
-    insurance_policy_img: "",
-    insurance_expiration_date: "2026-12-01",
-    active_driver_id: null,
-    rent_cost: 2500,
-    created_at: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString(),
-  }
-];
-
-const seedAssignments: Assignment[] = [
-  {
-    id: "a1",
-    vehicle_id: "v1",
-    driver_id: "d1",
-    action_type: "ASSIGN",
-    reason: "Inicio de contrato semanal estándar",
-    created_at: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
-  }
-];
-
-const seedChecklists: Checklist[] = [
-  {
-    id: "c1",
-    vehicle_id: "v1",
-    driver_id: "d1",
-    type: "DELIVERY",
-    mileage: 45200,
-    gasoline_level: "6/8",
-    checklist_items: {
-      lights: true,
-      brakes: true,
-      tires: true,
-      bodywork: false, // small scratch
-      documents: true,
-    },
-    irregularities: "Raspón leve en fascia trasera derecha.",
-    created_at: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
-  }
-];
-
-const seedWeeklyRentals: WeeklyRental[] = [
-  {
-    id: "r1",
-    driver_id: "d1",
-    week_start: "2026-06-22",
-    rent_amount: 2500,
-    paid_amount: 1500,
-    accumulated_debt: 1000,
-    status: "PARTIAL",
-    payments_log: [
-      { amount: 1000, date: "2026-06-23" },
-      { amount: 500, date: "2026-06-25" },
-    ],
-    created_at: "2026-06-22T08:00:00.000Z",
-  },
-  {
-    id: "r2",
-    driver_id: "d1",
-    week_start: "2026-06-29",
-    rent_amount: 2500,
-    paid_amount: 0,
-    accumulated_debt: 3500, // 2500 + 1000 from previous week
-    status: "UNPAID",
-    payments_log: [],
-    created_at: "2026-06-29T08:00:00.000Z",
-  }
-];
-
-const seedMaintenances: Maintenance[] = [
-  {
-    id: "m1",
-    vehicle_id: "v1",
-    cost: 1800,
-    description: "Cambio de aceite, filtro y revisión de frenos de 40,000 km",
-    maintenance_date: "2026-05-10",
-    next_maintenance_date: "2026-08-10",
-    created_at: "2026-05-10T12:00:00.000Z",
-  }
-];
-
-// --- Supabase Connection & LocalStorage Database Handler ---
+// --- Supabase Connection ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const isSupabaseConfigured = supabaseUrl !== "" && supabaseAnonKey !== "";
@@ -250,162 +42,6 @@ const isSupabaseConfigured = supabaseUrl !== "" && supabaseAnonKey !== "";
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
-
-// Helper to initialize local storage
-function getLocalData<T>(key: string, seed: T[]): T[] {
-  if (typeof window === "undefined") return seed;
-  const stored = localStorage.getItem(`fleet_${key}`);
-  if (!stored) {
-    localStorage.setItem(`fleet_${key}`, JSON.stringify(seed));
-    return seed;
-  }
-  return JSON.parse(stored);
-}
-
-function setLocalData<T>(key: string, data: T[]): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(`fleet_${key}`, JSON.stringify(data));
-  }
-}
-
-// --- Pending-sync tracking ---
-// When Supabase is configured but a write fails, the record is stored in
-// localStorage as a fallback. Without tracking, subsequent reads (which prefer
-// Supabase) would mask that fallback record. We track the ids of records that
-// only exist in localStorage so reads can merge them back in. Once a record
-// reappears in Supabase, its pending id is cleared.
-function getPendingIds(table: string): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(`fleet_pending_${table}`) || "[]") as string[];
-  } catch {
-    return [];
-  }
-}
-function setPendingIds(table: string, ids: string[]): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(`fleet_pending_${table}`, JSON.stringify(ids));
-  }
-}
-function addPendingId(table: string, id: string): void {
-  const ids = getPendingIds(table);
-  if (!ids.includes(id)) {
-    ids.push(id);
-    setPendingIds(table, ids);
-  }
-}
-function clearPendingIds(table: string, idsToRemove: string[]): void {
-  if (!idsToRemove.length) return;
-  setPendingIds(table, getPendingIds(table).filter((id) => !idsToRemove.includes(id)));
-}
-
-// Merge any pending (fallback-only) localStorage records into the Supabase
-// result. `remote` is the Supabase list (possibly empty); if null, Supabase
-// failed entirely and we fall back to plain localStorage. Only records whose
-// ids are marked pending AND absent from remote are prepended, so seed data is
-// never injected into a live Supabase list.
-function mergePendingLocal<T extends { id: string }>(table: string, remote: T[] | null, seed: T[]): T[] {
-  if (!remote) return getLocalData(table, seed);
-  const pending = getPendingIds(table);
-  if (!pending.length) return remote;
-  const remoteIds = new Set(remote.map((r) => r.id));
-  // Clear pending ids that have now appeared in Supabase (synced).
-  const synced = pending.filter((id) => remoteIds.has(id));
-  if (synced.length) clearPendingIds(table, synced);
-  const local = getLocalData(table, seed);
-  const orphans = local.filter((l) => getPendingIds(table).includes(l.id) && !remoteIds.has(l.id));
-  return orphans.length ? [...orphans, ...remote] : remote;
-}
-
-// Mexican Verification Rules Helper
-// Returns the months and color based on the last numeric digit of the license plate
-export interface VerificationSchedule {
-  color: string;
-  months: string;
-  semester1: string; // e.g. "Febrero - Marzo"
-  semester2: string; // e.g. "Agosto - Septiembre"
-  lastDigits: number[];
-}
-
-export function getVerificationSchedule(plate: string): VerificationSchedule {
-  // Extract last digit of plate number
-  const match = plate.replace(/\D/g, "");
-  const lastDigitStr = match ? match.slice(-1) : "5";
-  const lastDigit = parseInt(lastDigitStr, 10);
-
-  switch (lastDigit) {
-    case 5:
-    case 6:
-      return {
-        color: "Amarillo",
-        months: "Feb-Mar / Ago-Sep",
-        semester1: "Febrero - Marzo",
-        semester2: "Agosto - Septiembre",
-        lastDigits: [5, 6],
-      };
-    case 7:
-    case 8:
-      return {
-        color: "Rosa",
-        months: "Mar-Abr / Sep-Oct",
-        semester1: "Marzo - Abril",
-        semester2: "Septiembre - Octubre",
-        lastDigits: [7, 8],
-      };
-    case 3:
-    case 4:
-      return {
-        color: "Rojo",
-        months: "Abr-May / Oct-Nov",
-        semester1: "Abril - Mayo",
-        semester2: "Octubre - Noviembre",
-        lastDigits: [3, 4],
-      };
-    case 1:
-    case 2:
-      return {
-        color: "Verde",
-        months: "May-Jun / Nov-Dic",
-        semester1: "Mayo - Junio",
-        semester2: "Noviembre - Diciembre",
-        lastDigits: [1, 2],
-      };
-    case 9:
-    case 0:
-    default:
-      return {
-        color: "Azul",
-        months: "Jun-Jul / Dic-Ene",
-        semester1: "Junio - Julio",
-        semester2: "Diciembre - Enero",
-        lastDigits: [9, 0],
-      };
-  }
-}
-
-// Generate a unique id. Prefer crypto.randomUUID (122 bits, available in
-// secure contexts: localhost + https) over the legacy Math.random base36
-// scheme (~45 bits). Fall back for non-secure-context plain-HTTP hosts.
-function genId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).substring(2, 11);
-}
-
-// Postgres DATE columns reject empty strings ("invalid input syntax for type
-// date: \"\""). Normalize any empty-string date field to null before upsert so
-// forms that leave dates blank (e.g. permanent-license drivers) still save.
-function normalizeEmptyDates<T extends Record<string, unknown>>(obj: T, dateKeys: readonly string[]): T {
-  const out = { ...obj };
-  for (const key of dateKeys) {
-    if (out[key] === "") (out as Record<string, unknown>)[key] = null;
-  }
-  return out;
-}
-
-const DRIVER_DATE_KEYS = ["dob", "license_issue_date", "license_expiration_date"] as const;
-const VEHICLE_DATE_KEYS = ["circulation_expiration_date", "insurance_expiration_date"] as const;
 
 // --- Live DB API Layer ---
 export const db = {
@@ -514,12 +150,10 @@ export const db = {
   },
 
   async deleteVehicle(id: string): Promise<boolean> {
-    // Delete vehicle from local storage
     const vehicles = getLocalData("vehicles", seedVehicles);
     const filtered = vehicles.filter((v) => v.id !== id);
     setLocalData("vehicles", filtered);
 
-    // Delete from Supabase if active
     if (supabase) {
       const { error } = await supabase.from("vehicles").delete().eq("id", id);
       return !error;
@@ -556,14 +190,13 @@ export const db = {
 
     // Auto-generate Weekly Rental if it's an ASSIGN action
     if (type === "ASSIGN") {
-      // Get current Monday
       const d = new Date();
       const day = d.getDay();
       const diff = d.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(d.setDate(diff));
       const yyyy = monday.getFullYear();
-      const mm = String(monday.getMonth() + 1).padStart(2, '0');
-      const dd = String(monday.getDate()).padStart(2, '0');
+      const mm = String(monday.getMonth() + 1).padStart(2, "0");
+      const dd = String(monday.getDate()).padStart(2, "0");
       const weekStart = `${yyyy}-${mm}-${dd}`;
 
       const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
@@ -576,9 +209,9 @@ export const db = {
           id: genId(),
           driver_id: driverId,
           week_start: weekStart,
-          rent_amount: rentCost, // Dynamic rent cost from vehicle
+          rent_amount: rentCost,
           paid_amount: 0,
-          accumulated_debt: isFirstTime ? rentCost * 2 : rentCost, // Rent + Deposit ($rentCost + $rentCost) if first time
+          accumulated_debt: isFirstTime ? rentCost * 2 : rentCost,
           status: "UNPAID",
           payments_log: [],
           created_at: new Date().toISOString(),
@@ -593,7 +226,6 @@ export const db = {
     }
 
     if (supabase) {
-      // Direct update of vehicle is required in actual supabase schema too
       await supabase.from("vehicles").update({ active_driver_id: type === "ASSIGN" ? driverId : null }).eq("id", vehicleId);
       const { data, error } = await supabase.from("assignments").insert(newAssignment).select().single();
       if (!error && data) return data;
@@ -638,7 +270,6 @@ export const db = {
 
   async autoGenerateMondayChecklists(): Promise<number> {
     const today = new Date();
-    // 1 = Monday. Check if today is Monday
     if (today.getDay() !== 1) return 0;
 
     const yyyy = today.getFullYear();
@@ -646,12 +277,9 @@ export const db = {
     const dd = String(today.getDate()).padStart(2, "0");
     const currentMondayStr = `${yyyy}-${mm}-${dd}`;
 
-    // Verify if already generated for this Monday
     if (typeof window !== "undefined") {
       const lastGen = localStorage.getItem("last_weekly_checklist_gen");
-      if (lastGen === currentMondayStr) {
-        return 0; // Already run
-      }
+      if (lastGen === currentMondayStr) return 0;
     }
 
     const vehicles = await this.getVehicles();
@@ -660,7 +288,6 @@ export const db = {
 
     for (const vehicle of vehicles) {
       if (vehicle.active_driver_id) {
-        // Check if there is already a WEEKLY_START checklist for this vehicle today
         const hasTodayChecklist = checklists.some(
           (c) =>
             c.vehicle_id === vehicle.id &&
@@ -669,7 +296,6 @@ export const db = {
         );
 
         if (!hasTodayChecklist) {
-          // Retrieve last recorded mileage
           const vehicleChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
           const lastMileage =
             vehicleChecklists.length > 0
@@ -720,14 +346,13 @@ export const db = {
     if (rentalIndex >= 0) {
       const current = rentals[rentalIndex];
       const newPaid = current.paid_amount + amount;
-      // Recalculate status and debt
       let newStatus: "PAID" | "PARTIAL" | "UNPAID" = "PARTIAL";
       if (newPaid >= current.rent_amount) {
         newStatus = "PAID";
       } else if (newPaid === 0) {
         newStatus = "UNPAID";
       }
-      
+
       const newAccumulatedDebt = Math.max(0, current.accumulated_debt - amount);
 
       updatedRental = {
@@ -739,7 +364,6 @@ export const db = {
       };
       rentals[rentalIndex] = updatedRental;
     } else {
-      // Create new rental record for the driver
       const newAccumulatedDebt = Math.max(0, 2500 - amount);
       updatedRental = {
         id: genId(),
@@ -831,7 +455,7 @@ export const db = {
     drivers.forEach((driver) => {
       if (driver.license_is_permanent) return;
       if (!driver.license_expiration_date) return;
-      
+
       const expDate = new Date(driver.license_expiration_date);
       const diffTime = expDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -852,7 +476,7 @@ export const db = {
     // 2. Vehicle Insurance Alerts
     vehicles.forEach((vehicle) => {
       if (!vehicle.insurance_expiration_date) return;
-      
+
       const expDate = new Date(vehicle.insurance_expiration_date);
       const diffTime = expDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -872,84 +496,60 @@ export const db = {
       // 3. Vehicle Verification Alerts (Dynamic Mexican logic)
       if (vehicle.plate_number) {
         const schedule = getVerificationSchedule(vehicle.plate_number);
-        // Verification happens in semesters. Let's find the current year/semester and notify if near.
-        const month = today.getMonth(); // 0 = Jan, 11 = Dec
-        
-        let shouldAlert = false;
-        let period = "";
-        let limitDate = "";
-        
-        // Simple rules check based on last digit
         const match = vehicle.plate_number.replace(/\D/g, "");
         const lastDigit = match ? parseInt(match.slice(-1), 10) : 5;
-        
+
+        type Window = { startMonth: number; endMonth: number; limitDate: string; period: string };
+        let activeWindow: Window | null = null;
+
         if (lastDigit === 5 || lastDigit === 6) {
-          // Yellow: Feb-Mar & Aug-Sep
-          if (month === 0 || month === 1 || month === 2) {
-            shouldAlert = true;
-            period = "Primer Semestre (Feb-Mar)";
-            limitDate = `${today.getFullYear()}-03-31`;
-          } else if (month === 6 || month === 7 || month === 8) {
-            shouldAlert = true;
-            period = "Segundo Semestre (Ago-Sep)";
-            limitDate = `${today.getFullYear()}-09-30`;
-          }
+          activeWindow = today.getMonth() <= 2
+            ? { startMonth: 0, endMonth: 2, limitDate: `${today.getFullYear()}-03-31`, period: "Primer Semestre (Feb-Mar)" }
+            : { startMonth: 6, endMonth: 8, limitDate: `${today.getFullYear()}-09-30`, period: "Segundo Semestre (Ago-Sep)" };
         } else if (lastDigit === 7 || lastDigit === 8) {
-          // Pink: Mar-Apr & Sep-Oct
-          if (month === 1 || month === 2 || month === 3) {
-            shouldAlert = true;
-            period = "Primer Semestre (Mar-Abr)";
-            limitDate = `${today.getFullYear()}-04-30`;
-          } else if (month === 7 || month === 8 || month === 9) {
-            shouldAlert = true;
-            period = "Segundo Semestre (Sep-Oct)";
-            limitDate = `${today.getFullYear()}-10-31`;
-          }
+          activeWindow = today.getMonth() <= 3
+            ? { startMonth: 1, endMonth: 3, limitDate: `${today.getFullYear()}-04-30`, period: "Primer Semestre (Mar-Abr)" }
+            : { startMonth: 7, endMonth: 9, limitDate: `${today.getFullYear()}-10-31`, period: "Segundo Semestre (Sep-Oct)" };
         } else if (lastDigit === 3 || lastDigit === 4) {
-          // Red: Apr-May & Oct-Nov
-          if (month === 2 || month === 3 || month === 4) {
-            shouldAlert = true;
-            period = "Primer Semestre (Abr-May)";
-            limitDate = `${today.getFullYear()}-05-31`;
-          } else if (month === 8 || month === 9 || month === 10) {
-            shouldAlert = true;
-            period = "Segundo Semestre (Oct-Nov)";
-            limitDate = `${today.getFullYear()}-11-30`;
-          }
+          activeWindow = today.getMonth() <= 4
+            ? { startMonth: 2, endMonth: 4, limitDate: `${today.getFullYear()}-05-31`, period: "Primer Semestre (Abr-May)" }
+            : { startMonth: 8, endMonth: 10, limitDate: `${today.getFullYear()}-11-30`, period: "Segundo Semestre (Oct-Nov)" };
         } else if (lastDigit === 1 || lastDigit === 2) {
-          // Green: May-Jun & Nov-Dic
-          if (month === 3 || month === 4 || month === 5) {
-            shouldAlert = true;
-            period = "Primer Semestre (May-Jun)";
-            limitDate = `${today.getFullYear()}-06-30`;
-          } else if (month === 9 || month === 10 || month === 11) {
-            shouldAlert = true;
-            period = "Segundo Semestre (Nov-Dic)";
-            limitDate = `${today.getFullYear()}-12-31`;
-          }
+          activeWindow = today.getMonth() <= 5
+            ? { startMonth: 3, endMonth: 5, limitDate: `${today.getFullYear()}-06-30`, period: "Primer Semestre (May-Jun)" }
+            : { startMonth: 9, endMonth: 11, limitDate: `${today.getFullYear()}-12-31`, period: "Segundo Semestre (Nov-Dic)" };
         } else {
-          // Blue: Jun-Jul & Dec-Jan
-          if (month === 4 || month === 5 || month === 6) {
-            shouldAlert = true;
-            period = "Primer Semestre (Jun-Jul)";
-            limitDate = `${today.getFullYear()}-07-31`;
-          } else if (month === 10 || month === 11 || month === 0) {
-            shouldAlert = true;
-            period = "Segundo Semestre (Dic-Ene)";
-            limitDate = `${today.getMonth() === 0 ? today.getFullYear() : today.getFullYear() + 1}-01-31`;
-          }
+          activeWindow = today.getMonth() >= 10 || today.getMonth() === 0
+            ? {
+                startMonth: 10,
+                endMonth: 0,
+                limitDate: `${today.getMonth() === 0 ? today.getFullYear() : today.getFullYear() + 1}-01-31`,
+                period: "Segundo Semestre (Dic-Ene)",
+              }
+            : { startMonth: 4, endMonth: 6, limitDate: `${today.getFullYear()}-07-31`, period: "Primer Semestre (Jun-Jul)" };
         }
 
-        if (shouldAlert) {
-          alerts.push({
-            id: `alert-ver-${vehicle.id}`,
-            type: "VERIFICATION",
-            title: `Verificación Vehicular Pendiente`,
-            description: `El vehículo ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) con terminación ${lastDigit} (Engomado ${schedule.color}) debe verificar en ${period}.`,
-            targetId: vehicle.id,
-            severity: "warning",
-            dueDate: limitDate,
-          });
+        if (activeWindow) {
+          const limit = new Date(activeWindow.limitDate);
+          const daysUntilLimit = Math.ceil((limit.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+          // Alert only in the last 30 days of the window or if the deadline has passed.
+          const shouldAlert = daysUntilLimit <= 30 || daysUntilLimit < 0;
+          const severity = daysUntilLimit <= 0 ? "critical" : daysUntilLimit <= 7 ? "warning" : "info";
+
+          if (shouldAlert) {
+            alerts.push({
+              id: `alert-ver-${vehicle.id}`,
+              type: "VERIFICATION",
+              title: daysUntilLimit < 0 ? `Verificación Vehicular Vencida` : `Verificación Vehicular Próxima`,
+              description: daysUntilLimit < 0
+                ? `La verificación del vehículo ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) con terminación ${lastDigit} (Engomado ${schedule.color}) venció el ${activeWindow.limitDate}.`
+                : `El vehículo ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) con terminación ${lastDigit} (Engomado ${schedule.color}) debe verificar en ${activeWindow.period}. Quedan ${daysUntilLimit} días.`,
+              targetId: vehicle.id,
+              severity,
+              dueDate: activeWindow.limitDate,
+            });
+          }
         }
       }
     });
@@ -957,7 +557,7 @@ export const db = {
     // 4. Maintenance Alerts
     maintenances.forEach((maint) => {
       if (!maint.next_maintenance_date) return;
-      
+
       const nextDate = new Date(maint.next_maintenance_date);
       const diffTime = nextDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
