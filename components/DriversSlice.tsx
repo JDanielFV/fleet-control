@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Terminal, Upload, FolderOpen, Video, StopCircle, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic } from "lucide-react";
+import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Upload, FolderOpen, Video, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SliceHeader from "@/components/SliceHeader";
+import { useOcrScanner } from "@/components/useOcrScanner";
+import ScannerViewfinder from "@/components/ScannerViewfinder";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
@@ -93,27 +95,42 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
   const [renewIssueDate, setRenewIssueDate] = useState("");
   const [renewExpirationDate, setRenewExpirationDate] = useState("");
   const [renewIsPermanent, setRenewIsPermanent] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"INE" | "LICENCIA" | "CHOFER" | "DOMICILIO" | null>(null);
   const [driverPhotoImg, setDriverPhotoImg] = useState("");
   const [addressProofImg, setAddressProofImg] = useState("");
-  
-  // OCR logs
-  const [ocrStep, setOcrStep] = useState<"align" | "scan" | "extract" | "done">("align");
-  const [ocrLogs, setOcrLogs] = useState<string[]>([]);
-
-  // WebRTC Camera States
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   // File picker refs
   const ineFileRef = useRef<HTMLInputElement>(null);
   const licFileRef = useRef<HTMLInputElement>(null);
   const photoFileRef = useRef<HTMLInputElement>(null);
   const addressProofFileRef = useRef<HTMLInputElement>(null);
+
+  // Camera + OCR progress state shared with VehiclesSlice via useOcrScanner.
+  const scanner = useOcrScanner<"INE" | "LICENCIA" | "CHOFER" | "DOMICILIO">({
+    rawTargets: ["CHOFER", "DOMICILIO"],
+    facingMode: (t) => (t === "CHOFER" ? "user" : "environment"),
+    onFrame: (dataUrl, target) => {
+      if (target === "CHOFER") setDriverPhotoImg(dataUrl);
+      else if (target === "DOMICILIO") setAddressProofImg(dataUrl);
+      else processOcrOnImageSource(dataUrl, target);
+    },
+  });
+  const {
+    ocrStep,
+    setOcrStep,
+    ocrLogs,
+    setOcrLogs,
+    isCameraActive,
+    cameraError,
+    isScanning,
+    setIsScanning,
+    scanTarget,
+    setScanTarget,
+    videoRef,
+    canvasRef,
+    startCamera,
+    stopCamera,
+    capturePhoto,
+  } = scanner;
 
   // Form State
   const [firstName, setFirstName] = useState("");
@@ -148,23 +165,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     setVehicles(vList);
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      console.log("[Cámara] Deteniendo capturas y liberando tracks de video.");
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setIsCameraActive(false);
-  };
-
   useEffect(() => {
     loadDrivers();
-    return () => {
-      stopCamera();
-    };
   }, []);
 
   // Reload when parent signals a refresh (license renewals, etc.).
@@ -237,106 +239,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     setDemoIndex(null);
     setEditingDriverId(null);
     stopCamera();
-  };
-
-  // WebRTC camera startup
-  const startCamera = async (target: "INE" | "LICENCIA" | "CHOFER" | "DOMICILIO") => {
-    setScanTarget(target);
-    setIsScanning(true);
-    setIsCameraActive(true);
-    setOcrStep("align");
-    setCameraError(null);
-    const initMsg = `[Cámara] Solicitando acceso al dispositivo. Target: ${target}`;
-    console.log(initMsg);
-    setOcrLogs([initMsg]);
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: target === "CHOFER" ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      const successMsg = target === "CHOFER"
-        ? `[Cámara] Acceso concedido. Encuadre su rostro en el centro.`
-        : `[Cámara] Acceso concedido. Coloque el documento frente a la lente.`;
-      console.log(successMsg);
-      setOcrLogs(prev => [...prev, successMsg]);
-    } catch (err: unknown) {
-      console.error("[Cámara] Error al abrir el stream:", err);
-      const errMsg = `[Cámara] Error: ${err instanceof Error ? err.message : "Permiso denegado."}`;
-      setCameraError(errMsg);
-      setOcrLogs(prev => [...prev, errMsg]);
-    }
-  };
-
-  const preprocessCanvasForOcr = (canvas: HTMLCanvasElement) => {
-    const context = canvas.getContext("2d");
-    if (!context) return;
-
-    try {
-      const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        const newVal = gray < 135 ? 0 : 255;
-        data[i] = newVal;
-        data[i + 1] = newVal;
-        data[i + 2] = newVal;
-      }
-      context.putImageData(imgData, 0, 0);
-      console.log("[Preprocessing] Imagen binarizada a blanco y negro para mejorar el OCR.");
-    } catch (e) {
-      console.error("[Preprocessing] Falló el procesamiento de imagen:", e);
-    }
-  };
-
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current || !scanTarget) {
-      console.error("[Captura] Error: Refs nulas.");
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-
-    if (context) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      if (scanTarget !== "CHOFER" && scanTarget !== "DOMICILIO") {
-        preprocessCanvasForOcr(canvas);
-      }
-      stopCamera();
-
-      try {
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-        console.log(`[Captura] Data URL generado con éxito. Longitud cadena: ${dataUrl.length}`);
-        setOcrLogs(prev => [...prev, `[Captura] Fotograma capturado en Base64.`]);
-        
-        if (scanTarget === "CHOFER") {
-          setDriverPhotoImg(dataUrl);
-          setIsScanning(false);
-          setScanTarget(null);
-        } else if (scanTarget === "DOMICILIO") {
-          setAddressProofImg(dataUrl);
-          setIsScanning(false);
-          setScanTarget(null);
-        } else {
-          processOcrOnImageSource(dataUrl, scanTarget);
-        }
-      } catch (err) {
-        console.error("[Captura] Error generating Data URL:", err);
-        setOcrLogs(prev => [...prev, "❌ Error al capturar imagen en formato compatible"]);
-      }
-    }
   };
 
   // Core OCR runner (supports Gemini API with Tesseract local fallback)
@@ -778,84 +680,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
 
             <AnimatePresence mode="wait">
               {isScanning ? (
-                /* Scanning viewscreen */
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex flex-col gap-4 py-3"
-                >
-                  <div className="relative aspect-video w-full rounded-xl border border-primary/30 bg-muted overflow-hidden flex items-center justify-center">
-                    
-                    {/* Live webcam feed stream */}
-                    {isCameraActive && !cameraError ? (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-center space-y-2 p-4 z-20">
-                        <Camera className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
-                        <p className="text-xs font-bold text-foreground">
-                          {ocrStep === "align" && (cameraError || "Iniciando captura...")}
-                          {ocrStep === "scan" && "Escaneando píxeles..."}
-                          {ocrStep === "extract" && "Analizando caracteres..."}
-                          {ocrStep === "done" && "✓ Procesado"}
-                        </p>
-                      </div>
-                    )}
-
-                    {ocrStep === "scan" && (
-                      <motion.div
-                        initial={{ y: -80 }}
-                        animate={{ y: 80 }}
-                        transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }}
-                        className="absolute left-0 right-0 h-1 bg-primary shadow-lg shadow-primary/60 z-10"
-                      />
-                    )}
-
-                    <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-border" />
-                    <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-border" />
-                    <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-border" />
-                    <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-border" />
-
-                    {/* Camera capture shutter button */}
-                    {isCameraActive && !cameraError && (
-                      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-30">
-                        <Button
-                          type="button"
-                          onClick={capturePhoto}
-                          className="bg-primary hover:bg-primary text-white font-bold rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
-                        >
-                          <Camera className="w-5 h-5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={stopCamera}
-                          className="rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
-                        >
-                          <StopCircle className="w-5 h-5" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Hidden canvas for drawing frame */}
-                  <canvas ref={canvasRef} className="hidden" />
-
-                  <div className="bg-muted border border-border rounded-xl p-3 h-36 overflow-y-auto font-mono text-[10px] text-primary/90 flex flex-col gap-1 shadow-inner">
-                    <div className="flex items-center gap-1.5 text-muted-foreground border-b border-border pb-1 mb-1">
-                      <Terminal className="w-3.5 h-3.5" />
-                      <span>LOGS DETALLADOS DEL FLUJO OCR</span>
-                    </div>
-                    {ocrLogs.map((log, index) => (
-                      <div key={index} className="leading-relaxed">{log}</div>
-                    ))}
-                  </div>
-                </motion.div>
+                <ScannerViewfinder
+                  scanner={scanner}
+                  labels={{
+                    scan: "Escaneando píxeles...",
+                    extract: "Analizando caracteres...",
+                    logsHeader: "LOGS DETALLADOS DEL FLUJO OCR",
+                  }}
+                />
               ) : (
                 /* Standard form view */
                 <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">

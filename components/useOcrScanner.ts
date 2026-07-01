@@ -1,0 +1,190 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export type OcrStep = "align" | "scan" | "extract" | "done";
+
+interface UseOcrScannerOptions<T extends string> {
+  /**
+   * Targets whose captured frame should NOT be binarised (e.g. photo-only
+   * captures like a driver portrait or address proof). Defaults to none.
+   */
+  rawTargets?: T[];
+  /** Per-target camera facing mode. Defaults to "environment". */
+  facingMode?: (target: T) => "user" | "environment";
+  /**
+   * Called with the captured frame data URL. The slice decides what to do
+   * with it: store it as a photo (raw targets) or feed it to its own OCR
+   * parser for document targets.
+   */
+  onFrame: (dataUrl: string, target: T) => void;
+}
+
+/**
+ * Owns the WebRTC camera lifecycle and OCR progress state shared by the
+ * Drivers and Vehicles scanners: the video/canvas/stream refs, the
+ * `isCameraActive`/`cameraError`/`ocrStep`/`ocrLogs`/`isScanning`/`scanTarget`
+ * state, and the `startCamera`/`stopCamera`/`capturePhoto` functions.
+ *
+ * The slice-specific OCR field mapping (Gemini → Tesseract fallback, parsed
+ * field → form setter) stays in each slice — it differs per target and per
+ * OCR source — but consumes this hook's `setOcrStep`/`setOcrLogs` so the
+ * progress UI stays in sync.
+ */
+export function useOcrScanner<T extends string>({
+  rawTargets = [],
+  facingMode = () => "environment",
+  onFrame,
+}: UseOcrScannerOptions<T>) {
+  const [ocrStep, setOcrStep] = useState<OcrStep>("align");
+  const [ocrLogs, setOcrLogs] = useState<string[]>([]);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanTarget, setScanTarget] = useState<T | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Keep the latest onFrame without re-creating capturePhoto each render.
+  const onFrameRef = useRef(onFrame);
+  onFrameRef.current = onFrame;
+  const rawTargetsRef = useRef(rawTargets);
+  rawTargetsRef.current = rawTargets;
+  const facingModeRef = useRef(facingMode);
+  facingModeRef.current = facingMode;
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      console.log("[Cámara] Deteniendo capturas y liberando tracks de video.");
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  }, []);
+
+  const preprocessCanvasForOcr = useCallback((canvas: HTMLCanvasElement) => {
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    try {
+      const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        const newVal = gray < 135 ? 0 : 255;
+        data[i] = newVal;
+        data[i + 1] = newVal;
+        data[i + 2] = newVal;
+      }
+      context.putImageData(imgData, 0, 0);
+      console.log("[Preprocessing] Imagen binarizada a blanco y negro para mejorar el OCR.");
+    } catch (e) {
+      console.error("[Preprocessing] Falló el procesamiento de imagen:", e);
+    }
+  }, []);
+
+  const startCamera = useCallback((target: T) => {
+    setScanTarget(target);
+    setIsScanning(true);
+    setIsCameraActive(true);
+    setOcrStep("align");
+    setCameraError(null);
+    const initMsg = `[Cámara] Solicitando acceso al stream de video. Target: ${target}`;
+    console.log(initMsg);
+    setOcrLogs([initMsg]);
+
+    navigator.mediaDevices
+      .getUserMedia({
+        video: { facingMode: facingModeRef.current(target), width: { ideal: 1280 }, height: { ideal: 720 } },
+      })
+      .then((stream) => {
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        const successMsg = `[Cámara] Acceso concedido. Coloque el documento frente a la lente.`;
+        console.log(successMsg);
+        setOcrLogs((prev) => [...prev, successMsg]);
+      })
+      .catch((err: unknown) => {
+        console.error("[Cámara] Error al abrir el stream:", err);
+        const errMsg = `[Cámara] Error: ${err instanceof Error ? err.message : "Permiso denegado."}`;
+        setCameraError(errMsg);
+        setOcrLogs((prev) => [...prev, errMsg]);
+      });
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current || !scanTarget) {
+      console.error("[Captura] Error: Refs nulas.");
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+
+    if (!context) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    if (!rawTargetsRef.current.includes(scanTarget)) {
+      preprocessCanvasForOcr(canvas);
+    }
+    stopCamera();
+
+    try {
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+      console.log(`[Captura] Data URL generado con éxito. Longitud cadena: ${dataUrl.length}`);
+      setOcrLogs((prev) => [...prev, `[Captura] Fotograma capturado en Base64.`]);
+      onFrameRef.current(dataUrl, scanTarget);
+      // Photo-only (raw) targets are done once captured; OCR targets stay
+      // "scanning" until the slice's parser finishes and clears the state.
+      if (rawTargetsRef.current.includes(scanTarget)) {
+        setIsScanning(false);
+        setScanTarget(null);
+      }
+    } catch (err) {
+      console.error("[Captura] Error generating Data URL:", err);
+      setOcrLogs((prev) => [...prev, "❌ Error al capturar imagen en formato compatible"]);
+    }
+  }, [scanTarget, stopCamera, preprocessCanvasForOcr]);
+
+  // Release the camera stream on unmount.
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
+
+  return {
+    ocrStep,
+    setOcrStep,
+    ocrLogs,
+    setOcrLogs,
+    isCameraActive,
+    cameraError,
+    isScanning,
+    setIsScanning,
+    scanTarget,
+    setScanTarget,
+    videoRef,
+    canvasRef,
+    startCamera,
+    stopCamera,
+    capturePhoto,
+  };
+}
+
+export type UseOcrScannerResult<T extends string> = ReturnType<typeof useOcrScanner<T>>;
