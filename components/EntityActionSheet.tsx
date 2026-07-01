@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { db } from "../lib/db";
+import { db, Driver, Vehicle } from "../lib/db";
 import { ActionItem } from "./ui/ActionItem";
 import { ConfirmationDialog } from "./ui/ConfirmationDialog";
 import { AssignmentSelector } from "./ui/AssignmentSelector";
@@ -7,18 +7,18 @@ import { AssignmentSelector } from "./ui/AssignmentSelector";
 interface EntityActionSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  entity: any;
+  entity: Driver | Vehicle | null;
   type: "driver" | "vehicle";
+  isAssigned: boolean;
+  onActionComplete?: () => void;
 }
 
-export const EntityActionSheet = ({ isOpen, onClose, entity, type }: EntityActionSheetProps) => {
+export const EntityActionSheet = ({ isOpen, onClose, entity, type, isAssigned, onActionComplete }: EntityActionSheetProps) => {
   const [view, setView] = useState<"main" | "assign" | "remove">("main");
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen || !entity) return null;
-
-  const isAssigned = type === "driver" ? !!entity.vehicle_id : !!entity.active_driver_id;
 
   const handleAssign = () => setView("assign");
   const handleRemove = () => {
@@ -30,13 +30,14 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type }: EntityActio
     setIsLoading(true);
     try {
       if (type === "driver") {
-        // entity is driver, targetId is vehicleId
-        await db.createAssignment(targetId, entity.id, "ASSIGN", "Asignación rápida desde Action Sheet");
+        const driver = entity as Driver;
+        await db.createAssignment(targetId, driver.id, "ASSIGN", "Asignación rápida desde Action Sheet");
       } else {
-        // entity is vehicle, targetId is driverId
-        await db.createAssignment(entity.id, targetId, "ASSIGN", "Asignación rápida desde Action Sheet");
+        const vehicle = entity as Vehicle;
+        await db.createAssignment(vehicle.id, targetId, "ASSIGN", "Asignación rápida desde Action Sheet");
       }
       setView("main");
+      onActionComplete?.();
     } catch (err) {
       alert("Error al asignar: " + err);
     } finally {
@@ -47,18 +48,23 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type }: EntityActio
   const executeRemoval = async (reason: string) => {
     setIsLoading(true);
     try {
-      // We need an assignment ID to remove. We fetch the current assignment.
       const assignments = await db.getAssignments();
-      const current = assignments.find(a => 
-        (type === "driver" && a.driver_id === entity.id && a.action_type === "ASSIGN") ||
-        (type === "vehicle" && a.vehicle_id === entity.id && a.action_type === "ASSIGN")
-      );
+      const current = assignments.find(a => {
+        if (type === "driver") {
+          const driver = entity as Driver;
+          return a.driver_id === driver.id && a.action_type === "ASSIGN";
+        } else {
+          const vehicle = entity as Vehicle;
+          return a.vehicle_id === vehicle.id && a.action_type === "ASSIGN";
+        }
+      });
 
       if (!current) throw new Error("No se encontró asignación activa");
       
       await db.removeAssignment(current.id, reason);
       setConfirmingRemoval(false);
       setView("main");
+      onActionComplete?.();
     } catch (err) {
       alert("Error al retirar: " + err);
     } finally {
@@ -68,7 +74,8 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type }: EntityActio
 
   const handleChecklist = () => {
     // Use a custom event or simple window.location.hash for the launcher
-    window.location.hash = `checklist/${entity.id}`;
+    const id = type === "vehicle" ? (entity as Vehicle).id : (entity as Driver).id;
+    window.location.hash = `checklist/${id}`;
     onClose();
   };
 
@@ -92,7 +99,9 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type }: EntityActio
                   {type === "driver" ? "Conductor" : "Vehículo"}
                 </h2>
                 <p className="text-slate-500 text-lg">
-                  {type === "driver" ? `${entity.first_name} ${entity.paternal_last_name}` : `${entity.brand} ${entity.vehicle_name}`}
+                  {type === "driver" 
+                    ? `${(entity as Driver).first_name} ${(entity as Driver).paternal_last_name}` 
+                    : `${(entity as Vehicle).brand} ${(entity as Vehicle).vehicle_name}`}
                 </p>
               </div>
 
@@ -132,7 +141,7 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type }: EntityActio
 
           {view === "assign" && (
             <AssignmentSelector 
-              type={type === "driver" ? "vehicle" : "driver"} 
+              selecting={type === "driver" ? "vehicle" : "driver"} 
               onSelect={executeAssignment} 
               onCancel={() => setView("main")} 
             />

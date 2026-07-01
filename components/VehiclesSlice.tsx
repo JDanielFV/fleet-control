@@ -20,9 +20,11 @@ import ScannerViewfinder from "@/components/ScannerViewfinder";
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
+  onOpenActionSheet: (entity: Driver | Vehicle, type: "driver" | "vehicle") => void;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet }: VehiclesSliceProps) {
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -949,7 +951,11 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
           }
 
           return (
-            <Card key={vehicle.id} className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200">
+            <Card 
+              key={vehicle.id} 
+              onClick={() => onOpenActionSheet(vehicle, "vehicle")}
+              className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+            >
               <CardHeader className="p-4 pb-2.5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">

@@ -8,6 +8,7 @@ import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
 import FinancesSlice from "./FinancesSlice";
 import MaintenanceSlice from "./MaintenanceSlice";
+import { EntityActionSheet } from "./EntityActionSheet";
 import { Card } from "@/components/ui/card";
 import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, TrendingUp, Gauge } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [currentTime, setCurrentTime] = useState("");
+  const [actionSheet, setActionSheet] = useState<{ open: boolean, entity: Driver | Vehicle, type: "driver" | "vehicle" } | null>(null);
 
   // Display current time in the greeting area.
   const greeting = useMemo(() => {
@@ -162,6 +164,15 @@ export default function Dashboard() {
   const handleTabChange = (tab: TabId) => {
     setActiveTab(tab);
     setGlobalSearch("");
+  };
+
+  const openActionSheet = (entity: Driver | Vehicle, type: "driver" | "vehicle") => {
+    setActionSheet({ open: true, entity, type });
+  };
+
+  const handleActionComplete = () => {
+    triggerRefresh();
+    setActionSheet(null);
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
@@ -521,14 +532,27 @@ export default function Dashboard() {
               </>
             )}
 
-            {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
-            {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
+            {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} />}
+            {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} />}
             {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} />}
             {activeTab === "finances" && <FinancesSlice />}
             {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} />}
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <EntityActionSheet 
+        isOpen={!!actionSheet?.open && !!actionSheet} 
+        entity={actionSheet?.entity ?? null} 
+        type={actionSheet?.type || "driver"} 
+        isAssigned={
+          actionSheet?.type === "driver"
+            ? vehicles.some(v => v.active_driver_id === actionSheet.entity?.id)
+            : !!(actionSheet?.type === "vehicle" && (actionSheet.entity as Vehicle | undefined)?.active_driver_id)
+        }
+        onActionComplete={handleActionComplete}
+        onClose={() => setActionSheet(null)} 
+      />
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
       <nav className="md:hidden glass-nav border-t border-border bg-card/85 backdrop-blur-lg flex items-center justify-around h-14 w-full fixed bottom-0 left-0 z-40 px-2">

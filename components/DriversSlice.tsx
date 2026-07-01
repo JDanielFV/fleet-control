@@ -21,9 +21,10 @@ import ScannerViewfinder from "@/components/ScannerViewfinder";
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
+  onOpenActionSheet: (entity: Driver | Vehicle, type: "driver" | "vehicle") => void;
 }
 
-export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
@@ -1143,7 +1144,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
 
       <div className="space-y-3">
         {filteredDrivers.map((driver) => (
-          <Card key={driver.id} className="border border-[#F2F2F2] dark:border-border/60 bg-white dark:bg-card/45 rounded-[20px] overflow-hidden hover:border-border/80 transition-all duration-200 shadow-2xs">
+          <Card 
+            key={driver.id} 
+            onClick={() => onOpenActionSheet(driver, "driver")}
+            className="border border-[#F2F2F2] dark:border-border/60 bg-white dark:bg-card/45 rounded-[20px] overflow-hidden hover:border-border/80 transition-all duration-200 shadow-2xs cursor-pointer active:scale-[0.99]"
+          >
             <div className="p-3.5 flex items-center gap-4">
               {/* Profile Image Avatar Circle/Square */}
               <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0 shadow-inner">

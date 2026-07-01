@@ -253,12 +253,15 @@ export const db = {
 
   async getAvailableVehicles(): Promise<Vehicle[]> {
     const vehicles = await this.getVehicles();
-    return vehicles.filter(v => !v.driver_id);
+    return vehicles.filter(v => !v.active_driver_id);
   },
 
   async getAvailableDrivers(): Promise<Driver[]> {
     const drivers = await this.getDrivers();
-    return drivers.filter(d => !d.vehicle_id);
+    // A driver is "available" if no vehicle has them as active driver
+    const vehicles = await this.getVehicles();
+    const assignedDriverIds = new Set(vehicles.filter(v => v.active_driver_id).map(v => v.active_driver_id));
+    return drivers.filter(d => !assignedDriverIds.has(d.id));
   },
 
   // --- Checklists ---
