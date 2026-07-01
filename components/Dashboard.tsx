@@ -9,7 +9,7 @@ import FinancesSlice from "./FinancesSlice";
 import MaintenanceSlice from "./MaintenanceSlice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Menu, X, Search, Command, Sparkles, TrendingUp, Gauge } from "lucide-react";
+import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Search, Command, Sparkles, TrendingUp, Gauge } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 type TabId = "dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance";
@@ -19,7 +19,6 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [stats, setStats] = useState({ vehicles: 0, drivers: 0, assigned: 0 });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -247,13 +246,6 @@ export default function Dashboard() {
                           {alerts.length}
                         </span>
                       )}
-                    </button>
-                    <button
-                      onClick={() => setIsMenuOpen(true)}
-                      className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
-                      aria-label="Toggle Menu"
-                    >
-                      <Menu className="w-5 h-5" />
                     </button>
                   </div>
                 </motion.div>
@@ -508,17 +500,17 @@ export default function Dashboard() {
               </>
             )}
 
-            {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onToggleMenu={() => setIsMenuOpen(true)} />}
-            {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onToggleMenu={() => setIsMenuOpen(true)} />}
-            {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} onToggleMenu={() => setIsMenuOpen(true)} />}
-            {activeTab === "finances" && <FinancesSlice onToggleMenu={() => setIsMenuOpen(true)} />}
-            {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} onToggleMenu={() => setIsMenuOpen(true)} />}
+            {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
+            {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
+            {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} />}
+            {activeTab === "finances" && <FinancesSlice />}
+            {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} />}
           </motion.div>
         </AnimatePresence>
       </main>
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
-      <nav className="md:hidden glass-nav border-t border-border bg-card/85 backdrop-blur-lg flex items-center justify-around h-14 w-full fixed bottom-0 left-0 z-40 px-2 pb-[env(safe-area-inset-bottom,0px)]">
+      <nav className="md:hidden glass-nav border-t border-border bg-card/85 backdrop-blur-lg flex items-center justify-around h-14 w-full fixed bottom-0 left-0 z-40 px-2">
         {navigationItems.map((tab) => {
           const Icon = tab.icon;
           const isSelected = activeTab === tab.id;
@@ -544,76 +536,10 @@ export default function Dashboard() {
         })}
       </nav>
 
-      {/* Mobile Drawer */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            />
-
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 32, stiffness: 280 }}
-              className="fixed top-0 right-0 bottom-0 z-50 w-72 glass border-l border-border flex flex-col p-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
-            >
-              <div className="flex items-center justify-between pb-5 border-b border-border/60">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg gradient-pill flex items-center justify-center text-white font-black text-[11px]">
-                    FC
-                  </div>
-                  <span className="font-bold text-[14px] text-foreground">Menú</span>
-                </div>
-                <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
-                  aria-label="Close navigation menu"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="flex-1 py-5 flex flex-col gap-1">
-                {navigationItems.map((tab) => {
-                  const Icon = tab.icon;
-                  const isSelected = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id as TabId);
-                        setIsMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all cursor-pointer text-left ${
-                        isSelected
-                          ? "bg-primary/10 text-primary font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="text-[14px]">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="pt-4 border-t border-border/60 text-center">
-                <p className="text-[10px] text-muted-foreground font-mono tracking-wider">FLEET CONTROL V1.2</p>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Removed Mobile Drawer */}
     </div>
   );
 }
-
 function QuickActionButton({ icon: Icon, label, onClick, span = 1 }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; span?: number }) {
   return (
     <button
