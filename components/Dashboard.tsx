@@ -467,8 +467,16 @@ export default function Dashboard() {
                           return (
                             <Card
                               key={alert.id}
+                              role="button"
+                              tabIndex={0}
                               onClick={() => handleDismissAlert(alert.id, alert.title)}
-                              className={`group relative overflow-hidden border-border bg-card hover:elevation-2 cursor-pointer active:scale-[0.99] transition-all duration-200 ${
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  handleDismissAlert(alert.id, alert.title);
+                                }
+                              }}
+                              className={`group relative overflow-hidden border-border bg-card hover:elevation-2 cursor-pointer active:scale-[0.99] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                                 isCritical ? "border-l-2 border-l-critical" : "border-l-2 border-l-warning"
                               }`}
                             >

@@ -327,10 +327,18 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
         {rentals.map((rental) => {
           const isOverdue = rental.status !== "PAID";
           return (
-            <Card 
-              key={rental.id} 
+            <Card
+              key={rental.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleCardClick(rental)}
-              className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleCardClick(rental);
+                }
+              }}
+              className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200 cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="p-4 flex items-center justify-between">
                 <div className="space-y-1 min-w-0">
