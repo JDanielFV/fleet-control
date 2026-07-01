@@ -29,16 +29,16 @@ export default function FinancesSlice({ onToggleMenu }: FinancesSliceProps) {
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     const dList = await db.getDrivers();
     const rList = await db.getWeeklyRentals();
     setDrivers(dList);
     setRentals(rList);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const exportFinancesCSV = () => {
     if (rentals.length === 0) return;

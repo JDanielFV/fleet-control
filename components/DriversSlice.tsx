@@ -141,6 +141,25 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
     }));
   };
 
+  const loadDrivers = async () => {
+    const list = await db.getDrivers();
+    const vList = await db.getVehicles();
+    setDrivers(list);
+    setVehicles(vList);
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      console.log("[Cámara] Deteniendo capturas y liberando tracks de video.");
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
   useEffect(() => {
     loadDrivers();
     return () => {
@@ -151,15 +170,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
   // Reload when parent signals a refresh (license renewals, etc.).
   useEffect(() => {
     loadDrivers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onRefreshAlerts]);
-
-  const loadDrivers = async () => {
-    const list = await db.getDrivers();
-    const vList = await db.getVehicles();
-    setDrivers(list);
-    setVehicles(vList);
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,15 +269,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onToggleMen
       setCameraError(errMsg);
       setOcrLogs(prev => [...prev, errMsg]);
     }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      console.log("[Cámara] Deteniendo capturas y liberando tracks de video.");
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraActive(false);
   };
 
   const preprocessCanvasForOcr = (canvas: HTMLCanvasElement) => {

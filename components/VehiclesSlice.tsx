@@ -140,21 +140,6 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
   const [nextServiceMileage, setNextServiceMileage] = useState<string>("");
   const [color, setColor] = useState("");
 
-  useEffect(() => {
-    loadData();
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  // Reload when parent signals a refresh (e.g. a checklist was created in
-  // another tab). The `triggerRefresh` function in Dashboard is recreated on
-  // each refresh, so this effect re-runs whenever that happens.
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onRefreshAlerts]);
-
   const loadData = async () => {
     const list = await db.getVehicles();
     const dList = await db.getDrivers();
@@ -167,6 +152,32 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
     setChecklists(cList);
     setWeeklyRentals(rList);
   };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      console.log("[Cámara] Deteniendo streams activos y liberando dispositivo.");
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  // Reload when parent signals a refresh (e.g. a checklist was created in
+  // another tab). The `triggerRefresh` function in Dashboard is recreated on
+  // each refresh, so this effect re-runs whenever that happens.
+  useEffect(() => {
+    loadData();
+  }, [onRefreshAlerts]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,15 +301,6 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMe
       setCameraError(errMsg);
       setOcrLogs(prev => [...prev, errMsg]);
     }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      console.log("[Cámara] Deteniendo streams activos y liberando dispositivo.");
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraActive(false);
   };
 
   const preprocessCanvasForOcr = (canvas: HTMLCanvasElement) => {

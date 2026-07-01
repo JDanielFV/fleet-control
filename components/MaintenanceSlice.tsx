@@ -27,6 +27,13 @@ export default function MaintenanceSlice({ onRefreshAlerts, onToggleMenu }: Main
   const [maintenanceDate, setMaintenanceDate] = useState("");
   const [nextMaintenanceDate, setNextMaintenanceDate] = useState("");
 
+  const loadData = async () => {
+    const vList = await db.getVehicles();
+    const mList = await db.getMaintenances();
+    setVehicles(vList);
+    setMaintenances(mList);
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -34,15 +41,7 @@ export default function MaintenanceSlice({ onRefreshAlerts, onToggleMenu }: Main
   // Reload when parent signals a refresh.
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onRefreshAlerts]);
-
-  const loadData = async () => {
-    const vList = await db.getVehicles();
-    const mList = await db.getMaintenances();
-    setVehicles(vList);
-    setMaintenances(mList);
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

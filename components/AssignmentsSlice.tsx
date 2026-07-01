@@ -52,10 +52,6 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
   const [documents, setDocuments] = useState(true);
   const [irregularities, setIrregularities] = useState("");
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     const vList = await db.getVehicles();
     const dList = await db.getDrivers();
@@ -66,6 +62,10 @@ export default function AssignmentsSlice({ onRefreshAll, onToggleMenu }: Assignm
     setAssignments(aList);
     setChecklists(cList);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
