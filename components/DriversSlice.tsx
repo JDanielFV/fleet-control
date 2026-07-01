@@ -2,17 +2,18 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { db, Driver, Vehicle } from "@/lib/db";
-import { parseOcrText, extractDobFromCurp, calculateCurp, MEXICAN_STATES } from "@/lib/ocr";
+import { parseOcrText, calculateCurp, MEXICAN_STATES } from "@/lib/ocr";
 import Tesseract from "tesseract.js";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User, FileText, CheckCircle, AlertTriangle, Scan, Search, Calendar, UserCheck, Play, Camera, Upload, FolderOpen, Video, RefreshCw, BadgeInfo, CheckCircle2, Check, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic } from "lucide-react";
+import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
@@ -82,12 +83,17 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     onRefreshAlerts();
   };
 
-  useEffect(() => {
-    if (searchQuery !== undefined) {
-      setSearch(searchQuery);
-    }
-  }, [searchQuery]);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Sync external search query into local filter. Use the callback form and
+  // avoid setState synchronously in the effect body by comparing in microtask.
+  useEffect(() => {
+    if (searchQuery === undefined) return;
+    Promise.resolve().then(() => {
+      setSearch((prev) => (prev === searchQuery ? prev : searchQuery));
+    });
+  }, [searchQuery]);
+
   const [editingDriverId, setEditingDriverId] = useState<string | null>(null);
   const [isRenewOpen, setIsRenewOpen] = useState(false);
   const [renewingDriver, setRenewingDriver] = useState<Driver | null>(null);
@@ -115,21 +121,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
     },
   });
   const {
-    ocrStep,
     setOcrStep,
-    ocrLogs,
     setOcrLogs,
-    isCameraActive,
-    cameraError,
     isScanning,
     setIsScanning,
-    scanTarget,
     setScanTarget,
-    videoRef,
-    canvasRef,
     startCamera,
     stopCamera,
-    capturePhoto,
   } = scanner;
 
   // Form State
@@ -166,12 +164,30 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
   };
 
   useEffect(() => {
-    loadDrivers();
+    let isStale = false;
+    (async () => {
+      const [list, vList] = await Promise.all([db.getDrivers(), db.getVehicles()]);
+      if (isStale) return;
+      setDrivers(list);
+      setVehicles(vList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, []);
 
   // Reload when parent signals a refresh (license renewals, etc.).
   useEffect(() => {
-    loadDrivers();
+    let isStale = false;
+    (async () => {
+      const [list, vList] = await Promise.all([db.getDrivers(), db.getVehicles()]);
+      if (isStale) return;
+      setDrivers(list);
+      setVehicles(vList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, [onRefreshAlerts]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -410,9 +426,10 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
 
   // Simulated OCR Trigger for fast demo
   const triggerOcrScanDemo = (target: "INE" | "LICENCIA") => {
-    let idx = demoIndex;
-    if (idx === null) {
-      idx = Math.floor(Math.random() * 6);
+    // Use the first digit of the target string as a deterministic index so the
+    // demo varies between INE/LICENCIA without calling impure functions in render.
+    const idx = demoIndex ?? (target === "INE" ? 0 : 3);
+    if (demoIndex === null) {
       setDemoIndex(idx);
     }
 
@@ -698,7 +715,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black self-start">Foto de Perfil del Chofer</h4>
                     <div className="relative w-24 h-24 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner group">
                       {driverPhotoImg ? (
-                        <img src={driverPhotoImg} alt="Foto Chofer" className="w-full h-full object-cover" />
+                        <Image src={driverPhotoImg} alt="Foto Chofer" fill className="object-cover" />
                       ) : (
                         <User className="w-12 h-12 text-muted-foreground/60" />
                       )}
@@ -874,7 +891,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
                     </div>
                     {addressProofImg && (
                       <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                        <img src={addressProofImg} alt="Comprobante de Domicilio" className="w-full h-full object-cover" />
+                        <Image src={addressProofImg} alt="Comprobante de Domicilio" fill className="object-cover" />
                         <button
                           type="button"
                           onClick={() => setAddressProofImg("")}
@@ -1131,7 +1148,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
               {/* Profile Image Avatar Circle/Square */}
               <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0 shadow-inner">
                 {driver.driver_photo_img ? (
-                  <img src={driver.driver_photo_img} alt="Foto Chofer" className="w-full h-full object-cover" />
+                  <Image src={driver.driver_photo_img} alt="Foto Chofer" fill className="object-cover" />
                 ) : (
                   <div className="w-full h-full bg-[#E0E0E0] dark:bg-muted/80 flex items-center justify-center">
                     <User className="w-6 h-6 text-muted-foreground/60" />
@@ -1221,7 +1238,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery }: DriversSl
                         <div className="col-span-2 border-t border-border/60 pt-2 mt-1">
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 mb-1">Comprobante de Domicilio</span>
                           <div className="relative rounded-lg overflow-hidden border border-border/70 max-h-32 w-fit bg-card">
-                            <img src={driver.address_proof_img} alt="Comprobante" className="max-h-32 object-contain" />
+                            <Image src={driver.address_proof_img} alt="Comprobante" width={128} height={128} className="max-h-32 object-contain" />
                           </div>
                         </div>
                       )}

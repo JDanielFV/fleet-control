@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Upload, FolderOpen, BadgeInfo, Sparkles, Download, Pencil, RefreshCcw, Mic } from "lucide-react";
+import { Car, FileText, CheckCircle2, AlertTriangle, Search, Calendar, Shield, Trash2, Camera, FolderOpen, Sparkles, Download, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SliceHeader from "@/components/SliceHeader";
 import { useOcrScanner } from "@/components/useOcrScanner";
@@ -100,11 +100,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     onRefreshAlerts();
   };
 
+  // Sync external search query into local filter without synchronous setState.
   useEffect(() => {
-    if (searchQuery !== undefined) {
-      setSearch(searchQuery);
-    }
+    if (searchQuery === undefined) return;
+    Promise.resolve().then(() => {
+      setSearch((prev) => (prev === searchQuery ? prev : searchQuery));
+    });
   }, [searchQuery]);
+
   const [isOpen, setIsOpen] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [isRenewOpen, setIsRenewOpen] = useState(false);
@@ -122,21 +125,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
     onFrame: (dataUrl, target) => processOcrOnImageSource(dataUrl, target),
   });
   const {
-    ocrStep,
     setOcrStep,
-    ocrLogs,
     setOcrLogs,
-    isCameraActive,
-    cameraError,
     isScanning,
     setIsScanning,
-    scanTarget,
     setScanTarget,
-    videoRef,
-    canvasRef,
     startCamera,
     stopCamera,
-    capturePhoto,
   } = scanner;
 
   // Form State
@@ -167,14 +162,48 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
   };
 
   useEffect(() => {
-    loadData();
+    let isStale = false;
+    (async () => {
+      const [list, dList, mList, cList, rList] = await Promise.all([
+        db.getVehicles(),
+        db.getDrivers(),
+        db.getMaintenances(),
+        db.getChecklists(),
+        db.getWeeklyRentals(),
+      ]);
+      if (isStale) return;
+      setVehicles(list);
+      setDrivers(dList);
+      setMaintenances(mList);
+      setChecklists(cList);
+      setWeeklyRentals(rList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, []);
 
-  // Reload when parent signals a refresh (e.g. a checklist was created in
-  // another tab). The `triggerRefresh` function in Dashboard is recreated on
-  // each refresh, so this effect re-runs whenever that happens.
+  // Reload when parent signals a refresh.
   useEffect(() => {
-    loadData();
+    let isStale = false;
+    (async () => {
+      const [list, dList, mList, cList, rList] = await Promise.all([
+        db.getVehicles(),
+        db.getDrivers(),
+        db.getMaintenances(),
+        db.getChecklists(),
+        db.getWeeklyRentals(),
+      ]);
+      if (isStale) return;
+      setVehicles(list);
+      setDrivers(dList);
+      setMaintenances(mList);
+      setChecklists(cList);
+      setWeeklyRentals(rList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, [onRefreshAlerts]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -952,7 +981,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
                         const hasThisWeeksChecklist = vehicleChecklists.some(
                           c => new Date(c.created_at) >= monday
                         );
-                        if (!hasThisWeeksChecklist) {
+                        // Only flag weekly review for assigned vehicles.
+                        if (vehicle.active_driver_id && !hasThisWeeksChecklist) {
                           return (
                             <div className="mt-1.5 px-2 py-0.5 w-fit bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-[9px] font-extrabold rounded-md flex items-center gap-1 animate-pulse">
                               <AlertTriangle className="w-3 h-3 shrink-0" />

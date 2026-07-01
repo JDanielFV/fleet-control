@@ -36,12 +36,30 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
   };
 
   useEffect(() => {
-    loadData();
+    let isStale = false;
+    (async () => {
+      const [vList, mList] = await Promise.all([db.getVehicles(), db.getMaintenances()]);
+      if (isStale) return;
+      setVehicles(vList);
+      setMaintenances(mList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, []);
 
   // Reload when parent signals a refresh.
   useEffect(() => {
-    loadData();
+    let isStale = false;
+    (async () => {
+      const [vList, mList] = await Promise.all([db.getVehicles(), db.getMaintenances()]);
+      if (isStale) return;
+      setVehicles(vList);
+      setMaintenances(mList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, [onRefreshAlerts]);
 
   const handleSave = async (e: React.FormEvent) => {

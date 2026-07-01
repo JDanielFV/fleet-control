@@ -49,11 +49,20 @@ export function useOcrScanner<T extends string>({
 
   // Keep the latest onFrame without re-creating capturePhoto each render.
   const onFrameRef = useRef(onFrame);
-  onFrameRef.current = onFrame;
   const rawTargetsRef = useRef(rawTargets);
-  rawTargetsRef.current = rawTargets;
   const facingModeRef = useRef(facingMode);
-  facingModeRef.current = facingMode;
+
+  useEffect(() => {
+    onFrameRef.current = onFrame;
+  }, [onFrame]);
+
+  useEffect(() => {
+    rawTargetsRef.current = rawTargets;
+  }, [rawTargets]);
+
+  useEffect(() => {
+    facingModeRef.current = facingMode;
+  }, [facingMode]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {

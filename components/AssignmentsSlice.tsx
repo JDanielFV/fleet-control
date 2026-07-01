@@ -4,14 +4,14 @@ import React, { useState, useEffect } from "react";
 import { db, Vehicle, Driver, Assignment, Checklist } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { getDriverName, getVehicleName } from "@/lib/lookups";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Key, ArrowLeftRight, CheckSquare, ShieldAlert, ListChecks, Calendar, Gauge, Check } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeftRight, ListChecks, Gauge, Check } from "lucide-react";
+
 import SliceHeader from "@/components/SliceHeader";
 
 interface AssignmentsSliceProps {
@@ -57,7 +57,23 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
   };
 
   useEffect(() => {
-    loadData();
+    let isStale = false;
+    (async () => {
+      const [vList, dList, aList, cList] = await Promise.all([
+        db.getVehicles(),
+        db.getDrivers(),
+        db.getAssignments(),
+        db.getChecklists(),
+      ]);
+      if (isStale) return;
+      setVehicles(vList);
+      setDrivers(dList);
+      setAssignments(aList);
+      setChecklists(cList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, []);
 
   const handleAssignment = async (e: React.FormEvent) => {

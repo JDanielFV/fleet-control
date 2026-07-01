@@ -26,7 +26,6 @@ export default function FinancesSlice() {
   const [newRentalDriver, setNewRentalDriver] = useState("");
   const [rentAmount, setRentAmount] = useState<number>(2500);
   const [weekStart, setWeekStart] = useState("");
-  const [weekEnd, setWeekEnd] = useState("");
 
   const loadData = async () => {
     const dList = await db.getDrivers();
@@ -36,7 +35,16 @@ export default function FinancesSlice() {
   };
 
   useEffect(() => {
-    loadData();
+    let isStale = false;
+    (async () => {
+      const [dList, rList] = await Promise.all([db.getDrivers(), db.getWeeklyRentals()]);
+      if (isStale) return;
+      setDrivers(dList);
+      setRentals(rList);
+    })();
+    return () => {
+      isStale = true;
+    };
   }, []);
 
   const exportFinancesCSV = () => {

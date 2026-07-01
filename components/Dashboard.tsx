@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { db, Alert, Driver, Vehicle, Assignment } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import DriversSlice from "./DriversSlice";
@@ -8,9 +8,8 @@ import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
 import FinancesSlice from "./FinancesSlice";
 import MaintenanceSlice from "./MaintenanceSlice";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Search, Command, Sparkles, TrendingUp, Gauge } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, TrendingUp, Gauge } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 type TabId = "dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance";
@@ -29,8 +28,12 @@ export default function Dashboard() {
   const [avgFuelConsumption, setAvgFuelConsumption] = useState<number>(6.7);
   const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
-  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
+
+  // Display current time in the greeting area.
+  const greeting = useMemo(() => {
+    return currentTime ? `${currentTime}` : "";
+  }, [currentTime]);
 
   const loadAlerts = async () => {
     const list = await db.getAlerts();
@@ -98,31 +101,50 @@ export default function Dashboard() {
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  // Load data on mount and when refreshTrigger changes. Kept inside a single
+  // effect to avoid cascading renders while still satisfying React 19 lint.
   useEffect(() => {
-    loadAlerts();
-    loadStats();
-    db.autoGenerateMondayChecklists().then((count) => {
-      if (count > 0) {
-        console.log(`[Checklists] Se generaron ${count} checklists semanales automáticamente para unidades activas.`);
-        triggerRefresh();
-      }
-    });
+    let isStale = false;
+    const run = async () => {
+      await db.autoGenerateMondayChecklists().then((count) => {
+        if (count > 0) {
+          console.log(`[Checklists] Se generaron ${count} checklists semanales automáticamente para unidades activas.`);
+        }
+      });
+      if (isStale) return;
+      await Promise.all([loadAlerts(), loadStats()]);
+    };
+    run();
+    return () => {
+      isStale = true;
+    };
+  }, [refreshTrigger]);
+
+  // Theme initialization
+  useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" || "dark";
-    setTheme(savedTheme);
+    // Synchronize DOM class directly; avoid setState in effect body.
     if (savedTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
+    // Initialize theme state in a microtask to avoid synchronous setState.
+    Promise.resolve().then(() => setTheme(savedTheme));
+  }, []);
 
+  // Live clock
+  useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }));
+      const timeStr = now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+      // Avoid setState if value hasn't changed to prevent cascading renders.
+      setCurrentTime((prev) => (prev === timeStr ? prev : timeStr));
     };
     updateTime();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
-  }, [refreshTrigger]);
+  }, []);
 
   const getVehicleDesc = (id: string) => {
     const v = vListFind(id);
@@ -140,7 +162,6 @@ export default function Dashboard() {
   const handleTabChange = (tab: TabId) => {
     setActiveTab(tab);
     setGlobalSearch("");
-    setIsMobileSearchActive(false);
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
@@ -159,15 +180,6 @@ export default function Dashboard() {
     } else {
       document.documentElement.classList.remove("dark");
     }
-  };
-
-  const tabLabels: Record<string, string> = {
-    dashboard: "Inicio",
-    drivers: "Choferes",
-    vehicles: "Autos",
-    assignments: "Turnos",
-    finances: "Rentas",
-    maintenance: "Taller",
   };
 
   const navigationItems = [
@@ -222,7 +234,7 @@ export default function Dashboard() {
                 >
                   <div>
                     <h1 className="text-[26px] font-bold tracking-tight leading-none text-foreground">
-                      Buenos días.
+                      Buenos días.{greeting && <span className="text-muted-foreground ml-2 text-lg font-medium">{greeting}</span>}
                     </h1>
                     <p className="text-xs text-muted-foreground mt-1.5">
                       {stats.vehicles} vehículos · {stats.assigned} activos · {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"}
