@@ -162,157 +162,6 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col h-[100dvh] w-screen bg-background text-foreground overflow-hidden font-sans antialiased">
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full glass-header px-4 sm:px-6 py-3.5 flex items-center justify-between min-h-[64px]">
-        <AnimatePresence mode="wait">
-          {isMobileSearchActive ? (
-            <motion.div
-              key="search-active"
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              className="flex items-center gap-2 w-full md:hidden"
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder={activeTab === "drivers" ? "Buscar chofer..." : "Buscar auto..."}
-                  value={globalSearch}
-                  onChange={(e) => setGlobalSearch(e.target.value)}
-                  className="w-full h-10 pl-9 pr-3 text-sm bg-secondary/60 border border-border rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40 text-foreground placeholder:text-muted-foreground/60 transition-all"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  setIsMobileSearchActive(false);
-                  setGlobalSearch("");
-                }}
-                className="text-xs font-semibold text-primary active:scale-95 transition-all px-2 cursor-pointer shrink-0"
-              >
-                Cancelar
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="search-inactive"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-between w-full gap-3"
-            >
-              {/* Left: Brand */}
-              <div className="flex items-center gap-2.5 shrink-0">
-                <div className="relative">
-                  <div className="w-9 h-9 rounded-[10px] gradient-pill flex items-center justify-center text-white font-black text-[13px] tracking-tighter shadow-primary-glow">
-                    FC
-                  </div>
-                </div>
-                <div>
-                  <span className="font-bold text-[15px] tracking-tight text-foreground block leading-none">
-                    FleetControl
-                  </span>
-                  <span className="text-[10px] text-primary font-semibold tracking-wider uppercase block pt-1 md:hidden">
-                    {tabLabels[activeTab]}
-                  </span>
-                </div>
-              </div>
-
-              {/* Center: Desktop segmented tab control */}
-              <nav className="hidden md:flex md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 items-center gap-0.5 bg-secondary/60 backdrop-blur-md p-1 rounded-xl border border-border/60 select-none">
-                {navigationItems.map((tab) => {
-                  const Icon = tab.icon;
-                  const isSelected = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => handleTabChange(tab.id as any)}
-                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
-                        isSelected
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {isSelected && (
-                        <motion.div
-                          layoutId="activeTabPill"
-                          className="absolute inset-0 bg-card rounded-lg border border-border/80 shadow-sm"
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                        />
-                      )}
-                      <Icon className="w-3.5 h-3.5 relative z-10" />
-                      <span className="relative z-10">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-
-              <div className="flex items-center gap-1.5">
-                {/* Desktop search */}
-                {(activeTab === "drivers" || activeTab === "vehicles") && (
-                  <div className="hidden md:flex items-center gap-2 h-9 px-3 mr-1 bg-secondary/60 border border-border rounded-lg w-48 lg:w-56 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
-                    <Search className="w-3.5 h-3.5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder={activeTab === "drivers" ? "Buscar chofer..." : "Buscar auto..."}
-                      value={globalSearch}
-                      onChange={(e) => setGlobalSearch(e.target.value)}
-                      className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-hidden"
-                    />
-                    <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[9px] text-muted-foreground font-mono">
-                      <Command className="w-2.5 h-2.5" />K
-                    </kbd>
-                  </div>
-                )}
-
-                {(activeTab === "drivers" || activeTab === "vehicles") && (
-                  <button
-                    onClick={() => setIsMobileSearchActive(true)}
-                    className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer active:scale-95"
-                    aria-label="Search"
-                  >
-                    <Search className="w-4 h-4" />
-                  </button>
-                )}
-
-                <button
-                  onClick={toggleTheme}
-                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer active:scale-95"
-                  aria-label="Toggle theme"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="w-4 h-4" />
-                  ) : (
-                    <Moon className="w-4 h-4" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleTabChange("dashboard")}
-                  className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer active:scale-95"
-                >
-                  <Bell className="w-4 h-4" />
-                  {alerts.length > 0 && (
-                    <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 gradient-pill text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-primary-glow">
-                      {alerts.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setIsMenuOpen(true)}
-                  className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer active:scale-95"
-                  aria-label="Open navigation menu"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
-
       {/* Main Content */}
       <main className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 py-5 pb-8 scroll-smooth max-w-6xl mx-auto w-full">
         <AnimatePresence mode="wait">
@@ -332,19 +181,43 @@ export default function Dashboard() {
                   initial="hidden"
                   animate="visible"
                   variants={tileVariants}
-                  className="flex items-end justify-between gap-4 pt-1"
+                  className="flex items-center justify-between gap-4 pt-2 px-1 animate-in fade-in slide-in-from-top-4 duration-300"
                 >
                   <div>
-                    <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight leading-[1.05] text-foreground">
+                    <h1 className="text-[32px] font-black tracking-tight leading-none text-foreground">
                       Buenos días.
                     </h1>
-                    <p className="text-caption mt-1.5 text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-1.5">
                       {stats.vehicles} vehículos · {stats.assigned} activos · {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"}
                     </p>
                   </div>
-                  <div className="hidden sm:flex flex-col items-end">
-                    <span className="text-display text-foreground tabular-nums">{currentTime}</span>
-                    <span className="text-label">En vivo</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={toggleTheme}
+                      className="p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
+                      aria-label="Toggle theme"
+                    >
+                      {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+                    </button>
+                    <button
+                      onClick={() => handleTabChange("dashboard")}
+                      className="relative p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
+                      aria-label="Alerts"
+                    >
+                      <Bell className="w-4 h-4" />
+                      {alerts.length > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                          {alerts.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setIsMenuOpen(true)}
+                      className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
+                      aria-label="Toggle Menu"
+                    >
+                      <Menu className="w-5 h-5" />
+                    </button>
                   </div>
                 </motion.div>
 
@@ -559,10 +432,10 @@ export default function Dashboard() {
             )}
 
             {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onToggleMenu={() => setIsMenuOpen(true)} />}
-            {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} />}
-            {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} />}
-            {activeTab === "finances" && <FinancesSlice />}
-            {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} />}
+            {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onToggleMenu={() => setIsMenuOpen(true)} />}
+            {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} onToggleMenu={() => setIsMenuOpen(true)} />}
+            {activeTab === "finances" && <FinancesSlice onToggleMenu={() => setIsMenuOpen(true)} />}
+            {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} onToggleMenu={() => setIsMenuOpen(true)} />}
           </motion.div>
         </AnimatePresence>
       </main>

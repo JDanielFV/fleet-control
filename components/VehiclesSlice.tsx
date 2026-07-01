@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download, Pencil, RefreshCcw } from "lucide-react";
+import { Car, FileText, CheckCircle2, AlertTriangle, Scan, Search, Calendar, Shield, Trash2, Key, Camera, Terminal, Upload, FolderOpen, StopCircle, BadgeInfo, Sparkles, Download, Pencil, RefreshCcw, Menu, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
+  onToggleMenu?: () => void;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onToggleMenu }: VehiclesSliceProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -651,33 +652,22 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Vehículos</h2>
-          <p className="text-sm text-muted-foreground">Administra los autos de la flota</p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            onClick={exportVehiclesCSV}
-            variant="outline"
-            className="rounded-xl border-border bg-card hover:bg-accent text-foreground font-semibold active:scale-95 cursor-pointer text-xs flex items-center h-10 px-3"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Exportar CSV
-          </Button>
-
+      {/* Header Row: Title on Left, Actions on Right */}
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-[32px] font-black tracking-tight text-foreground leading-none">Vehículos</h1>
+        
+        <div className="flex items-center gap-2">
+          {/* Dialog configuration */}
           <Dialog open={isOpen} onOpenChange={(open) => {
             setIsOpen(open);
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="rounded-xl bg-primary hover:bg-primary text-white font-bold active:scale-95 cursor-pointer h-10" onClick={resetForm}>
-                <Car className="w-4 h-4 mr-2" />
-                Nuevo Vehículo
+              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-xs font-bold px-5 h-10 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
+                Registrar auto
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-white font-black text-lg">
                 {editingVehicleId ? "Editar Vehículo" : "Registro de Vehículo"}
@@ -945,7 +935,38 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery }: Vehicles
             </AnimatePresence>
           </DialogContent>
         </Dialog>
+
+        <button
+          onClick={() => onToggleMenu?.()}
+          className="w-10 h-10 rounded-full bg-[#0088FF] text-white flex items-center justify-center cursor-pointer hover:bg-[#0077EE] active:scale-95 transition-all shadow-xs border-none shrink-0"
+          aria-label="Toggle Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
+    </div>
+
+    {/* iOS styled Search Bar with Export CSV next to it */}
+    <div className="flex items-center gap-2 mb-4 mt-2">
+      <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-full h-11 px-4 flex items-center gap-2 flex-1 shadow-inner">
+        <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+        <input
+          type="text"
+          placeholder="Search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
+        />
+        <Mic className="w-4 h-4 text-muted-foreground/60 shrink-0 cursor-pointer" />
+      </div>
+
+      <Button
+        onClick={exportVehiclesCSV}
+        variant="outline"
+        className="rounded-full border border-border bg-card hover:bg-accent text-foreground text-xs font-bold h-11 px-4 flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer"
+      >
+        <Download className="w-4 h-4 text-primary" /> Exportar CSV
+      </Button>
     </div>
 
       {/* Verification Schedule Visual Grid */}
