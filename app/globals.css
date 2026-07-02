@@ -73,11 +73,13 @@
 
 /* Ensure mobile viewport layout uses full screen including safe areas */
 html, body {
-  overflow-x: hidden;
+  overflow: hidden;
   overscroll-behavior: none;
   overscroll-behavior-y: none;
-  width: 100%;
-  max-width: 100vw;
+  height: 100%;
+  height: -webkit-fill-available;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
   margin: 0;
   padding: 0;
   background-color: var(--background);
