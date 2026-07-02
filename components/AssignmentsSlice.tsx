@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeftRight, ListChecks, Gauge, Check } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ArrowLeftRight, ListChecks, Gauge, Check, Wrench, FileText } from "lucide-react";
 import { FuelSlider } from "@/components/ui/FuelSlider";
 
 import SliceHeader from "@/components/SliceHeader";
@@ -281,130 +282,141 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleChecklist} className="space-y-4 pt-2">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground text-xs">Tipo Checklist</Label>
-                  <Select value={checklistType} onValueChange={(val: "DELIVERY" | "WEEKLY_START") => setChecklistType(val)}>
-                    <SelectTrigger className="border-input bg-background rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-popover-foreground">
-                      <SelectItem value="DELIVERY">Entrega de Unidad</SelectItem>
-                      <SelectItem value="WEEKLY_START">Inicio de Semana</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground text-xs">Auto</Label>
-                  <Select value={checklistVehicle} onValueChange={setChecklistVehicle}>
-                    <SelectTrigger className="border-input bg-background rounded-xl">
-                      <SelectValue placeholder="Vehículo" />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-popover-foreground">
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.brand} {v.plate_number}
-                        </SelectItem>
+              <Tabs defaultValue="general" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="general" icon={<Gauge className="w-3.5 h-3.5" />}>
+                    General
+                  </TabsTrigger>
+                  <TabsTrigger value="estado" icon={<Wrench className="w-3.5 h-3.5" />}>
+                    Estado
+                  </TabsTrigger>
+                  <TabsTrigger value="notas" icon={<FileText className="w-3.5 h-3.5" />}>
+                    Notas
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="general" className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Tipo Checklist</Label>
+                    <Select value={checklistType} onValueChange={(val: "DELIVERY" | "WEEKLY_START") => setChecklistType(val)}>
+                      <SelectTrigger className="border-input bg-background rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover text-popover-foreground">
+                        <SelectItem value="DELIVERY">Entrega de Unidad</SelectItem>
+                        <SelectItem value="WEEKLY_START">Inicio de Semana</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Auto</Label>
+                    <Select value={checklistVehicle} onValueChange={setChecklistVehicle}>
+                      <SelectTrigger className="border-input bg-background rounded-xl">
+                        <SelectValue placeholder="Vehículo" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover text-popover-foreground">
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.brand} {v.plate_number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Conductor Responsable</Label>
+                    <Select value={checklistDriver} onValueChange={checklistDriver => setChecklistDriver(checklistDriver)}>
+                      <SelectTrigger className="border-input bg-background rounded-xl">
+                        <SelectValue placeholder="Chofer" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover text-popover-foreground">
+                        {drivers.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.first_name} {d.paternal_last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="mileage" className="text-muted-foreground text-xs">Kilometraje Actual</Label>
+                    <div className="relative">
+                      <Gauge className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        id="mileage"
+                        value={mileage || ""}
+                        onChange={(e) => setMileage(Number(e.target.value))}
+                        className="border-input bg-background rounded-xl pl-9"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <FuelSlider value={gasolineLevel} onChange={setGasolineLevel} />
+                </TabsContent>
+
+                <TabsContent value="estado" className="space-y-3">
+                  <div className="bg-muted/60 p-4 rounded-xl border border-border space-y-3.5">
+                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Estado de Sistemas</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: "Luces OK", state: lights, setter: setLights },
+                        { label: "Frenos OK", state: brakes, setter: setBrakes },
+                        { label: "Llantas OK", state: tires, setter: setTires },
+                        { label: "Carrocería OK", state: bodywork, setter: setBodywork },
+                      ].map((item, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => item.setter(!item.state)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                            item.state
+                              ? "bg-primary/10 border-primary/30 text-primary"
+                              : "bg-card border-border text-muted-foreground"
+                          }`}
+                        >
+                          <span className="text-xs font-semibold">{item.label}</span>
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                            item.state ? "bg-primary border-primary text-white" : "border-border bg-transparent"
+                          }`}>
+                            {item.state && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <div className="space-y-1">
-                <Label className="text-muted-foreground text-xs">Conductor Responsable</Label>
-                <Select value={checklistDriver} onValueChange={checklistDriver => setChecklistDriver(checklistDriver)}>
-                  <SelectTrigger className="border-input bg-background rounded-xl">
-                    <SelectValue placeholder="Chofer" />
-                  </SelectTrigger>
-                  <SelectContent className="border-border bg-popover text-popover-foreground">
-                    {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.first_name} {d.paternal_last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => setDocuments(!documents)}
+                        className={`col-span-2 flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          documents
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-card border-border text-muted-foreground"
+                        }`}
+                      >
+                        <span className="text-xs font-semibold">Documentación a Bordo OK</span>
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                          documents ? "bg-primary border-primary text-white" : "border-border bg-transparent"
+                        }`}>
+                          {documents && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </TabsContent>
 
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="mileage" className="text-muted-foreground text-xs">Kilometraje Actual</Label>
-                  <div className="relative">
-                    <Gauge className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <TabsContent value="notas" className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="irreg" className="text-muted-foreground text-xs">Irregularidades detectadas</Label>
                     <Input
-                      type="number"
-                      id="mileage"
-                      value={mileage || ""}
-                      onChange={(e) => setMileage(Number(e.target.value))}
-                      className="border-input bg-background rounded-xl pl-9"
-                      required
+                      id="irreg"
+                      placeholder="Detalles sobre ralladuras, ruidos o faltantes"
+                      value={irregularities}
+                      onChange={(e) => setIrregularities(e.target.value)}
+                      className="border-input bg-background rounded-xl"
                     />
                   </div>
-                </div>
-
-                {/* Slider Fuel Gauge Selector with octaves */}
-                <FuelSlider value={gasolineLevel} onChange={setGasolineLevel} />
-              </div>
-
-              {/* Tactile Switch/Checkboxes */}
-              <div className="bg-muted/60 p-4 rounded-xl border border-border space-y-3.5">
-                <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Estado de Sistemas</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: "Luces OK", state: lights, setter: setLights },
-                    { label: "Frenos OK", state: brakes, setter: setBrakes },
-                    { label: "Llantas OK", state: tires, setter: setTires },
-                    { label: "Carrocería OK", state: bodywork, setter: setBodywork },
-                  ].map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => item.setter(!item.state)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        item.state
-                          ? "bg-primary/10 border-primary/30 text-primary"
-                          : "bg-card border-border text-muted-foreground"
-                      }`}
-                    >
-                      <span className="text-xs font-semibold">{item.label}</span>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                        item.state ? "bg-primary border-primary text-white" : "border-border bg-transparent"
-                      }`}>
-                        {item.state && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
-                    </button>
-                  ))}
-                  
-                  <button
-                    type="button"
-                    onClick={() => setDocuments(!documents)}
-                    className={`col-span-2 flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
-                      documents
-                        ? "bg-primary/10 border-primary/30 text-primary"
-                        : "bg-card border-border text-muted-foreground"
-                    }`}
-                  >
-                    <span className="text-xs font-semibold">Documentación a Bordo OK</span>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                      documents ? "bg-primary border-primary text-white" : "border-border bg-transparent"
-                    }`}>
-                      {documents && <Check className="w-3 h-3 stroke-[3]" />}
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="irreg" className="text-muted-foreground text-xs">Irregularidades detectadas</Label>
-                <Input
-                  id="irreg"
-                  placeholder="Detalles sobre ralladuras, ruidos o faltantes"
-                  value={irregularities}
-                  onChange={(e) => setIrregularities(e.target.value)}
-                  className="border-input bg-background rounded-xl"
-                />
-              </div>
+                </TabsContent>
+              </Tabs>
 
               <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
                 Registrar Checklist

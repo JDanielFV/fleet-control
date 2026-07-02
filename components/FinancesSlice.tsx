@@ -153,10 +153,21 @@ export default function FinancesSlice() {
           </DialogTrigger>
           <DialogContent className="border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-foreground font-black text-lg">Registrar Pago de Renta</DialogTitle>
-              <DialogDescription className="text-muted-foreground text-xs">
-                Aplica un pago parcial o total a la renta de un conductor.
-              </DialogDescription>
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                  <DollarSign className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-foreground font-black text-lg">
+                    Registrar Pago
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground text-xs">
+                    {selectedDriver && selectedWeek
+                      ? `${getDriverName(drivers, selectedDriver)} · Semana del ${selectedWeek}`
+                      : "Aplica un pago parcial o total a la renta de un conductor."}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             <form onSubmit={handlePayment} className="space-y-4 pt-2">
               <div className="space-y-1">
@@ -196,6 +207,26 @@ export default function FinancesSlice() {
                 </div>
               )}
 
+              {selectedWeek && (() => {
+                const rental = getDriverWeeks(selectedDriver).find((r) => r.week_start === selectedWeek);
+                if (!rental) return null;
+                const remaining = Math.max(0, rental.accumulated_debt - (paymentAmount || 0));
+                return (
+                  <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deuda actual</span>
+                      <span className="font-mono font-bold text-foreground">${rental.accumulated_debt}</span>
+                    </div>
+                    {paymentAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Después del pago</span>
+                        <span className="font-mono font-bold text-emerald-500">${remaining}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="space-y-1">
                 <Label htmlFor="payAmt" className="text-muted-foreground text-xs">Monto del Pago ($)</Label>
                 <Input
@@ -209,7 +240,7 @@ export default function FinancesSlice() {
                 />
               </div>
 
-              <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
+              <Button type="submit" className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all cursor-pointer">
                 Aplicar Pago
               </Button>
             </form>

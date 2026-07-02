@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wrench, Plus, Calendar, AlertTriangle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Wrench, Calendar as CalendarIcon, FileText } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
 
 interface MaintenanceSliceProps {
@@ -105,71 +106,92 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSave} className="space-y-4 pt-2">
-              <div>
-                <Label>Auto / Unidad</Label>
-                <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona vehículo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.brand} {v.vehicle_name} [{v.plate_number}]
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Tabs defaultValue="servicio" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="servicio" icon={<Wrench className="w-3.5 h-3.5" />}>
+                    Servicio
+                  </TabsTrigger>
+                  <TabsTrigger value="proximo" icon={<CalendarIcon className="w-3.5 h-3.5" />}>
+                    Próximo
+                  </TabsTrigger>
+                  <TabsTrigger value="descripcion" icon={<FileText className="w-3.5 h-3.5" />}>
+                    Detalles
+                  </TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="maintCost">Costo del Servicio ($)</Label>
-                  <Input
-                    type="number"
-                    id="maintCost"
-                    value={cost || ""}
-                    onChange={(e) => setCost(Number(e.target.value))}
-                    placeholder="ej. 1800"
-                    className="border-input bg-background rounded-xl w-full min-w-0"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="maintDate">Fecha del Servicio</Label>
-                  <Input
-                    type="date"
-                    id="maintDate"
-                    value={maintenanceDate}
-                    onChange={(e) => setMaintenanceDate(e.target.value)}
-                    className="border-input bg-background rounded-xl w-full min-w-0"
-                    required
-                  />
-                </div>
-              </div>
+                <TabsContent value="servicio" className="space-y-3">
+                  <div>
+                    <Label>Auto / Unidad</Label>
+                    <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona vehículo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.brand} {v.vehicle_name} [{v.plate_number}]
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="nextMaint">Fecha del Próximo Servicio</Label>
-                <Input
-                  type="date"
-                  id="nextMaint"
-                  value={nextMaintenanceDate}
-                  onChange={(e) => setNextMaintenanceDate(e.target.value)}
-                  className="border-input bg-background rounded-xl w-full min-w-0"
-                  required
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="maintCost">Costo del Servicio ($)</Label>
+                    <Input
+                      type="number"
+                      id="maintCost"
+                      value={cost || ""}
+                      onChange={(e) => setCost(Number(e.target.value))}
+                      placeholder="ej. 1800"
+                      className="border-input bg-background rounded-xl w-full min-w-0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maintDate">Fecha del Servicio</Label>
+                    <Input
+                      type="date"
+                      id="maintDate"
+                      value={maintenanceDate}
+                      onChange={(e) => setMaintenanceDate(e.target.value)}
+                      className="border-input bg-background rounded-xl w-full min-w-0"
+                      required
+                    />
+                  </div>
+                </TabsContent>
 
-              <div>
-                <Label htmlFor="maintDesc">Descripción de Trabajos</Label>
-                <Input
-                  id="maintDesc"
-                  placeholder="Cambio de bujías, afinación, rectificación de discos..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="border-input bg-background rounded-xl w-full min-w-0"
-                  required
-                />
-              </div>
+                <TabsContent value="proximo" className="space-y-3">
+                  <div>
+                    <Label htmlFor="nextMaint">Fecha del Próximo Servicio</Label>
+                    <Input
+                      type="date"
+                      id="nextMaint"
+                      value={nextMaintenanceDate}
+                      onChange={(e) => setNextMaintenanceDate(e.target.value)}
+                      className="border-input bg-background rounded-xl w-full min-w-0"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    El sistema te avisará cuando se acerque esta fecha.
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="descripcion" className="space-y-3">
+                  <div>
+                    <Label htmlFor="maintDesc">Descripción de Trabajos</Label>
+                    <Input
+                      id="maintDesc"
+                      placeholder="Cambio de bujías, afinación, rectificación de discos..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="border-input bg-background rounded-xl w-full min-w-0"
+                      required
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               <Button type="submit" className="w-full rounded-xl">
                 Guardar Registro

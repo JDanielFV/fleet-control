@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Stepper, type StepperStep } from "@/components/ui/stepper";
 import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -717,6 +718,22 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
               </DialogDescription>
             </DialogHeader>
 
+            {/* Section overview — a static stepper that shows the 4 logical
+                sections of the form. Non-interactive on purpose: the user
+                still scrolls through the dialog, but they always know
+                where they are. */}
+            <div className="pt-2 pb-1">
+              <Stepper
+                steps={[
+                  { id: "foto", label: "Foto" },
+                  { id: "doc", label: "Documentos" },
+                  { id: "dom", label: "Domicilio" },
+                  { id: "datos", label: "Datos" },
+                ]}
+                currentStep="doc"
+              />
+            </div>
+
             <AnimatePresence mode="wait">
               {isScanning ? (
                 <ScannerViewfinder
@@ -1280,13 +1297,26 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingDriver(null); }}>
         <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-foreground font-black text-base flex items-center gap-2">
-              <RefreshCcw className="w-4 h-4 text-primary" />
-              Renovar Licencia
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-xs">
-              {renewingDriver ? `${renewingDriver.first_name} ${renewingDriver.paternal_last_name} ${renewingDriver.maternal_last_name}` : ""}
-            </DialogDescription>
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+                <RefreshCcw className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-foreground font-black text-lg">
+                    Renovar Licencia
+                  </DialogTitle>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
+                    Actualización
+                  </span>
+                </div>
+                <DialogDescription className="text-muted-foreground text-xs">
+                  {renewingDriver
+                    ? `${renewingDriver.first_name} ${renewingDriver.paternal_last_name} ${renewingDriver.maternal_last_name}`
+                    : "Cargando..."}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="space-y-3 pt-2">

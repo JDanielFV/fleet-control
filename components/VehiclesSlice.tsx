@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Search, Calendar, Shield, Trash2, Camera, FolderOpen, Sparkles, Pencil, RefreshCcw, Mic } from "lucide-react";
+import { Stepper } from "@/components/ui/stepper";
+import { Car, FileText, CheckCircle2, AlertTriangle, Search, Shield, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SliceHeader from "@/components/SliceHeader";
 import { VehiclesListSkeleton } from "@/components/ui/skeletons";
@@ -588,6 +589,19 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   : "Ingresa datos o usa OCR de la tarjeta de circulación y póliza."}
               </DialogDescription>
             </DialogHeader>
+
+            {/* Section overview — same Stepper pattern as DriversSlice */}
+            <div className="pt-2 pb-1">
+              <Stepper
+                steps={[
+                  { id: "modelo", label: "Modelo" },
+                  { id: "placa", label: "Placa/VIN" },
+                  { id: "seguro", label: "Seguro" },
+                  { id: "renta", label: "Renta" },
+                ]}
+                currentStep="modelo"
+              />
+            </div>
 
             <AnimatePresence mode="wait">
               {isScanning ? (
@@ -1185,13 +1199,26 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingVehicle(null); }}>
         <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white font-black text-base flex items-center gap-2">
-              <RefreshCcw className="w-4 h-4 text-primary" />
-              Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : "Póliza de Seguro"}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-xs">
-              {renewingVehicle ? `${renewingVehicle.brand} ${renewingVehicle.vehicle_name} · ${renewingVehicle.plate_number}` : ""}
-            </DialogDescription>
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+                <RefreshCcw className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DialogTitle className="text-foreground font-black text-lg">
+                    Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : "Póliza de Seguro"}
+                  </DialogTitle>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
+                    Actualización
+                  </span>
+                </div>
+                <DialogDescription className="text-muted-foreground text-xs">
+                  {renewingVehicle
+                    ? `${renewingVehicle.brand} ${renewingVehicle.vehicle_name} · ${renewingVehicle.plate_number}`
+                    : "Cargando..."}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
