@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Camera, StopCircle, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { OcrStep, UseOcrScannerResult } from "@/components/useOcrScanner";
+import type { UseOcrScannerResult } from "@/components/useOcrScanner";
 
 interface ScannerViewfinderProps<T extends string> {
   scanner: UseOcrScannerResult<T>;

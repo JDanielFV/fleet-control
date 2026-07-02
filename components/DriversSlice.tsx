@@ -243,9 +243,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       setIsOpen(false);
       loadDrivers();
       onRefreshAlerts();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("Error al guardar chofer: " + (err.message || err));
+      alert("Error al guardar chofer: " + (err instanceof Error ? err.message : String(err)));
     }
   };
 

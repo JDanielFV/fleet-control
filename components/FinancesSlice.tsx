@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { db, Driver, WeeklyRental } from "@/lib/db";
 import { sortByDateDesc } from "@/lib/utils";
 import { getDriverName } from "@/lib/lookups";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

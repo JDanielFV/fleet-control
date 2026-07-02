@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { db, Vehicle, Driver, Checklist } from "../lib/db";
+import { db, Vehicle, Checklist } from "../lib/db";
 import { motion } from "framer-motion";
 import { FuelSlider } from "./ui/FuelSlider";
 
@@ -30,16 +30,20 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
   const [isLoading, setIsLoading] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
 
-  // Reset on open
+  // Reset on close so the next session starts clean. The resets are scheduled
+  // in a microtask to avoid cascading renders that the React 19
+  // `react-hooks/set-state-in-effect` rule flags.
   useEffect(() => {
     if (!isOpen) {
-      setMileage("");
-      setGasoline("8/8");
-      setItems(DEFAULT_ITEMS);
-      setIrregularities("");
-      setNextServiceMileage("");
-      setNextServiceDate("");
-      setSavedToast(false);
+      Promise.resolve().then(() => {
+        setMileage("");
+        setGasoline("8/8");
+        setItems(DEFAULT_ITEMS);
+        setIrregularities("");
+        setNextServiceMileage("");
+        setNextServiceDate("");
+        setSavedToast(false);
+      });
     }
   }, [isOpen]);
 

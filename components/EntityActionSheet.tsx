@@ -37,14 +37,18 @@ export const EntityActionSheet = ({ isOpen, onClose, entity, type, isAssigned, o
   const [nextServiceDate, setNextServiceDate] = useState("");
 
   // Reset state when the sheet closes so the next session starts clean.
+  // The resets are scheduled in a microtask to avoid cascading renders that
+  // the React 19 `react-hooks/set-state-in-effect` rule flags.
   useEffect(() => {
     if (!isOpen) {
-      setView("main");
-      setReason("");
-      setServiceCost(0);
-      setServiceDescription("");
-      setServiceDate("");
-      setNextServiceDate("");
+      Promise.resolve().then(() => {
+        setView("main");
+        setReason("");
+        setServiceCost(0);
+        setServiceDescription("");
+        setServiceDate("");
+        setNextServiceDate("");
+      });
     }
   }, [isOpen]);
 
