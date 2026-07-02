@@ -138,6 +138,53 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     stopCamera,
   } = scanner;
 
+  // Section tracker for the Stepper. The user can click any step to
+  // scroll that section into view; we use IntersectionObserver to
+  // update the highlight as they scroll naturally too. "doc" is the
+  // initial section because that's where most users start (OCR/scan).
+  const [activeSection, setActiveSection] = useState<string>("doc");
+  const scrollToSection = React.useCallback((id: string) => {
+    // Defer to the next frame so Radix's dialog animations don't
+    // fight the scroll.
+    requestAnimationFrame(() => {
+      document.getElementById(`section-${id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setActiveSection(id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const ids = ["foto", "doc", "dom", "datos"];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Pick the entry that's most visible. If multiple are visible,
+        // prefer the one closer to the top of the viewport.
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          const id = visible[0].target.id.replace(/^section-/, "");
+          setActiveSection(id);
+        }
+      },
+      {
+        // Trigger when the section is in the top half of the dialog's
+        // scroll container. The negative top margin accounts for the
+        // Stepper bar above the scrolling area.
+        rootMargin: "-80px 0px -50% 0px",
+        threshold: [0, 0.1, 0.5],
+      }
+    );
+    for (const id of ids) {
+      const el = document.getElementById(`section-${id}`);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [isOpen]);
+
   // Form State
   const [firstName, setFirstName] = useState("");
   const [paternalLastName, setPaternalLastName] = useState("");
@@ -720,10 +767,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
               </DialogDescription>
             </DialogHeader>
 
-            {/* Section overview — a static stepper that shows the 4 logical
-                sections of the form. Non-interactive on purpose: the user
-                still scrolls through the dialog, but they always know
-                where they are. */}
+            {/* Section overview — a non-linear stepper: click any step to
+                scroll that section into view, the active step updates as
+                the user scrolls too. */}
             <div className="pt-2 pb-1">
               <Stepper
                 steps={[
@@ -732,7 +778,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   { id: "dom", label: "Domicilio" },
                   { id: "datos", label: "Datos" },
                 ]}
-                currentStep="doc"
+                currentStep={activeSection}
+                onStepClick={scrollToSection}
               />
             </div>
 
@@ -752,7 +799,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
                   
                   {/* Foto de Perfil del Chofer */}
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 flex flex-col items-center text-center">
+                  <div id="section-foto" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 flex flex-col items-center text-center scroll-mt-2">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black self-start">Foto de Perfil del Chofer</h4>
                     <div className="relative w-24 h-24 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner group">
                       {driverPhotoImg ? (
@@ -810,7 +857,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   </div>
                   
                   {/* Two separate triggers for camera vs file uploads */}
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                  <div id="section-doc" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear INE (Identificación)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
@@ -882,7 +929,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                     </div>
                   </div>
 
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                  <div id="section-dom" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <div className="flex justify-between items-center">
                       <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Comprobante de Domicilio</h4>
                       {addressProofImg && (
@@ -941,7 +988,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                     </div>
                   </div>
 
-                  <div className="bg-muted/40 rounded-xl border border-border/80 overflow-hidden">
+                  <div id="section-datos" className="bg-muted/40 rounded-xl border border-border/80 overflow-hidden scroll-mt-2">
                     <button
                       type="button"
                       onClick={() => setShowManualFields((v) => !v)}

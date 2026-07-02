@@ -118,6 +118,45 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [isRenewOpen, setIsRenewOpen] = useState(false);
   const [renewingVehicle, setRenewingVehicle] = useState<Vehicle | null>(null);
+
+  // Section tracker for the Stepper. Click any step to scroll that
+  // section into view; the active step updates as the user scrolls.
+  // Lives right after `isOpen` because the observer depends on it.
+  const [activeSection, setActiveSection] = useState<string>("circ");
+  const scrollToSection = React.useCallback((id: string) => {
+    requestAnimationFrame(() => {
+      document.getElementById(`section-${id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setActiveSection(id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const ids = ["circ", "seguro", "datos", "vig"];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          const id = visible[0].target.id.replace(/^section-/, "");
+          setActiveSection(id);
+        }
+      },
+      {
+        rootMargin: "-80px 0px -50% 0px",
+        threshold: [0, 0.1, 0.5],
+      }
+    );
+    for (const id of ids) {
+      const el = document.getElementById(`section-${id}`);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [isOpen]);
   const [renewTarget, setRenewTarget] = useState<"CIRCULACION" | "SEGURO" | null>(null);
   const [renewExpirationDate, setRenewExpirationDate] = useState("");
   const [renewPolicyImg, setRenewPolicyImg] = useState("");
@@ -594,12 +633,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
             <div className="pt-2 pb-1">
               <Stepper
                 steps={[
-                  { id: "modelo", label: "Modelo" },
-                  { id: "placa", label: "Placa/VIN" },
+                  { id: "circ", label: "Circulación" },
                   { id: "seguro", label: "Seguro" },
-                  { id: "renta", label: "Renta" },
+                  { id: "datos", label: "Datos" },
+                  { id: "vig", label: "Vigencias" },
                 ]}
-                currentStep="modelo"
+                currentStep={activeSection}
+                onStepClick={scrollToSection}
               />
             </div>
 
@@ -618,7 +658,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
                   
                   {/* Tarjeta de Circulación Photo / Upload picker */}
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                  <div id="section-circ" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
@@ -655,7 +695,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   </div>
 
                   {/* Seguro Photo / Upload picker */}
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
+                  <div id="section-seguro" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro (OCR)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
@@ -691,7 +731,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     </div>
                   </div>
 
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                  <div id="section-datos" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="min-w-0">
@@ -713,7 +753,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     </div>
                   </div>
 
-                  <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
+                  <div id="section-vig" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Identificación & Vigencias</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
