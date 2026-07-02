@@ -193,7 +193,10 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !paternalLastName || !licenseCurp) return;
+    if (!firstName || !paternalLastName || !licenseCurp) {
+      alert("Por favor completa los campos requeridos: Nombre, Apellido Paterno y CURP.");
+      return;
+    }
 
     // Check for duplicates (skip the driver being edited)
     const isDuplicate = drivers.some(
@@ -210,29 +213,34 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       return;
     }
 
-    await db.saveDriver({
-      id: editingDriverId || undefined,
-      first_name: firstName,
-      paternal_last_name: paternalLastName,
-      maternal_last_name: maternalLastName,
-      curp: licenseCurp,
-      dob: licenseDob || ineDob,
-      license_number: licenseNumber,
-      license_issue_date: licenseIssueDate,
-      license_expiration_date: licenseIsPermanent ? "" : licenseExpirationDate,
-      license_is_permanent: licenseIsPermanent,
-      ine_address: ineAddress,
-      ine_sex: ineSex,
-      ine_elector_key: ineElectorKey,
-      driver_photo_img: driverPhotoImg || null,
-      address_proof_img: addressProofImg || null,
-    });
+    try {
+      await db.saveDriver({
+        id: editingDriverId || undefined,
+        first_name: firstName,
+        paternal_last_name: paternalLastName,
+        maternal_last_name: maternalLastName,
+        curp: licenseCurp,
+        dob: licenseDob || ineDob,
+        license_number: licenseNumber,
+        license_issue_date: licenseIssueDate,
+        license_expiration_date: licenseIsPermanent ? "" : licenseExpirationDate,
+        license_is_permanent: licenseIsPermanent,
+        ine_address: ineAddress,
+        ine_sex: ineSex,
+        ine_elector_key: ineElectorKey,
+        driver_photo_img: driverPhotoImg || null,
+        address_proof_img: addressProofImg || null,
+      });
 
-    resetForm();
-    setEditingDriverId(null);
-    setIsOpen(false);
-    loadDrivers();
-    onRefreshAlerts();
+      resetForm();
+      setEditingDriverId(null);
+      setIsOpen(false);
+      loadDrivers();
+      onRefreshAlerts();
+    } catch (err: any) {
+      console.error(err);
+      alert("Error al guardar chofer: " + (err.message || err));
+    }
   };
 
   const resetForm = () => {
@@ -1116,7 +1124,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
                   </div>
 
-                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0" disabled={isScanning || isCurpMismatch || isDobMismatch}>
+                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0" disabled={isScanning}>
                     Guardar Conductor
                   </Button>
                 </form>
