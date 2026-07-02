@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Sistema Inteligente de Control de Flotas y Expedientes",
     start_url: "/",
     display: "standalone",
-    background_color: "#09090b", // zinc-950
-    theme_color: "#10b981",      // emerald-500
+    background_color: "#fbfbfd", // Matches theme background
+    theme_color: "#fbfbfd",      // Prevent emerald color fill in safe area
     icons: [
       {
         src: "/icon-192.png",
