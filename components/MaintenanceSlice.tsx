@@ -121,7 +121,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-3">
                 <div>
                   <Label htmlFor="maintCost">Costo del Servicio ($)</Label>
                   <Input
@@ -130,6 +130,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                     value={cost || ""}
                     onChange={(e) => setCost(Number(e.target.value))}
                     placeholder="ej. 1800"
+                    className="border-input bg-background rounded-xl w-full min-w-0"
                     required
                   />
                 </div>
@@ -140,6 +141,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                     id="maintDate"
                     value={maintenanceDate}
                     onChange={(e) => setMaintenanceDate(e.target.value)}
+                    className="border-input bg-background rounded-xl w-full min-w-0"
                     required
                   />
                 </div>
@@ -152,6 +154,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                   id="nextMaint"
                   value={nextMaintenanceDate}
                   onChange={(e) => setNextMaintenanceDate(e.target.value)}
+                  className="border-input bg-background rounded-xl w-full min-w-0"
                   required
                 />
               </div>
@@ -163,6 +166,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                   placeholder="Cambio de bujías, afinación, rectificación de discos..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  className="border-input bg-background rounded-xl w-full min-w-0"
                   required
                 />
               </div>
@@ -176,7 +180,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
         }
       />
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {maintenances.map((maint) => (
           <Card key={maint.id} className="overflow-hidden">
             <div className="p-4 flex items-start justify-between">

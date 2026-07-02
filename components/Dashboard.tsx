@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { db, Alert, Driver, Vehicle, Assignment } from "@/lib/db";
+import { db, Alert, Driver, Vehicle, Assignment, Checklist } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
+import { computeUsageStats } from "@/lib/usageStats";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
@@ -10,11 +11,13 @@ import FinancesSlice from "./FinancesSlice";
 import MaintenanceSlice from "./MaintenanceSlice";
 import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
+import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
-import { Bell, User, Car, DollarSign, Wrench, ShieldAlert, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, TrendingUp, Gauge } from "lucide-react";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
+import { Bell, User, Car, DollarSign, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, ListChecks, ShieldAlert, Gauge } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
-type TabId = "dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance";
+export type TabId = "dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -24,15 +27,13 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ vehicles: 0, drivers: 0, assigned: 0 });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [collectionRate, setCollectionRate] = useState(100);
-  const [totalMileage, setTotalMileage] = useState<number>(0);
-  const [avgDailyMileage, setAvgDailyMileage] = useState<number>(80);
-  const [avgFuelConsumption, setAvgFuelConsumption] = useState<number>(6.7);
   const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [currentTime, setCurrentTime] = useState("");
   const [actionSheet, setActionSheet] = useState<{ open: boolean, entity: Driver | Vehicle, type: "driver" | "vehicle" } | null>(null);
   const [checklistSheet, setChecklistSheet] = useState<{ open: boolean, vehicle: Vehicle | null }>({ open: false, vehicle: null });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Display current time in the greeting area.
   const greeting = useMemo(() => {
@@ -48,11 +49,11 @@ export default function Dashboard() {
     const vList = await db.getVehicles();
     const dList = await db.getDrivers();
     const aList = await db.getAssignments();
-    const rList = await db.getWeeklyRentals();
     const cList = await db.getChecklists();
 
     setVehicles(vList);
     setDrivers(dList);
+    setChecklists(cList);
 
     const assigned = vList.filter(v => v.active_driver_id !== null).length;
     setStats({
@@ -61,44 +62,7 @@ export default function Dashboard() {
       assigned: assigned
     });
 
-    const totalCollected = rList.reduce((acc, curr) => acc + curr.paid_amount, 0);
-    const totalPending = rList.reduce((acc, curr) => acc + curr.accumulated_debt, 0);
-    const totalDebtSum = totalCollected + totalPending;
-    const rate = totalDebtSum > 0 ? Math.round((totalCollected / totalDebtSum) * 100) : 100;
-    setCollectionRate(rate);
-
     setRecentAssignments(aList.slice(0, 4));
-
-    // Compute mileage statistics
-    let totalKmSum = 0;
-    let totalDailyRateSum = 0;
-    let vehiclesWithRate = 0;
-
-    vList.forEach((vehicle) => {
-      const vChecklists = cList.filter((c) => c.vehicle_id === vehicle.id);
-      if (vChecklists.length > 0) {
-        const sorted = sortByDateDesc(vChecklists, "created_at");
-        const latest = sorted[0];
-        totalKmSum += latest.mileage;
-
-        if (vChecklists.length >= 2) {
-          const first = sorted[sorted.length - 1];
-          const daysDiff = Math.max(1, Math.round((new Date(latest.created_at).getTime() - new Date(first.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-          const diffKm = latest.mileage - first.mileage;
-          if (diffKm > 0) {
-            totalDailyRateSum += diffKm / daysDiff;
-            vehiclesWithRate++;
-          }
-        }
-      }
-    });
-
-    const finalAvgDaily = vehiclesWithRate > 0 ? Math.round(totalDailyRateSum / vehiclesWithRate) : 80;
-    const finalAvgFuel = Math.round((finalAvgDaily / 12) * 10) / 10; // Est. 12 km/l
-
-    setTotalMileage(totalKmSum);
-    setAvgDailyMileage(finalAvgDaily);
-    setAvgFuelConsumption(finalAvgFuel);
   };
 
   const triggerRefresh = () => {
@@ -117,6 +81,7 @@ export default function Dashboard() {
       });
       if (isStale) return;
       await Promise.all([loadAlerts(), loadStats()]);
+      if (!isStale) setIsLoading(false);
     };
     run();
     return () => {
@@ -177,6 +142,13 @@ export default function Dashboard() {
     setChecklistSheet({ open: true, vehicle });
   };
 
+  // When the user assigns a chofer to a vehicle from inside the action sheet,
+  // close the sheet and immediately pop the checklist so they can log the
+  // initial state of the freshly assigned unit in a single flow.
+  const handleVehicleAssignedFromSheet = (vehicle: Vehicle) => {
+    openChecklistSheet(vehicle);
+  };
+
   // Always serve the freshest entity reference from the latest state so the
   // sheet reflects the current assignment status (e.g. after a successful
   // assign/remove the new vehicles/drivers data is rendered immediately).
@@ -219,13 +191,24 @@ export default function Dashboard() {
     }
   };
 
-  const navigationItems = [
+  // Desktop nav exposes all 6 tabs (sidebar has room for them). The mobile
+  // bottom-nav is restricted to the 4 most-used primary actions — secondary
+  // flows (Asignaciones, Servicios) are reachable on mobile by widening to
+  // desktop size or via the back-button after assigning a vehicle, etc.
+  const desktopNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "dashboard", label: "Inicio", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
-    { id: "assignments", label: "Turnos", icon: ArrowLeftRight },
+    { id: "assignments", label: "Asignaciones", icon: ArrowLeftRight },
     { id: "finances", label: "Rentas", icon: DollarSign },
-    { id: "maintenance", label: "Taller", icon: Wrench },
+    { id: "maintenance", label: "Servicios", icon: ListChecks },
+  ];
+
+  const mobileNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "dashboard", label: "Inicio", icon: Sparkles },
+    { id: "drivers", label: "Choferes", icon: User },
+    { id: "vehicles", label: "Autos", icon: Car },
+    { id: "finances", label: "Rentas", icon: DollarSign },
   ];
 
   const tileVariants: Variants = {
@@ -244,12 +227,21 @@ export default function Dashboard() {
     }),
   };
 
-  const occupancy = stats.vehicles > 0 ? Math.round((stats.assigned / stats.vehicles) * 100) : 0;
-
   return (
-    <div className="relative flex flex-col h-full w-full bg-background text-foreground font-sans antialiased overflow-hidden">
+    <div className="relative flex flex-col md:flex-row h-full w-full bg-background text-foreground font-sans antialiased overflow-hidden">
+      {/* Desktop Sidebar — visible from md+ */}
+      <Sidebar
+        items={desktopNavItems}
+        activeTab={activeTab}
+        onChange={handleTabChange}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        alertCount={alerts.length}
+        onAlertsClick={() => handleTabChange("dashboard")}
+      />
+
       {/* Main Content */}
-      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 scroll-smooth max-w-6xl mx-auto w-full">
+      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 md:px-8 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-8 scroll-smooth max-w-3xl md:max-w-5xl mx-auto md:mx-0 w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -260,6 +252,9 @@ export default function Dashboard() {
             className="w-full space-y-5"
           >
             {activeTab === "dashboard" && (
+              isLoading ? (
+                <DashboardSkeleton />
+              ) : (
               <>
                 {/* HERO HEADER — large greeting + live clock */}
                 <motion.div
@@ -280,14 +275,14 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={toggleTheme}
-                      className="p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
+                      className="md:hidden p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
                       aria-label="Toggle theme"
                     >
                       {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
                     </button>
                     <button
                       onClick={() => handleTabChange("dashboard")}
-                      className="relative p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
+                      className="md:hidden relative p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
                       aria-label="Alerts"
                     >
                       <Bell className="w-4 h-4" />
@@ -300,123 +295,15 @@ export default function Dashboard() {
                   </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-max">
-                  {/* BENTO TILE 1: Hero KPI Card with Occupancy */}
-                  <motion.div custom={1} initial="hidden" animate="visible" variants={tileVariants} className="md:col-span-2">
-                    <Card className="relative overflow-hidden p-0 border-border bg-card elevation-2">
-                      <div className="absolute inset-0 gradient-pill opacity-[0.04] pointer-events-none" />
-                      <div className="relative p-5 sm:p-6 space-y-5">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-label">Ocupación de Flota</h3>
-                            <p className="text-caption mt-1">Vehículos actualmente en servicio</p>
-                          </div>
-                          <div className="px-2 py-1 rounded-md bg-success/10 border border-success/20">
-                            <span className="text-[10px] font-bold text-success uppercase tracking-wider">+ Activo</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-end gap-6">
-                          <div>
-                            <span className="block text-display text-foreground tabular-nums">{occupancy}<span className="text-2xl text-muted-foreground font-bold">%</span></span>
-                          </div>
-                          <div className="flex-1 pb-2 space-y-1">
-                            <div className="flex justify-between text-[11px] font-semibold text-muted-foreground">
-                              <span>{stats.assigned} de {stats.vehicles} unidades</span>
-                              <span className="text-foreground">{occupancy}%</span>
-                            </div>
-                            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${occupancy}%` }}
-                                transition={{ type: "spring", stiffness: 80, damping: 18, delay: 0.2 }}
-                                className="h-full gradient-pill rounded-full"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/60">
-                          <div>
-                            <span className="text-label">Autos</span>
-                            <p className="text-[22px] font-bold tracking-tight text-foreground tabular-nums leading-none mt-1.5">{stats.vehicles}</p>
-                          </div>
-                          <div>
-                            <span className="text-label">Activos</span>
-                            <p className="text-[22px] font-bold tracking-tight text-primary tabular-nums leading-none mt-1.5">{stats.assigned}</p>
-                          </div>
-                          <div>
-                            <span className="text-label">Choferes</span>
-                            <p className="text-[22px] font-bold tracking-tight text-foreground tabular-nums leading-none mt-1.5">{stats.drivers}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-
-                  {/* BENTO TILE 2: Cobranza — circular gauge style */}
-                  <motion.div custom={2} initial="hidden" animate="visible" variants={tileVariants}>
-                    <Card className="relative overflow-hidden p-5 border-border bg-card elevation-2 h-full">
-                      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-success/5 blur-2xl pointer-events-none" />
-                      <div className="relative space-y-3 h-full flex flex-col">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-label">Cobranza Semanal</h3>
-                          <TrendingUp className="w-3.5 h-3.5 text-success" />
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-display text-foreground tabular-nums">{collectionRate}</span>
-                          <span className="text-xl font-bold text-muted-foreground">%</span>
-                        </div>
-                        <div className="flex-1 flex items-end">
-                          <div className="w-full space-y-1.5">
-                            <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${collectionRate}%` }}
-                                transition={{ type: "spring", stiffness: 80, damping: 18, delay: 0.3 }}
-                                className="h-full bg-success rounded-full"
-                              />
-                            </div>
-                            <p className="text-caption">Pagos vs. deuda acumulada</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-
-                  {/* BENTO TILE 3: Quick Actions */}
-                  <motion.div custom={3} initial="hidden" animate="visible" variants={tileVariants}>
-                    <Card className="p-5 border-border bg-card elevation-2 h-full">
-                      <h3 className="text-label mb-4">Acceso Rápido</h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        <QuickActionButton
-                          icon={User}
-                          label="Choferes"
-                          onClick={() => setActiveTab("drivers")}
-                        />
-                        <QuickActionButton
-                          icon={Car}
-                          label="Autos"
-                          onClick={() => setActiveTab("vehicles")}
-                        />
-                        <QuickActionButton
-                          icon={ArrowLeftRight}
-                          label="Asignar Turno"
-                          onClick={() => setActiveTab("assignments")}
-                          span={2}
-                        />
-                      </div>
-                    </Card>
-                  </motion.div>
-
-                  {/* BENTO TILE 4: Recent Activity */}
-                  <motion.div custom={4} initial="hidden" animate="visible" variants={tileVariants} className="md:col-span-2">
-                    <Card className="p-5 border-border bg-card elevation-2">
+                <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4">
+                  {/* BENTO TILE: Recent Activity */}
+                  <motion.div custom={1} initial="hidden" animate="visible" variants={tileVariants} className="lg:col-span-2">
+                    <Card className="p-5 border-border bg-card elevation-2 h-full flex flex-col">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-label">Actividad Reciente</h3>
                         <span className="text-[10px] text-muted-foreground font-medium">Últimos turnos</span>
                       </div>
-                      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-[260px] lg:max-h-[340px] overflow-y-auto pr-1">
                         {recentAssignments.length === 0 ? (
                           <p className="text-caption italic py-6 text-center">No hay movimientos registrados.</p>
                         ) : (
@@ -453,48 +340,62 @@ export default function Dashboard() {
                     </Card>
                   </motion.div>
 
-                  {/* BENTO TILE 4b: Mileage & Fuel/Consumption Analytics */}
-                  <motion.div custom={4.5} initial="hidden" animate="visible" variants={tileVariants}>
-                    <Card className="p-5 border-border bg-card shadow-md h-full flex flex-col justify-between">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-label">Kilometraje y Consumo</h3>
-                          <Gauge className="w-3.5 h-3.5 text-primary" />
-                        </div>
+                  {/* BENTO TILE: Mileage per Unit */}
+                  <motion.div custom={2} initial="hidden" animate="visible" variants={tileVariants} className="lg:col-span-1">
+                    <Card className="p-5 border-border bg-card shadow-md h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-label">Kilometraje por Unidad</h3>
+                        <Gauge className="w-3.5 h-3.5 text-primary" />
+                      </div>
 
-                        <div className="space-y-3">
-                          <div>
-                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Kilometraje Flota</span>
-                            <p className="text-2xl font-black text-foreground font-mono leading-none pt-1">
-                              {totalMileage.toLocaleString()} <span className="text-xs text-muted-foreground font-medium">km</span>
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
-                            <div>
-                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Media Diaria</span>
-                              <p className="text-sm font-bold text-foreground font-mono mt-0.5">
-                                {avgDailyMileage} <span className="text-[9px] text-muted-foreground font-normal">km/d</span>
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Consumo Est.</span>
-                              <p className="text-sm font-bold text-primary font-mono mt-0.5">
-                                {avgFuelConsumption} <span className="text-[9px] text-muted-foreground font-normal">L/d</span>
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex-1 space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+                        {vehicles.length === 0 ? (
+                          <p className="text-caption italic py-4 text-center">No hay vehículos registrados.</p>
+                        ) : (
+                          vehicles.map((vehicle) => {
+                            const vChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
+                            const latest = vChecklists.length > 0
+                              ? sortByDateDesc(vChecklists, "created_at")[0]
+                              : null;
+                            const { weeks: usageWeeks } = computeUsageStats(vChecklists);
+                            const latestWeek = usageWeeks.length > 0 ? usageWeeks[usageWeeks.length - 1] : null;
+                            return (
+                              <div
+                                key={vehicle.id}
+                                className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg hover:bg-secondary/50 transition-colors"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[12px] font-semibold text-foreground truncate">
+                                    {vehicle.brand} {vehicle.vehicle_name}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground font-mono tracking-tight">
+                                    {vehicle.plate_number}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-[12px] font-bold text-foreground font-mono leading-none">
+                                    {latest ? `${latest.mileage.toLocaleString()} km` : "Sin registros"}
+                                  </p>
+                                  <p className={`text-[10px] font-mono mt-0.5 ${latestWeek ? "text-primary font-bold" : "text-muted-foreground"}`}>
+                                    {latestWeek
+                                      ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/d`
+                                      : "—"}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
 
                       <p className="text-[9px] text-muted-foreground pt-3 border-t border-border/40 mt-3 leading-relaxed">
-                        Cálculo dinámico basado en checklists (Consumo est. urbano de 12 km/L).
+                        Media diaria calculada sobre la última semana registrada.
                       </p>
                     </Card>
                   </motion.div>
 
-                  {/* BENTO TILE 5: Alerts — full width, redesigned */}
-                  <motion.div custom={5} initial="hidden" animate="visible" variants={tileVariants} className="md:col-span-3 space-y-3">
+                  {/* BENTO TILE: Alerts — full width, redesigned */}
+                  <motion.div custom={3} initial="hidden" animate="visible" variants={tileVariants} className="space-y-3 lg:col-span-3">
                     <div className="flex items-center justify-between px-1">
                       <h3 className="text-h2">Avisos & Pendientes</h3>
                       {alerts.length > 0 && (
@@ -556,6 +457,7 @@ export default function Dashboard() {
                   </motion.div>
                 </div>
               </>
+              )
             )}
 
             {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} />}
@@ -576,6 +478,7 @@ export default function Dashboard() {
             isAssigned={isEntityAssigned}
             onActionComplete={handleActionComplete}
             onRequestChecklist={openChecklistSheet}
+            onVehicleAssigned={handleVehicleAssignedFromSheet}
             onClose={() => setActionSheet(null)}
           />
         )}
@@ -596,7 +499,7 @@ export default function Dashboard() {
       <nav
         className="relative md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40"
       >
-        {navigationItems.map((tab) => {
+        {mobileNavItems.map((tab) => {
           const Icon = tab.icon;
           const isSelected = activeTab === tab.id;
           return (
@@ -623,19 +526,5 @@ export default function Dashboard() {
 
       {/* Removed Mobile Drawer */}
     </div>
-  );
-}
-function QuickActionButton({ icon: Icon, label, onClick, span = 1 }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; span?: number }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{ gridColumn: span === 2 ? "span 2" : undefined }}
-      className="group flex items-center gap-2.5 h-11 px-3 bg-secondary/60 hover:bg-secondary border border-border/60 hover:border-border rounded-lg text-[12px] font-semibold text-foreground transition-all cursor-pointer active:scale-[0.97]"
-    >
-      <div className="w-7 h-7 rounded-md bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-        <Icon className="w-3.5 h-3.5 text-primary" />
-      </div>
-      <span>{label}</span>
-    </button>
   );
 }

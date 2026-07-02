@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowLeftRight, ListChecks, Gauge, Check } from "lucide-react";
+import { FuelSlider } from "@/components/ui/FuelSlider";
 
 import SliceHeader from "@/components/SliceHeader";
 
@@ -144,15 +145,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
     onRefreshAll();
   };
 
-  // Clickable Octave Fuel segments
-  const fuelLevels = ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"];
-  const getFuelColor = (level: string) => {
-    const val = parseInt(level.split("/")[0], 10);
-    if (val <= 2) return "bg-red-500 shadow-red-500/25";
-    if (val <= 4) return "bg-orange-500 shadow-orange-500/25";
-    if (val <= 6) return "bg-amber-500 shadow-amber-500/25";
-    return "bg-primary shadow-primary/25";
-  };
+  // Fuel level is now handled by the shared FuelSlider component.
 
   return (
     <div className="space-y-5">
@@ -261,7 +254,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
                   placeholder="ej. Inicio de turno semanal, choque leve, mantenimiento"
                   value={assignReason}
                   onChange={(e) => setAssignReason(e.target.value)}
-                  className="border-input bg-background rounded-xl"
+                  className="border-input bg-background rounded-xl w-full min-w-0"
                   required
                 />
               </div>
@@ -288,7 +281,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleChecklist} className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-3">
                 <div className="space-y-1">
                   <Label className="text-muted-foreground text-xs">Tipo Checklist</Label>
                   <Select value={checklistType} onValueChange={(val: "DELIVERY" | "WEEKLY_START") => setChecklistType(val)}>
@@ -350,30 +343,8 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
                   </div>
                 </div>
 
-                {/* Tactile Fuel Gauge Selector */}
-                <div className="space-y-1.5 pt-1">
-                  <Label className="text-muted-foreground text-xs flex justify-between">
-                    <span>Nivel Gasolina</span>
-                    <span className="font-bold text-foreground uppercase tracking-wider text-[10px]">{gasolineLevel} ({gasolineLevel === "8/8" ? "Lleno" : gasolineLevel === "4/8" ? "Medio" : gasolineLevel === "1/8" ? "Reserva" : "Parcial"})</span>
-                  </Label>
-                  <div className="flex gap-1.5 h-10 w-full bg-muted rounded-xl p-1.5 border border-border select-none">
-                    {fuelLevels.map((lvl) => {
-                      const isActive = parseInt(lvl.split("/")[0], 10) <= parseInt(gasolineLevel.split("/")[0], 10);
-                      return (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => setGasolineLevel(lvl)}
-                          className={`flex-1 rounded-md transition-all duration-200 cursor-pointer ${
-                            isActive
-                              ? `${getFuelColor(lvl)} shadow-xs`
-                              : "bg-background hover:bg-muted"
-                          }`}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
+                {/* Slider Fuel Gauge Selector with octaves */}
+                <FuelSlider value={gasolineLevel} onChange={setGasolineLevel} />
               </div>
 
               {/* Tactile Switch/Checkboxes */}

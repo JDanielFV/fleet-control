@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { db, Vehicle, getVerificationSchedule, Driver, Maintenance, Checklist, WeeklyRental } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
-import { downloadCSV, formatDate, sortByDateDesc } from "@/lib/utils";
+import { formatDate, sortByDateDesc } from "@/lib/utils";
+import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
 import Tesseract from "tesseract.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -11,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, FileText, CheckCircle2, AlertTriangle, Search, Calendar, Shield, Trash2, Camera, FolderOpen, Sparkles, Download, Pencil, RefreshCcw, Mic } from "lucide-react";
+import { Car, FileText, CheckCircle2, AlertTriangle, Search, Calendar, Shield, Trash2, Camera, FolderOpen, Sparkles, Pencil, RefreshCcw, Mic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SliceHeader from "@/components/SliceHeader";
+import { VehiclesListSkeleton } from "@/components/ui/skeletons";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 
@@ -31,6 +33,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [expandedVehicleLogs, setExpandedVehicleLogs] = useState<Record<string, boolean>>({});
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
 
@@ -179,6 +182,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       setMaintenances(mList);
       setChecklists(cList);
       setWeeklyRentals(rList);
+      setIsLoading(false);
     })();
     return () => {
       isStale = true;
@@ -202,6 +206,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       setMaintenances(mList);
       setChecklists(cList);
       setWeeklyRentals(rList);
+      setIsLoading(false);
     })();
     return () => {
       isStale = true;
@@ -274,25 +279,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     stopCamera();
   };
 
-  const exportVehiclesCSV = () => {
-    if (vehicles.length === 0) return;
-    const headers = ["ID", "Marca", "Nombre", "Modelo", "Clase", "Color", "Placas", "VIN", "Vence Circulacion", "Vence Seguro", "Costo Renta Semanal", "Km Prox Servicio"];
-    const rows = vehicles.map(v => [
-      v.id,
-      v.brand,
-      v.vehicle_name,
-      v.model || "",
-      v.class_type || "",
-      v.color || "",
-      v.plate_number,
-      v.vin || "",
-      v.circulation_expiration_date || "",
-      v.insurance_expiration_date || "",
-      v.rent_cost || 2500,
-      v.next_service_mileage || ""
-    ]);
-    downloadCSV("inventario_autos", headers, rows);
-  };
+  // (CSV export removed)
 
   // Core OCR runner (supports Gemini API with Tesseract local fallback)
   const processOcrOnImageSource = async (imageSource: string, target: "CIRCULACION" | "SEGURO") => {
@@ -571,14 +558,6 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       v.plate_number.toLowerCase().includes(search.toLowerCase())
   );
 
-  const schedules = [
-    { color: "Amarillo", digits: "5 y 6", months: "Feb-Mar / Ago-Sep", bg: "bg-yellow-500 text-zinc-950" },
-    { color: "Rosa", digits: "7 y 8", months: "Mar-Abr / Sep-Oct", bg: "bg-pink-500 text-white" },
-    { color: "Rojo", digits: "3 y 4", months: "Abr-May / Oct-Nov", bg: "bg-red-500 text-white" },
-    { color: "Verde", digits: "1 y 2", months: "May-Jun / Nov-Dic", bg: "bg-emerald-500 text-white" },
-    { color: "Azul", digits: "9 y 0", months: "Jun-Jul / Dic-Ene", bg: "bg-blue-500 text-white" },
-  ];
-
   // Length warnings for inputs
   const isVinLengthInvalid = vin.length > 0 && vin.length !== 17;
   const isPlateLengthInvalid = plateNumber.length > 0 && (plateNumber.length < 5 || plateNumber.length > 10);
@@ -598,7 +577,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 Registrar auto
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
+            <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-foreground font-black text-lg">
                 {editingVehicleId ? "Editar Vehículo" : "Registro de Vehículo"}
@@ -700,7 +679,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="min-w-0">
                         <Label htmlFor="brand" className="text-muted-foreground text-xs">Marca</Label>
                         <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} required placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" />
@@ -723,7 +702,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Identificación & Vigencias</h4>
                     <div className="space-y-3">
-                      <div className="grid grid-cols-1 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="min-w-0">
                           <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa</Label>
                           <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" required className="border-input bg-background rounded-xl w-full min-w-0" />
@@ -743,17 +722,25 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                           )}
                         </div>
                       </div>
-                      <div className="min-w-0">
-                        <Label htmlFor="circExp" className="text-muted-foreground text-xs">Vigencia Tarjeta Circulación</Label>
-                        <Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="min-w-0">
+                          <Label htmlFor="circExp" className="text-muted-foreground text-xs">Vigencia Tarjeta Circulación</Label>
+                          <Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
+                        </div>
+                        <div className="min-w-0">
+                          <Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label>
+                          <Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label>
-                        <Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" required />
-                      </div>
-                      <div className="min-w-0">
-                        <Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label>
-                        <Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="min-w-0">
+                          <Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label>
+                          <Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" required />
+                        </div>
+                        <div className="min-w-0">
+                          <Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label>
+                          <Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" />
+                        </div>
                       </div>
                       <div className="min-w-0">
                         <Label htmlFor="color" className="text-muted-foreground text-xs">Color del Auto</Label>
@@ -765,10 +752,6 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
                     <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro</h4>
                     <div className="space-y-3">
-                      <div className="min-w-0">
-                        <Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label>
-                        <Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
-                      </div>
                       <div>
                         <Label className="text-muted-foreground text-xs">Foto de Póliza</Label>
                         <div className="border border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
@@ -800,56 +783,28 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         }
       />
 
-    {/* iOS styled Search Bar with Export CSV next to it */}
-    <div className="flex items-center gap-2 mb-4 mt-2">
-      <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-full h-11 px-4 flex items-center gap-2 flex-1 shadow-inner">
-        <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-        <input
-          type="text"
-          placeholder="Search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
-        />
-        <Mic className="w-4 h-4 text-muted-foreground/60 shrink-0 cursor-pointer" />
-      </div>
-
-      <Button
-        onClick={exportVehiclesCSV}
-        variant="outline"
-        className="rounded-full border border-border bg-card hover:bg-accent text-foreground text-xs font-bold h-11 px-4 flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer"
-      >
-        <Download className="w-4 h-4 text-primary" /> Exportar CSV
-      </Button>
+    {/* iOS styled Search Bar */}
+    <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-full h-11 px-4 flex items-center gap-2 w-full shadow-inner mb-4 mt-2">
+      <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+      <input
+        type="text"
+        placeholder="Search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
+      />
+      <Mic className="w-4 h-4 text-muted-foreground/60 shrink-0 cursor-pointer" />
     </div>
 
-      {/* Verification Schedule Visual Grid */}
-      <Card className="border-border bg-card/30 overflow-hidden">
-        <CardHeader className="p-3.5 pb-2">
-          <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 font-black">
-            <Calendar className="w-4 h-4 text-primary" />
-            Calendario de Verificación CDMX / Edomex
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3.5 pt-0 space-y-2">
-          <div className="grid grid-cols-5 gap-1 text-[9px] font-bold text-center">
-            {schedules.map((sch, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className={`py-1.5 rounded-md ${sch.bg} font-black shadow-xs`}>
-                  {sch.color}
-                </div>
-                <div className="text-muted-foreground text-[8px] font-mono leading-none">{sch.digits}</div>
-                <div className="text-muted-foreground font-medium scale-90 leading-tight">{sch.months.split("/")[0]}</div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Verification Schedule Visual Grid — removed */}
 
 
 
       <div className="space-y-3">
-        {filteredVehicles.map((vehicle) => {
+        {isLoading ? (
+          <VehiclesListSkeleton count={3} />
+        ) : (
+          filteredVehicles.map((vehicle) => {
           const schedule = getVerificationSchedule(vehicle.plate_number);
           
           // 1. Last service calculation
@@ -874,6 +829,12 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               verificationStatus = "Verificado (Al corriente)";
             }
           }
+
+          // 3b. Usage stats — weekly km, km/day and 4-week rolling average.
+          // The last 4 weeks' km/day average is what we surface as the
+          // "media de uso mensual" in the expanded details tab.
+          const { weeks: usageWeeks, monthlyAverage: monthlyUsageAverage } = computeUsageStats(vehicleChecklists);
+          const latestWeek = usageWeeks.length > 0 ? usageWeeks[usageWeeks.length - 1] : null;
           
           // 4. Next service prediction formula based on checklists and average daily mileage
           const currentKm = lastChecklist ? lastChecklist.mileage : 0;
@@ -1033,7 +994,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     className="overflow-hidden"
                   >
                     <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-muted-foreground">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-2 text-muted-foreground">
                         <div className="min-w-0">
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
                           <span className="font-semibold text-foreground truncate block">
@@ -1114,6 +1075,30 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                           <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta</span>
                           <span className={`truncate block ${rentStatusColor}`}>{rentStatusText}</span>
                         </div>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Uso Semanal (km/día)</span>
+                          <span className="text-foreground font-medium truncate block">
+                            {latestWeek ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/día` : "—"}
+                          </span>
+                          {latestWeek && (
+                            <span className="text-[9px] text-muted-foreground/80 font-medium block truncate">
+                              {latestWeek.km.toLocaleString()} km en la semana
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Media de Uso Mensual</span>
+                          <span className="text-foreground font-medium truncate block">
+                            {monthlyUsageAverage !== null
+                              ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día`
+                              : "—"}
+                          </span>
+                          {monthlyUsageAverage !== null && (
+                            <span className="text-[9px] text-muted-foreground/80 font-medium block truncate">
+                              Últimas 4 semanas
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
@@ -1186,9 +1171,10 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               </div>
             </Card>
           );
-        })}
+        })
+        )}
 
-        {filteredVehicles.length === 0 && (
+        {!isLoading && filteredVehicles.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             No se encontraron vehículos.
           </div>
@@ -1197,7 +1183,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
       {/* Renewal Dialog — quick update of circulation card or insurance policy */}
       <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingVehicle(null); }}>
-        <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
+        <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-white font-black text-base flex items-center gap-2">
               <RefreshCcw className="w-4 h-4 text-primary" />

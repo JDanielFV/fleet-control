@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db, Vehicle, Driver, Checklist } from "../lib/db";
 import { motion } from "framer-motion";
+import { FuelSlider } from "./ui/FuelSlider";
 
 interface ChecklistSheetProps {
   isOpen: boolean;
@@ -17,13 +18,15 @@ const DEFAULT_ITEMS: Checklist["checklist_items"] = {
   documents: true,
 };
 
-const GASOLINE_LEVELS = ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"];
-
 export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: ChecklistSheetProps) => {
   const [mileage, setMileage] = useState<string>("");
   const [gasoline, setGasoline] = useState<string>("8/8");
   const [items, setItems] = useState<Checklist["checklist_items"]>(DEFAULT_ITEMS);
   const [irregularities, setIrregularities] = useState("");
+  // Optional next-service schedule — captured in the same flow as the
+  // initial checklist so the vehicle's service reminders stay accurate.
+  const [nextServiceMileage, setNextServiceMileage] = useState<string>("");
+  const [nextServiceDate, setNextServiceDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
 
@@ -34,6 +37,8 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
       setGasoline("8/8");
       setItems(DEFAULT_ITEMS);
       setIrregularities("");
+      setNextServiceMileage("");
+      setNextServiceDate("");
       setSavedToast(false);
     }
   }, [isOpen]);
@@ -56,6 +61,15 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
       return;
     }
 
+    // If a service schedule was provided, validate it before saving.
+    const trimmedMileage = nextServiceMileage.trim();
+    const trimmedDate = nextServiceDate.trim();
+    const parsedNextMileage = trimmedMileage ? Number(trimmedMileage) : null;
+    if (trimmedMileage && (isNaN(parsedNextMileage as number) || (parsedNextMileage as number) < 0)) {
+      alert("El kilometraje del próximo servicio no es válido.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       await db.saveChecklist({
@@ -67,6 +81,18 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
         checklist_items: items,
         irregularities: irregularities.trim(),
       });
+
+      // Persist the optional next-service schedule on the vehicle. We only
+      // touch the vehicle if at least one field was provided so we don't
+      // wipe existing values when the user leaves the form blank.
+      if (parsedNextMileage !== null || trimmedDate) {
+        await db.updateVehicleServiceSchedule(
+          vehicle.id,
+          parsedNextMileage,
+          trimmedDate || null
+        );
+      }
+
       setSavedToast(true);
       onComplete?.();
       setTimeout(() => {
@@ -148,24 +174,41 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
               </div>
 
               <div>
+                <FuelSlider value={gasoline} onChange={setGasoline} label="Nivel de gasolina" />
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">
-                  Nivel de gasolina
+                  Próximo servicio (opcional)
                 </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {GASOLINE_LEVELS.map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setGasoline(level)}
-                      className={`py-2 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
-                        gasoline === level
-                          ? "bg-primary text-white border-primary"
-                          : "bg-muted text-foreground border-border hover:bg-secondary"
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
+                <p className="text-xs text-muted-foreground mb-2.5">
+                  Define el recordatorio para el próximo mantenimiento de la unidad.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                      Por kilometraje (km)
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={nextServiceMileage}
+                      onChange={(e) => setNextServiceMileage(e.target.value)}
+                      placeholder="ej. 25000"
+                      className="w-full px-3 py-2.5 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                      Por fecha
+                    </label>
+                    <input
+                      type="date"
+                      value={nextServiceDate}
+                      onChange={(e) => setNextServiceDate(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 

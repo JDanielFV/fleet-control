@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { db, Driver, WeeklyRental } from "@/lib/db";
-import { downloadCSV, sortByDateDesc } from "@/lib/utils";
+import { sortByDateDesc } from "@/lib/utils";
 import { getDriverName } from "@/lib/lookups";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Plus, History, AlertCircle, FileSpreadsheet, CheckCircle2, AlertTriangle, TrendingUp } from "lucide-react";
+import { DollarSign, Plus, CheckCircle2, AlertTriangle, TrendingUp } from "lucide-react";
+import { FinancesListSkeleton } from "@/components/ui/skeletons";
 import SliceHeader from "@/components/SliceHeader";
 
 export default function FinancesSlice() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [rentals, setRentals] = useState<WeeklyRental[]>([]);
-  
+  const [isLoading, setIsLoading] = useState(true);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedWeek, setSelectedWeek] = useState("");
@@ -41,30 +42,12 @@ export default function FinancesSlice() {
       if (isStale) return;
       setDrivers(dList);
       setRentals(rList);
+      setIsLoading(false);
     })();
     return () => {
       isStale = true;
     };
   }, []);
-
-  const exportFinancesCSV = () => {
-    if (rentals.length === 0) return;
-    const headers = ["ID", "Chofer ID", "Nombre Chofer", "Semana", "Monto Renta", "Monto Pagado", "Adeudo Acumulado", "Estatus"];
-    const rows = rentals.map(r => {
-      const status = r.accumulated_debt <= 0 ? "Al corriente" : r.paid_amount > 0 ? "Abono Parcial" : "Pendiente de Pago";
-      return [
-        r.id,
-        r.driver_id,
-        getDriverName(drivers, r.driver_id),
-        r.week_start,
-        r.rent_amount,
-        r.paid_amount,
-        r.accumulated_debt,
-        status
-      ];
-    });
-    downloadCSV("reporte_finanzas", headers, rows);
-  };
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +143,7 @@ export default function FinancesSlice() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <Dialog open={isPaymentOpen} onOpenChange={handlePaymentOpenChange}>
           <DialogTrigger asChild>
             <Button className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer" variant="outline">
@@ -221,7 +204,7 @@ export default function FinancesSlice() {
                   value={paymentAmount || ""}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))}
                   placeholder="ej. 1500"
-                  className="border-input bg-background rounded-xl"
+                  className="border-input bg-background rounded-xl w-full min-w-0"
                   required
                 />
               </div>
@@ -270,7 +253,7 @@ export default function FinancesSlice() {
                   type="number"
                   value={rentAmount || ""}
                   onChange={(e) => setRentAmount(Number(e.target.value))}
-                  className="border-input bg-background rounded-xl"
+                  className="border-input bg-background rounded-xl w-full min-w-0"
                   required
                 />
               </div>
@@ -281,7 +264,7 @@ export default function FinancesSlice() {
                   type="date"
                   value={weekStart}
                   onChange={(e) => setWeekStart(e.target.value)}
-                  className="border-input bg-background rounded-xl"
+                  className="border-input bg-background rounded-xl w-full min-w-0"
                   required
                 />
               </div>
@@ -292,20 +275,14 @@ export default function FinancesSlice() {
             </form>
           </DialogContent>
         </Dialog>
-
-        <Button
-          onClick={exportFinancesCSV}
-          className="w-full h-14 rounded-2xl bg-card border border-border hover:bg-accent hover:text-accent-foreground text-foreground transition-all shadow-md active:scale-95 flex flex-col gap-0.5 justify-center py-2 cursor-pointer"
-          variant="outline"
-        >
-          <FileSpreadsheet className="w-5 h-5 text-primary" />
-          <span className="text-[11px] font-bold">Exportar CSV</span>
-        </Button>
       </div>
 
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Estado de Cuentas</h3>
-        {rentals.map((rental) => {
+        {isLoading ? (
+          <FinancesListSkeleton count={3} />
+        ) : (
+          rentals.map((rental) => {
           const isOverdue = rental.status !== "PAID";
           return (
             <Card
@@ -365,9 +342,10 @@ export default function FinancesSlice() {
               )}
             </Card>
           );
-        })}
+        })
+        )}
 
-        {rentals.length === 0 && (
+        {!isLoading && rentals.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             No hay registros de rentas ni cobros.
           </div>
