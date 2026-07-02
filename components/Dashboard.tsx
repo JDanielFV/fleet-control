@@ -567,22 +567,30 @@ export default function Dashboard() {
         </AnimatePresence>
       </main>
 
-      <EntityActionSheet
-        isOpen={!!actionSheet?.open}
-        entity={activeEntity}
-        type={actionSheet?.type || "driver"}
-        isAssigned={isEntityAssigned}
-        onActionComplete={handleActionComplete}
-        onRequestChecklist={openChecklistSheet}
-        onClose={() => setActionSheet(null)}
-      />
+      <AnimatePresence>
+        {actionSheet?.open && (
+          <EntityActionSheet
+            isOpen={true}
+            entity={activeEntity}
+            type={actionSheet?.type || "driver"}
+            isAssigned={isEntityAssigned}
+            onActionComplete={handleActionComplete}
+            onRequestChecklist={openChecklistSheet}
+            onClose={() => setActionSheet(null)}
+          />
+        )}
+      </AnimatePresence>
 
-      <ChecklistSheet
-        isOpen={checklistSheet.open}
-        vehicle={checklistSheet.vehicle}
-        onClose={() => setChecklistSheet({ open: false, vehicle: null })}
-        onComplete={handleActionComplete}
-      />
+      <AnimatePresence>
+        {checklistSheet.open && (
+          <ChecklistSheet
+            isOpen={true}
+            vehicle={checklistSheet.vehicle}
+            onClose={() => setChecklistSheet({ open: false, vehicle: null })}
+            onComplete={handleActionComplete}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
       <nav
