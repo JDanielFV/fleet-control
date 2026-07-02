@@ -164,6 +164,30 @@ export const db = {
     return true;
   },
 
+  async updateVehicleServiceSchedule(
+    id: string,
+    nextServiceMileage: number | null,
+    nextMaintenanceDate: string | null
+  ): Promise<void> {
+    const patch = {
+      next_service_mileage: nextServiceMileage,
+      next_maintenance_date: nextMaintenanceDate,
+    };
+
+    if (supabase) {
+      const { error } = await supabase.from("vehicles").update(patch).eq("id", id);
+      if (!error) return;
+      console.error("Supabase updateVehicleServiceSchedule error:", error.message);
+    }
+
+    const vehicles = getLocalData("vehicles", seedVehicles);
+    const idx = vehicles.findIndex((v) => v.id === id);
+    if (idx >= 0) {
+      vehicles[idx] = { ...vehicles[idx], ...patch };
+      setLocalData("vehicles", vehicles);
+    }
+  },
+
   // --- Assignments ---
   async getAssignments(): Promise<Assignment[]> {
     if (supabase) {
@@ -242,15 +266,51 @@ export const db = {
     return newAssignment;
   },
 
-  async removeAssignment(assignmentId: string, reason: string): Promise<void> {
+  async removeAssignment(vehicleId: string, driverId: string, reason: string): Promise<void> {
+    // 1. Create a RELEASE record in the assignments log so we keep the history
+    const newReleaseEntry: Assignment = {
+      id: genId(),
+      vehicle_id: vehicleId,
+      driver_id: driverId,
+      action_type: "RELEASE",
+      reason,
+      created_at: new Date().toISOString(),
+    };
+
+    // 2. Clear active_driver_id on the vehicle (in local storage)
+    const vehicles = getLocalData("vehicles", seedVehicles);
+    const vIndex = vehicles.findIndex((v) => v.id === vehicleId);
+    if (vIndex >= 0) {
+      vehicles[vIndex].active_driver_id = null;
+      setLocalData("vehicles", vehicles);
+    }
+
+    // 3. Persist the RELEASE record in local storage
+    const assignments = getLocalData("assignments", seedAssignments);
+    assignments.unshift(newReleaseEntry);
+    setLocalData("assignments", assignments);
+
+    // 4. Sync to Supabase
     if (supabase) {
-      const { error } = await supabase.from("assignments").delete().match({ id: assignmentId });
-      if (error) throw error;
-      console.log(`Assignment ${assignmentId} removed. Reason: ${reason}`);
+      // Clear driver on vehicle
+      const { error: updateError } = await supabase
+        .from("vehicles")
+        .update({ active_driver_id: null })
+        .eq("id", vehicleId);
+      if (updateError) console.error("Error clearing driver on vehicle:", updateError.message);
+
+      // Insert RELEASE log entry
+      const { error: insertError } = await supabase
+        .from("assignments")
+        .insert(newReleaseEntry);
+      if (insertError) {
+        console.error("Error logging release assignment:", insertError.message);
+        addPendingId("assignments", newReleaseEntry.id);
+      } else {
+        clearPendingIds("assignments", [newReleaseEntry.id]);
+      }
     } else {
-      const assignments = getLocalData("assignments", seedAssignments);
-      const filtered = assignments.filter(a => a.id !== assignmentId);
-      setLocalData("assignments", filtered);
+      addPendingId("assignments", newReleaseEntry.id);
     }
   },
 
