@@ -586,7 +586,7 @@ export default function Dashboard() {
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
       <nav
-        className="md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40"
+        className="relative md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40"
       >
         {navigationItems.map((tab) => {
           const Icon = tab.icon;
