@@ -114,6 +114,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   const licFileRef = useRef<HTMLInputElement>(null);
   const photoFileRef = useRef<HTMLInputElement>(null);
   const addressProofFileRef = useRef<HTMLInputElement>(null);
+  // Camera capture for the address proof — opens the device camera directly
+  // via the native <input type="file" capture>, no OCR pipeline.
+  const addressProofCameraRef = useRef<HTMLInputElement>(null);
 
   // Camera + OCR progress state shared with VehiclesSlice via useOcrScanner.
   const scanner = useOcrScanner<"INE" | "LICENCIA" | "CHOFER" | "DOMICILIO">({
@@ -441,188 +444,187 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     reader.readAsDataURL(file);
   };
 
-  // Simulated OCR Trigger for fast demo
-  const triggerOcrScanDemo = (target: "INE" | "LICENCIA") => {
-    // Use the first digit of the target string as a deterministic index so the
-    // demo varies between INE/LICENCIA without calling impure functions in render.
+  // Address proof: just store the file as a base64 image, no OCR pipeline.
+  // Used by both the camera capture and the file picker inputs.
+  const handleAddressProofFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setAddressProofImg(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Demo helper: fill the OCR-derived fields directly so the user can keep
+  // editing the form as if the scan had finished. We deliberately skip the
+  // scanner viewfinder here: the demo's job is to populate fields, not to
+  // replay a 3-second animation that traps the user in the camera UI.
+  const fillDemoData = (target: "INE" | "LICENCIA") => {
+    // Use the first digit of the target string as a deterministic index so
+    // the demo varies between INE/LICENCIA without calling impure functions
+    // in render.
     const idx = demoIndex ?? (target === "INE" ? 0 : 3);
     if (demoIndex === null) {
       setDemoIndex(idx);
     }
 
-    setIsScanning(true);
-    setScanTarget(target);
-    setOcrStep("align");
-    setOcrLogs(["Iniciando cámara de demostración...", "Alineando documento..."]);
+    setOcrLogs((prev) => [
+      ...prev,
+      `[Demo] Rellenando campos de ${target}…`,
+      "[Demo] ✓ Listo, puedes seguir editando.",
+    ]);
 
-    setTimeout(() => {
-      setOcrStep("scan");
-      setOcrLogs(prev => [...prev, "INE detectada", "Procesando código PDF417 de seguridad..."]);
-    }, 1000);
+    if (target === "INE") {
+      const demoDrivers = [
+        {
+          first_name: "Carlos Alberto",
+          paternal_last_name: "Mendoza",
+          maternal_last_name: "Ruiz",
+          curp: "MERC920814HDFRZS03",
+          dob: "1992-08-14",
+          address: "Av. Insurgentes Sur 1204, Del Valle, CDMX",
+          sex: "M" as const,
+          elector_key: "MNDZCR92081409H400",
+        },
+        {
+          first_name: "María Fernanda",
+          paternal_last_name: "Gómez",
+          maternal_last_name: "López",
+          curp: "GOLM940315MDFRNS04",
+          dob: "1994-03-15",
+          address: "Calle Benito Juárez 45, Coyoacán, CDMX",
+          sex: "F" as const,
+          elector_key: "GOMZFE94031512M800",
+        },
+        {
+          first_name: "Alejandro",
+          paternal_last_name: "Silva",
+          maternal_last_name: "Torres",
+          curp: "SITA881122HDFRND05",
+          dob: "1988-11-22",
+          address: "Paseo de la Reforma 300, Cuauhtémoc, CDMX",
+          sex: "M" as const,
+          elector_key: "SLVATR88112204H500",
+        },
+        {
+          first_name: "Sofia",
+          paternal_last_name: "Ramírez",
+          maternal_last_name: "Castro",
+          curp: "RACS960130MDFRNR02",
+          dob: "1996-01-30",
+          address: "Av. Universidad 1900, Copilco, CDMX",
+          sex: "F" as const,
+          elector_key: "RMRZCS96013018M300",
+        },
+        {
+          first_name: "Javier",
+          paternal_last_name: "Ortega",
+          maternal_last_name: "Martínez",
+          curp: "ORMJ910512HDFRTR09",
+          dob: "1991-05-12",
+          address: "Calzada de Tlalpan 4050, Tlalpan, CDMX",
+          sex: "M" as const,
+          elector_key: "ORTGMT91051222H100",
+        },
+        {
+          first_name: "Ana Patricia",
+          paternal_last_name: "Herrera",
+          maternal_last_name: "Juárez",
+          curp: "HEJA930704MDFRRN01",
+          dob: "1993-07-04",
+          address: "Av. Revolución 580, Mixcoac, CDMX",
+          sex: "F" as const,
+          elector_key: "HRRAJZ93070408M600",
+        },
+      ];
+      const choice = demoDrivers[idx];
 
-    setTimeout(() => {
-      setOcrStep("extract");
-      setOcrLogs(prev => [...prev, "Extrayendo campos estructurados...", "CURP y Clave de Elector leídos."]);
-    }, 2000);
+      setFirstName(choice.first_name);
+      setPaternalLastName(choice.paternal_last_name);
+      setMaternalLastName(choice.maternal_last_name);
+      setIneCurp(choice.curp);
+      setIneDob(choice.dob);
+      setIneAddress(choice.address);
+      setIneSex(choice.sex);
+      setIneElectorKey(choice.elector_key);
+    } else {
+      const demoLicenses = [
+        {
+          first_name: "Carlos Alberto",
+          paternal_last_name: "Mendoza",
+          maternal_last_name: "Ruiz",
+          curp: "MERC920814HDFRZS03",
+          dob: "1992-08-14",
+          number: "LIC-554901-M",
+          issue: "2025-02-10",
+          expiration: "2028-02-10",
+        },
+        {
+          first_name: "María Fernanda",
+          paternal_last_name: "Gómez",
+          maternal_last_name: "López",
+          curp: "GOLM940315MDFRNS04",
+          dob: "1994-03-15",
+          number: "LIC-983104-F",
+          issue: "2024-05-18",
+          expiration: "2027-05-18",
+        },
+        {
+          first_name: "Alejandro",
+          paternal_last_name: "Silva",
+          maternal_last_name: "Torres",
+          curp: "SITA881122HDFRND05",
+          dob: "1988-11-22",
+          number: "LIC-112349-M",
+          issue: "2023-11-01",
+          expiration: "2026-11-01",
+        },
+        {
+          first_name: "Sofia",
+          paternal_last_name: "Ramírez",
+          maternal_last_name: "Castro",
+          curp: "RACS960130MDFRNR02",
+          dob: "1996-01-30",
+          number: "LIC-662304-F",
+          issue: "2026-01-15",
+          expiration: "2029-01-15",
+        },
+        {
+          first_name: "Javier",
+          paternal_last_name: "Ortega",
+          maternal_last_name: "Martínez",
+          curp: "ORMJ910512HDFRTR09",
+          dob: "1991-05-12",
+          number: "LIC-881204-M",
+          issue: "2025-04-12",
+          expiration: "2028-04-12",
+        },
+        {
+          first_name: "Ana Patricia",
+          paternal_last_name: "Herrera",
+          maternal_last_name: "Juárez",
+          curp: "HEJA930704MDFRRN01",
+          dob: "1993-07-04",
+          number: "LIC-334910-F",
+          issue: "2024-08-04",
+          expiration: "2027-08-04",
+        },
+      ];
+      const choice = demoLicenses[idx];
 
-    setTimeout(() => {
-      setOcrStep("done");
-      setOcrLogs(prev => [...prev, "✓ Simulación completada"]);
-      
-      if (target === "INE") {
-        const demoDrivers = [
-          {
-            first_name: "Carlos Alberto",
-            paternal_last_name: "Mendoza",
-            maternal_last_name: "Ruiz",
-            curp: "MERC920814HDFRZS03",
-            dob: "1992-08-14",
-            address: "Av. Insurgentes Sur 1204, Del Valle, CDMX",
-            sex: "M" as const,
-            elector_key: "MNDZCR92081409H400"
-          },
-          {
-            first_name: "María Fernanda",
-            paternal_last_name: "Gómez",
-            maternal_last_name: "López",
-            curp: "GOLM940315MDFRNS04",
-            dob: "1994-03-15",
-            address: "Calle Benito Juárez 45, Coyoacán, CDMX",
-            sex: "F" as const,
-            elector_key: "GOMZFE94031512M800"
-          },
-          {
-            first_name: "Alejandro",
-            paternal_last_name: "Silva",
-            maternal_last_name: "Torres",
-            curp: "SITA881122HDFRND05",
-            dob: "1988-11-22",
-            address: "Paseo de la Reforma 300, Cuauhtémoc, CDMX",
-            sex: "M" as const,
-            elector_key: "SLVATR88112204H500"
-          },
-          {
-            first_name: "Sofia",
-            paternal_last_name: "Ramírez",
-            maternal_last_name: "Castro",
-            curp: "RACS960130MDFRNR02",
-            dob: "1996-01-30",
-            address: "Av. Universidad 1900, Copilco, CDMX",
-            sex: "F" as const,
-            elector_key: "RMRZCS96013018M300"
-          },
-          {
-            first_name: "Javier",
-            paternal_last_name: "Ortega",
-            maternal_last_name: "Martínez",
-            curp: "ORMJ910512HDFRTR09",
-            dob: "1991-05-12",
-            address: "Calzada de Tlalpan 4050, Tlalpan, CDMX",
-            sex: "M" as const,
-            elector_key: "ORTGMT91051222H100"
-          },
-          {
-            first_name: "Ana Patricia",
-            paternal_last_name: "Herrera",
-            maternal_last_name: "Juárez",
-            curp: "HEJA930704MDFRRN01",
-            dob: "1993-07-04",
-            address: "Av. Revolución 580, Mixcoac, CDMX",
-            sex: "F" as const,
-            elector_key: "HRRAJZ93070408M600"
-          }
-        ];
-        const choice = demoDrivers[idx];
-
-        setFirstName(choice.first_name);
-        setPaternalLastName(choice.paternal_last_name);
-        setMaternalLastName(choice.maternal_last_name);
-        setIneCurp(choice.curp);
-        setIneDob(choice.dob);
-        setIneAddress(choice.address);
-        setIneSex(choice.sex);
-        setIneElectorKey(choice.elector_key);
-      } else {
-        const demoLicenses = [
-          {
-            first_name: "Carlos Alberto",
-            paternal_last_name: "Mendoza",
-            maternal_last_name: "Ruiz",
-            curp: "MERC920814HDFRZS03",
-            dob: "1992-08-14",
-            number: "LIC-554901-M",
-            issue: "2025-02-10",
-            expiration: "2028-02-10"
-          },
-          {
-            first_name: "María Fernanda",
-            paternal_last_name: "Gómez",
-            maternal_last_name: "López",
-            curp: "GOLM940315MDFRNS04",
-            dob: "1994-03-15",
-            number: "LIC-983104-F",
-            issue: "2024-05-18",
-            expiration: "2027-05-18"
-          },
-          {
-            first_name: "Alejandro",
-            paternal_last_name: "Silva",
-            maternal_last_name: "Torres",
-            curp: "SITA881122HDFRND05",
-            dob: "1988-11-22",
-            number: "LIC-112349-M",
-            issue: "2023-11-01",
-            expiration: "2026-11-01"
-          },
-          {
-            first_name: "Sofia",
-            paternal_last_name: "Ramírez",
-            maternal_last_name: "Castro",
-            curp: "RACS960130MDFRNR02",
-            dob: "1996-01-30",
-            number: "LIC-662304-F",
-            issue: "2026-01-15",
-            expiration: "2029-01-15"
-          },
-          {
-            first_name: "Javier",
-            paternal_last_name: "Ortega",
-            maternal_last_name: "Martínez",
-            curp: "ORMJ910512HDFRTR09",
-            dob: "1991-05-12",
-            number: "LIC-881204-M",
-            issue: "2025-04-12",
-            expiration: "2028-04-12"
-          },
-          {
-            first_name: "Ana Patricia",
-            paternal_last_name: "Herrera",
-            maternal_last_name: "Juárez",
-            curp: "HEJA930704MDFRRN01",
-            dob: "1993-07-04",
-            number: "LIC-334910-F",
-            issue: "2024-08-04",
-            expiration: "2027-08-04"
-          }
-        ];
-        const choice = demoLicenses[idx];
-
-        setFirstName(choice.first_name);
-        setPaternalLastName(choice.paternal_last_name);
-        setMaternalLastName(choice.maternal_last_name);
-        setLicenseCurp(choice.curp);
-        setLicenseDob(choice.dob);
-        setLicenseNumber(choice.number);
-        setLicenseIssueDate(choice.issue);
-        setLicenseExpirationDate(choice.expiration);
-        setLicenseIsPermanent(false);
-      }
-
-      setTimeout(() => {
-        setIsScanning(false);
-        setScanTarget(null);
-      }, 1000);
-    }, 3200);
+      setFirstName(choice.first_name);
+      setPaternalLastName(choice.paternal_last_name);
+      setMaternalLastName(choice.maternal_last_name);
+      setLicenseCurp(choice.curp);
+      setLicenseDob(choice.dob);
+      setLicenseNumber(choice.number);
+      setLicenseIssueDate(choice.issue);
+      setLicenseExpirationDate(choice.expiration);
+      setLicenseIsPermanent(false);
+    }
   };
 
   const filteredDrivers = drivers.filter(
@@ -836,7 +838,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       />
                       <button
                         type="button"
-                        onClick={() => triggerOcrScanDemo("INE")}
+                        onClick={() => fillDemoData("INE")}
                         className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
                       >
                         Simular INE Demo
@@ -872,7 +874,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       />
                       <button
                         type="button"
-                        onClick={() => triggerOcrScanDemo("LICENCIA")}
+                        onClick={() => fillDemoData("LICENCIA")}
                         className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
                       >
                         Simular Licencia Demo
@@ -906,7 +908,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => startCamera("DOMICILIO")}
+                        onClick={() => addressProofCameraRef.current?.click()}
                         className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
                         <Camera className="w-4 h-4 text-primary" /> Tomar Foto
@@ -919,23 +921,22 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       >
                         <FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo
                       </Button>
+                      {/* Native camera capture — no OCR. The address proof is
+                          stored as-is for human review. */}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        ref={addressProofCameraRef}
+                        onChange={(e) => handleAddressProofFile(e)}
+                      />
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
                         ref={addressProofFileRef}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              if (event.target?.result) {
-                                setAddressProofImg(event.target.result as string);
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
+                        onChange={(e) => handleAddressProofFile(e)}
                       />
                     </div>
                   </div>
