@@ -56,9 +56,9 @@ export const db = {
 
   async saveDriver(driver: Omit<Driver, "id" | "created_at"> & { id?: string }): Promise<Driver> {
     const fullDriver: Driver = normalizeEmptyDates({
-      id: driver.id || genId(),
-      created_at: new Date().toISOString(),
       ...driver,
+      id: driver.id || genId(),
+      created_at: (driver as any).created_at || new Date().toISOString(),
     }, DRIVER_DATE_KEYS) as Driver;
     if (supabase) {
       const { data, error } = await supabase.from("drivers").upsert(fullDriver).select().single();
@@ -68,6 +68,8 @@ export const db = {
       }
       if (error) {
         console.error("Supabase saveDriver error:", error.message, error.details, error.hint);
+        // Throw database errors to let the UI react
+        throw new Error(error.message);
       }
     }
     const drivers = getLocalData("drivers", seedDrivers);
@@ -123,9 +125,9 @@ export const db = {
 
   async saveVehicle(vehicle: Omit<Vehicle, "id" | "created_at"> & { id?: string }): Promise<Vehicle> {
     const fullVehicle: Vehicle = normalizeEmptyDates({
-      id: vehicle.id || genId(),
-      created_at: new Date().toISOString(),
       ...vehicle,
+      id: vehicle.id || genId(),
+      created_at: (vehicle as any).created_at || new Date().toISOString(),
     }, VEHICLE_DATE_KEYS) as Vehicle;
     if (supabase) {
       const { data, error } = await supabase.from("vehicles").upsert(fullVehicle).select().single();
@@ -135,6 +137,7 @@ export const db = {
       }
       if (error) {
         console.error("Supabase saveVehicle error:", error.message, error.details, error.hint);
+        throw new Error(error.message);
       }
     }
     const vehicles = getLocalData("vehicles", seedVehicles);
