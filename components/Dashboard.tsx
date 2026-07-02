@@ -247,7 +247,7 @@ export default function Dashboard() {
   const occupancy = stats.vehicles > 0 ? Math.round((stats.assigned / stats.vehicles) * 100) : 0;
 
   return (
-    <div className="relative flex flex-col h-screen w-full bg-background text-foreground font-sans antialiased overflow-hidden">
+    <div className="relative flex flex-col h-full w-full bg-background text-foreground font-sans antialiased overflow-hidden">
       {/* Main Content */}
       <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 scroll-smooth max-w-6xl mx-auto w-full">
         <AnimatePresence mode="wait">
