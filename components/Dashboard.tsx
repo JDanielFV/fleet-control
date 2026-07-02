@@ -249,7 +249,7 @@ export default function Dashboard() {
   return (
     <div className="relative flex flex-col h-[100dvh] w-screen max-w-[100vw] overflow-x-hidden bg-background text-foreground font-sans antialiased">
       {/* Main Content */}
-      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(env(safe-area-inset-bottom,0px)+80px)] scroll-smooth max-w-6xl mx-auto w-full">
+      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 scroll-smooth max-w-6xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -585,7 +585,10 @@ export default function Dashboard() {
       />
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
-      <nav className="md:hidden glass-nav border-t border-border flex items-center justify-around h-14 w-full fixed bottom-0 left-0 z-40 px-2">
+      <nav
+        className="md:hidden glass-nav border-t border-border flex items-center justify-around h-14 w-full fixed left-0 z-40 px-2"
+        style={{ bottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         {navigationItems.map((tab) => {
           const Icon = tab.icon;
           const isSelected = activeTab === tab.id;

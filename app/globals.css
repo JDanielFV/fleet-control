@@ -71,14 +71,11 @@
   --color-critical: #FF3B30;
 }
 
-/* Ensure mobile viewport layout is 100% height without bounce issues */
+/* Ensure mobile viewport layout uses full screen including safe areas */
 html, body {
   overflow-x: hidden;
-  overflow-y: hidden;
   overscroll-behavior: none;
   overscroll-behavior-y: none;
-  height: 100dvh;
-  min-height: 100dvh;
   width: 100%;
   max-width: 100vw;
   margin: 0;
