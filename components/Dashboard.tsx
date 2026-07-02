@@ -247,7 +247,7 @@ export default function Dashboard() {
   const occupancy = stats.vehicles > 0 ? Math.round((stats.assigned / stats.vehicles) * 100) : 0;
 
   return (
-    <div className="relative flex flex-col h-full min-h-screen w-full bg-background text-foreground font-sans antialiased">
+    <div className="relative flex flex-col h-screen w-full bg-background text-foreground font-sans antialiased overflow-hidden">
       {/* Main Content */}
       <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 scroll-smooth max-w-6xl mx-auto w-full">
         <AnimatePresence mode="wait">
@@ -586,7 +586,7 @@ export default function Dashboard() {
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
       <nav
-        className="md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full fixed bottom-0 left-0 z-40 px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))]"
+        className="md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40"
       >
         {navigationItems.map((tab) => {
           const Icon = tab.icon;
