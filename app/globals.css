@@ -345,17 +345,17 @@ body::before {
 }
 
 .dialog-overlay-animate[data-state="open"] {
-  animation: dialogFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogFadeIn 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-overlay-animate[data-state="closed"] {
-  animation: dialogFadeOut 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogFadeOut 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-content-animate[data-state="open"] {
-  animation: dialogScaleIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogScaleIn 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-content-animate[data-state="closed"] {
-  animation: dialogScaleOut 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dialogScaleOut 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

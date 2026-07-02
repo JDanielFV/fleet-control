@@ -1222,7 +1222,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
                   className="overflow-hidden"
                 >
                   <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">

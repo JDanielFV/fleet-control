@@ -236,10 +236,10 @@ export default function Dashboard() {
       scale: 1,
       transition: {
         delay: 0.05 + i * 0.08,
-        duration: 0.5,
+        duration: 0.9,
         type: "spring",
-        stiffness: 280,
-        damping: 28,
+        stiffness: 120,
+        damping: 18,
       },
     }),
   };
@@ -256,7 +256,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ type: "spring", stiffness: 260, damping: 28 }}
+            transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
             className="w-full space-y-5"
           >
             {activeTab === "dashboard" && (
