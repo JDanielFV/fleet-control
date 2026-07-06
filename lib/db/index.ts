@@ -550,7 +550,7 @@ export const db = {
 
       if (diffDays <= 30) {
         alerts.push({
-          id: `alert-lic-${driver.id}`,
+          id: `alert-lic-${driver.id}-${driver.license_expiration_date}`,
           type: "LICENSE",
           title: `Licencia de Conducir Vencida / Por Vencer`,
           description: `La licencia de ${driver.first_name} ${driver.paternal_last_name} vence en ${diffDays} días (${driver.license_expiration_date}).`,
@@ -571,7 +571,7 @@ export const db = {
 
       if (diffDays <= 30) {
         alerts.push({
-          id: `alert-ins-${vehicle.id}`,
+          id: `alert-ins-${vehicle.id}-${vehicle.insurance_expiration_date}`,
           type: "INSURANCE",
           title: `Seguro del Vehículo Vencido / Por Vencer`,
           description: `La póliza de seguro del auto ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) vence en ${diffDays} días.`,
@@ -627,7 +627,7 @@ export const db = {
 
           if (shouldAlert) {
             alerts.push({
-              id: `alert-ver-${vehicle.id}`,
+              id: `alert-ver-${vehicle.id}-${activeWindow.limitDate}`,
               type: "VERIFICATION",
               title: daysUntilLimit < 0 ? `Verificación Vehicular Vencida` : `Verificación Vehicular Próxima`,
               description: daysUntilLimit < 0
@@ -650,14 +650,14 @@ export const db = {
       const diffTime = nextDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      if (diffDays <= 15) {
+      if (diffDays <= 30) {
         alerts.push({
-          id: `alert-maint-${maint.id}`,
+          id: `alert-maint-${maint.id}-${maint.next_maintenance_date}`,
           type: "MAINTENANCE",
           title: `Mantenimiento Programado`,
           description: `Próximo servicio programado para el vehículo en ${diffDays} días (${maint.next_maintenance_date}).`,
           targetId: maint.vehicle_id,
-          severity: diffDays <= 0 ? "critical" : diffDays <= 5 ? "warning" : "info",
+          severity: diffDays <= 0 ? "critical" : diffDays <= 10 ? "warning" : "info",
           dueDate: maint.next_maintenance_date,
         });
       }
@@ -669,10 +669,43 @@ export const db = {
 
   async dismissAlert(alertId: string): Promise<boolean> {
     const completed = getLocalData("completed_alerts", [] as string[]);
-    if (!completed.includes(alertId)) {
-      completed.push(alertId);
-      setLocalData("completed_alerts", completed);
+    let resolvedId = alertId;
+
+    // Resolve verification alert prefix: alert-ver-[vehicleId]
+    if (alertId.startsWith("alert-ver-") && alertId.split("-").length === 3) {
+      const vehicleId = alertId.replace("alert-ver-", "");
+      const vehicles = getLocalData("vehicles", seedVehicles);
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (vehicle && vehicle.plate_number) {
+        const today = new Date();
+        const match = vehicle.plate_number.replace(/\D/g, "");
+        const lastDigit = match ? parseInt(match.slice(-1), 10) : 5;
+        let activeLimitDate = "";
+        
+        if (lastDigit === 5 || lastDigit === 6) {
+          activeLimitDate = today.getMonth() <= 2 ? `${today.getFullYear()}-03-31` : `${today.getFullYear()}-09-30`;
+        } else if (lastDigit === 7 || lastDigit === 8) {
+          activeLimitDate = today.getMonth() <= 3 ? `${today.getFullYear()}-04-30` : `${today.getFullYear()}-10-31`;
+        } else if (lastDigit === 3 || lastDigit === 4) {
+          activeLimitDate = today.getMonth() <= 4 ? `${today.getFullYear()}-05-31` : `${today.getFullYear()}-11-30`;
+        } else if (lastDigit === 1 || lastDigit === 2) {
+          activeLimitDate = today.getMonth() <= 5 ? `${today.getFullYear()}-06-30` : `${today.getFullYear()}-12-31`;
+        } else {
+          activeLimitDate = today.getMonth() >= 10 || today.getMonth() === 0
+            ? `${today.getMonth() === 0 ? today.getFullYear() : today.getFullYear() + 1}-01-31`
+            : `${today.getFullYear()}-07-31`;
+        }
+        resolvedId = `alert-ver-${vehicleId}-${activeLimitDate}`;
+      }
     }
+
+    if (!completed.includes(resolvedId)) {
+      completed.push(resolvedId);
+    }
+    if (resolvedId !== alertId && !completed.includes(alertId)) {
+      completed.push(alertId);
+    }
+    setLocalData("completed_alerts", completed);
     return true;
   },
 };
