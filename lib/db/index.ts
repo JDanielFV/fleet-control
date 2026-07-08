@@ -568,6 +568,23 @@ export const db = {
       created_at: new Date().toISOString(),
       ...maintenance,
     };
+
+    // Auto-update the vehicle's next_service_mileage: latest odometer + 10000 km.
+    // This runs regardless of Supabase success so the local state is always correct.
+    const checklists = getLocalData("checklists", seedChecklists);
+    const vChecklists = checklists.filter((c) => c.vehicle_id === maintenance.vehicle_id);
+    if (vChecklists.length > 0) {
+      const sorted = [...vChecklists].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const latestMileage = sorted[0].mileage;
+      const newServiceMileage = latestMileage + 10000;
+      await this.updateVehicleServiceSchedule(maintenance.vehicle_id, newServiceMileage, maintenance.next_maintenance_date);
+    } else {
+      // No checklists yet — just update the date, leave mileage as-is.
+      await this.updateVehicleServiceSchedule(maintenance.vehicle_id, null, maintenance.next_maintenance_date);
+    }
+
     if (supabase) {
       const { data, error } = await supabase.from("maintenances").insert(fullMaint).select().single();
       if (!error && data) {
