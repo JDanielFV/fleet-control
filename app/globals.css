@@ -74,6 +74,7 @@
 
 /* Ensure mobile viewport layout uses full screen including safe areas */
 html, body {
+  font-size: 22px;
   overflow: hidden;
   position: fixed;
   top: 0;
