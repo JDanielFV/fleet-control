@@ -382,21 +382,6 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground mt-2">
                           {stats.vehicles} vehículos · {stats.assigned} activos · {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"} pendientes
                         </p>
-                        {/* Quick-add buttons */}
-                        <div className="flex items-center gap-2 mt-3">
-                          <button
-                            onClick={() => { setAutoOpenDriver(true); handleTabChange("drivers"); }}
-                            className="inline-flex items-center gap-1.5 px-4 h-10 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
-                          >
-                            <User className="w-4 h-4" /> Añadir Chofer
-                          </button>
-                          <button
-                            onClick={() => { setAutoOpenVehicle(true); handleTabChange("vehicles"); }}
-                            className="inline-flex items-center gap-1.5 px-4 h-10 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
-                          >
-                            <Car className="w-4 h-4" /> Añadir Auto
-                          </button>
-                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -421,24 +406,38 @@ export default function Dashboard() {
                       </div>
                     </motion.div>
 
-                    {/* GLOBAL SEARCH FOR HOME / LIST VIEW */}
+                    {/* GLOBAL SEARCH FOR HOME / LIST VIEW — combined with quick-add buttons */}
                     <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-2xl h-12 px-4 flex items-center gap-2 w-full shrink-0 shadow-inner border border-border/40 focus-within:ring-4 focus-within:ring-primary/20 transition-all">
-                      <Search className="w-5 h-5 text-muted-foreground/60 shrink-0" />
+                      <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                       <input
                         type="text"
-                        placeholder="Buscar chofer por nombre o placas de vehículo..."
+                        placeholder="Buscar chofer por nombre o placas..."
                         value={globalSearch}
                         onChange={(e) => setGlobalSearch(e.target.value)}
-                        className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
+                        className="flex-1 bg-transparent border-none text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-hidden"
                       />
                       {globalSearch && (
                         <button
                           onClick={() => setGlobalSearch("")}
-                          className="text-xs font-bold text-muted-foreground hover:text-foreground shrink-0 px-2 cursor-pointer"
+                          className="text-[11px] font-bold text-muted-foreground hover:text-foreground shrink-0 px-2 cursor-pointer"
                         >
                           Limpiar
                         </button>
                       )}
+                      <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-border/40">
+                        <button
+                          onClick={() => { setAutoOpenDriver(true); handleTabChange("drivers"); }}
+                          className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
+                        >
+                          <User className="w-3.5 h-3.5" /> Chofer
+                        </button>
+                        <button
+                          onClick={() => { setAutoOpenVehicle(true); handleTabChange("vehicles"); }}
+                          className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
+                        >
+                          <Car className="w-3.5 h-3.5" /> Auto
+                        </button>
+                      </div>
                     </div>
 
                     {/* Scrollable list container */}
