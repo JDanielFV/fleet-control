@@ -613,8 +613,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-xs font-bold px-5 h-10 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
-                Registrar auto
+              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
+                Registrar vehículo
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">

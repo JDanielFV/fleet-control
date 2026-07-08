@@ -751,7 +751,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
             if (!open) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-xs font-bold px-5 h-10 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
+              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
                 Registrar conductor
               </Button>
             </DialogTrigger>
@@ -823,7 +823,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         type="button"
                         variant="outline"
                         onClick={() => startCamera("CHOFER")}
-                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-9 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
                         <Camera className="w-4 h-4 text-primary" /> Tomar Foto
                       </Button>
@@ -831,7 +831,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         type="button"
                         variant="outline"
                         onClick={() => photoFileRef.current?.click()}
-                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-9 cursor-pointer"
+                        className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"
                       >
                         <FolderOpen className="w-4 h-4 text-primary" /> Subir Foto
                       </Button>

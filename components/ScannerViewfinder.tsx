@@ -80,21 +80,21 @@ export default function ScannerViewfinder<T extends string>({
         <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-border" />
 
         {isCameraActive && !cameraError && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-30">
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 z-30">
             <Button
               type="button"
               onClick={capturePhoto}
-              className="bg-primary hover:bg-primary text-white font-bold rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
+              className="bg-primary hover:bg-primary text-white font-bold rounded-full h-12 px-5 flex items-center justify-center gap-2 shadow-lg active:scale-90"
             >
-              <Camera className="w-5 h-5" />
+              <Camera className="w-5 h-5" /> Capturar
             </Button>
             <Button
               type="button"
               variant="destructive"
               onClick={stopCamera}
-              className="rounded-full w-12 h-12 p-0 flex items-center justify-center shadow-lg active:scale-90"
+              className="rounded-full h-12 px-5 flex items-center justify-center gap-2 shadow-lg active:scale-90"
             >
-              <StopCircle className="w-5 h-5" />
+              <StopCircle className="w-5 h-5" /> Cancelar
             </Button>
           </div>
         )}

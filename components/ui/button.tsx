@@ -30,10 +30,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               variant === "link",
           },
           {
-            "h-10 px-4 py-2": size === "default",
-            "h-9 rounded-lg px-3 text-xs": size === "sm",
-            "h-11 rounded-xl px-8 text-base": size === "lg",
-            "h-10 w-10": size === "icon",
+            "h-11 px-5 py-2.5": size === "default",
+            "h-10 rounded-lg px-4 text-xs": size === "sm",
+            "h-12 rounded-xl px-10 text-base": size === "lg",
+            "h-11 w-11": size === "icon",
           },
           className
         )}
