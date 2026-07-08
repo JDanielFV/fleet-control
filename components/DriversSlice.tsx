@@ -1256,28 +1256,32 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         P
                       </span>
                     ) : (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}
-                        className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-md flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1.5"
                         title={`Renovar licencia (Vence: ${driver.license_expiration_date ?? "—"})`}
                       >
-                        <RefreshCcw className="w-2.5 h-2.5" />
-                      </button>
+                        <RefreshCcw className="w-3.5 h-3.5" /> Renovar
+                      </Button>
                     )}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}
-                      className="p-1 text-muted-foreground hover:text-primary active:scale-90 transition-all cursor-pointer"
-                      title="Editar"
+                      className="text-muted-foreground hover:text-primary text-xs gap-1.5"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}
-                      className="p-1 text-red-500 hover:text-red-400 active:scale-90 transition-all cursor-pointer"
-                      title="Eliminar"
+                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                    </Button>
                   </div>
                 </div>
 

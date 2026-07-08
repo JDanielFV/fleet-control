@@ -1036,18 +1036,18 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}
                       variant="ghost"
-                      className="p-1.5 h-auto text-primary hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer shrink-0"
-                      title="Editar vehículo"
+                      size="sm"
+                      className="text-primary hover:text-primary hover:bg-primary/10 text-xs gap-1.5"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-3.5 h-3.5" /> Editar
                     </Button>
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}
                       variant="ghost"
-                      className="p-1.5 h-auto text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer shrink-0"
-                      title="Eliminar Vehículo"
+                      size="sm"
+                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
                     </Button>
                   </div>
                 </div>
