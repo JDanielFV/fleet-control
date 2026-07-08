@@ -522,34 +522,34 @@ export default function Dashboard() {
                                         CURP: <span className="font-mono font-bold text-foreground tracking-tight">{driver.curp}</span>
                                       </p>
                                       {assignedVehicle ? (
-                                        <div className="bg-secondary/40 dark:bg-muted/30 p-3 rounded-2xl space-y-2 mt-3 border border-border/30">
-                                          <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                            <Car className="w-3.5 h-3.5 text-primary" />
-                                            {assignedVehicle.brand} {assignedVehicle.vehicle_name} ({assignedVehicle.plate_number})
+                                        <div className="bg-secondary/40 dark:bg-muted/30 px-4 py-3.5 rounded-2xl space-y-3 mt-3 border border-border/30">
+                                          <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                                            <Car className="w-4 h-4 text-primary shrink-0" />
+                                            <span className="truncate">{assignedVehicle.brand} {assignedVehicle.vehicle_name} ({assignedVehicle.plate_number})</span>
                                           </p>
-                                          <div className="grid grid-cols-2 gap-2 text-[11px] border-t border-border/20 pt-2 font-mono">
+                                          <div className="grid grid-cols-2 gap-3 text-xs border-t border-border/20 pt-3">
                                             <div>
                                               <span className="block text-[11px] uppercase font-bold text-muted-foreground">Último Odómetro</span>
-                                              <span className="text-foreground font-bold">{latestMileage}</span>
+                                              <span className="text-foreground font-bold text-sm">{latestMileage}</span>
                                             </div>
                                             <div>
                                               <span className="block text-[11px] uppercase font-bold text-muted-foreground">Costo Renta</span>
-                                              <span className="text-foreground font-bold">${assignedVehicle.rent_cost.toLocaleString()}/sem</span>
+                                              <span className="text-foreground font-bold text-sm">${assignedVehicle.rent_cost.toLocaleString()}/sem</span>
                                             </div>
                                           </div>
 
                                           {/* Verification info display */}
                                           {verifInfo && (
-                                            <div className="border-t border-border/20 pt-2 mt-1 space-y-1">
+                                            <div className="border-t border-border/20 pt-3 space-y-1.5">
                                               <span className="block text-[11px] uppercase font-bold text-muted-foreground">Verificación Semestral</span>
-                                              <div className="flex items-center gap-2">
-                                                <span className={`w-3.5 h-3.5 rounded-full shrink-0 border border-black/15 ${
+                                              <div className="flex items-center gap-2.5">
+                                                <span className={`w-4 h-4 rounded-full shrink-0 border border-black/15 ${
                                                   verifInfo.color === "Amarillo" ? "bg-yellow-400" :
                                                   verifInfo.color === "Rosa" ? "bg-pink-400" :
                                                   verifInfo.color === "Rojo" ? "bg-red-500" :
                                                   verifInfo.color === "Verde" ? "bg-green-500" : "bg-blue-600"
                                                 }`} title={`Engomado ${verifInfo.color}`} />
-                                                <div className="text-[11px] font-semibold text-foreground">
+                                                <div className="text-xs font-semibold text-foreground">
                                                   <span>{verifInfo.period}</span>
                                                   <span className="block text-xs text-muted-foreground font-medium">Límite: {formatDate(verifInfo.limitDate)}</span>
                                                 </div>
@@ -558,7 +558,7 @@ export default function Dashboard() {
                                           )}
                                         </div>
                                       ) : (
-                                        <div className="bg-amber-500/5 text-amber-600 dark:text-amber-400 p-3 rounded-2xl text-[11px] font-semibold border border-amber-500/10 mt-3">
+                                        <div className="bg-amber-500/5 text-amber-600 dark:text-amber-400 p-3.5 rounded-2xl text-xs font-semibold border border-amber-500/10 mt-3">
                                           ⚠️ Este conductor no tiene vehículo asignado.
                                         </div>
                                       )}
