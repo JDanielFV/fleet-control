@@ -444,7 +444,7 @@ export default function Dashboard() {
                     {/* Scrollable list container */}
                     <div className="flex-1 overflow-y-auto pr-1">
                       {/* DRIVERS GRID (ACCESSIBLE & SPACIOUS) */}
-                      <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5 pb-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-6">
                         {filteredDriversList.length === 0 ? (
                           <p className="text-center py-10 text-muted-foreground italic col-span-full">
                             No se encontraron choferes que coincidan con la búsqueda.
@@ -494,19 +494,19 @@ export default function Dashboard() {
                                 className="group p-5 border border-border/60 hover:border-border/100 bg-card hover:shadow-md rounded-3xl cursor-pointer transition-all duration-200 focus-visible:ring-4 focus-visible:ring-primary focus-visible:outline-hidden ring-offset-4"
                                 aria-label={`Chofer ${driver.first_name} ${driver.paternal_last_name}, estatus: ${assignedVehicle ? `Con vehículo ${assignedVehicle.brand} ${assignedVehicle.vehicle_name}` : "Sin vehículo asignado"}`}
                               >
-                                <div className="flex gap-4">
+                                <div className="flex flex-col gap-4">
                                   {/* Avatar circle */}
-                                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-muted/65 flex items-center justify-center shrink-0 shadow-inner">
+                                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-muted/65 flex items-center justify-center shrink-0 shadow-inner mx-auto">
                                     {driver.driver_photo_img ? (
                                       <img src={driver.driver_photo_img} alt={`Foto de ${driver.first_name}`} className="object-cover w-full h-full" />
                                     ) : (
-                                      <User className="w-7 h-7 text-muted-foreground/80" />
+                                      <User className="w-8 h-8 text-muted-foreground/80" />
                                     )}
                                   </div>
 
                                   {/* Core Name & Status */}
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center justify-between gap-2 pb-2">
                                       <h3 className="text-base font-black text-foreground leading-snug truncate group-hover:text-primary transition-colors">
                                         {`${driver.first_name} ${driver.paternal_last_name}`}
                                       </h3>
