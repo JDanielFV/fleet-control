@@ -857,9 +857,9 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
-                    <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Diario</span>
+                    <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Mensual</span>
                     <p className="text-lg font-black text-foreground font-mono mt-1">
-                      {Math.round(statsDialog.usage.monthlyAverage).toLocaleString()} km
+                      {Math.round(statsDialog.usage.monthlyAverage * 30).toLocaleString()} km
                     </p>
                   </div>
                 </div>
