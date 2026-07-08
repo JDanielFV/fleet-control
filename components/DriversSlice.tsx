@@ -25,9 +25,13 @@ interface DriversSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
   onOpenActionSheet: (entity: Driver | Vehicle, type: "driver" | "vehicle") => void;
+  /** When true, the registration dialog opens automatically on mount. */
+  autoOpen?: boolean;
+  /** Called after the dialog is closed (to clear the autoOpen flag). */
+  onAutoOpenConsumed?: () => void;
 }
 
-export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
@@ -89,6 +93,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   };
 
   const [isOpen, setIsOpen] = useState(false);
+
+  // Auto-open the registration dialog when the parent sets autoOpen=true.
+  useEffect(() => {
+    if (autoOpen && !isOpen) {
+      setIsOpen(true);
+      onAutoOpenConsumed?.();
+    }
+  }, [autoOpen]);
 
   // Sync external search query into local filter. Use the callback form and
   // avoid setState synchronously in the effect body by comparing in microtask.

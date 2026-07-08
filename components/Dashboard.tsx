@@ -59,6 +59,10 @@ export default function Dashboard() {
   const [isBuzonOpen, setIsBuzonOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
+  // Auto-open flags: when set, the corresponding slice opens its registration
+  // dialog on mount. The slice calls onAutoOpenConsumed to clear the flag.
+  const [autoOpenDriver, setAutoOpenDriver] = useState(false);
+  const [autoOpenVehicle, setAutoOpenVehicle] = useState(false);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -378,6 +382,21 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground mt-2">
                           {stats.vehicles} vehículos · {stats.assigned} activos · {alerts.length} {alerts.length === 1 ? "alerta" : "alertas"} pendientes
                         </p>
+                        {/* Quick-add buttons */}
+                        <div className="flex items-center gap-2 mt-3">
+                          <button
+                            onClick={() => { setAutoOpenDriver(true); handleTabChange("drivers"); }}
+                            className="inline-flex items-center gap-1.5 px-4 h-10 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
+                          >
+                            <User className="w-4 h-4" /> Añadir Chofer
+                          </button>
+                          <button
+                            onClick={() => { setAutoOpenVehicle(true); handleTabChange("vehicles"); }}
+                            className="inline-flex items-center gap-1.5 px-4 h-10 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
+                          >
+                            <Car className="w-4 h-4" /> Añadir Auto
+                          </button>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -389,7 +408,7 @@ export default function Dashboard() {
                         </button>
                         <button
                           onClick={() => setIsBuzonOpen(true)}
-                          className="relative p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
+                          className="md:hidden relative p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
                           aria-label={`Abrir buzón de alertas. ${alerts.length} alertas activas`}
                         >
                           <Bell className="w-4 h-4" />
@@ -598,8 +617,8 @@ export default function Dashboard() {
 
               {activeTab !== "dashboard" && (
                 <div className="flex-1 overflow-y-auto pr-1">
-                  {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} />}
-                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} />}
+                  {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} />}
+                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} />}
                   {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} />}
                   {activeTab === "finances" && <FinancesSlice />}
                   {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} />}

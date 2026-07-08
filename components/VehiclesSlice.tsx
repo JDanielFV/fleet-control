@@ -24,9 +24,13 @@ interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
   onOpenActionSheet: (entity: Driver | Vehicle, type: "driver" | "vehicle") => void;
+  /** When true, the registration dialog opens automatically on mount. */
+  autoOpen?: boolean;
+  /** Called after the dialog is closed (to clear the autoOpen flag). */
+  onAutoOpenConsumed?: () => void;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed }: VehiclesSliceProps) {
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -118,6 +122,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [isRenewOpen, setIsRenewOpen] = useState(false);
   const [renewingVehicle, setRenewingVehicle] = useState<Vehicle | null>(null);
+
+  // Auto-open the registration dialog when the parent sets autoOpen=true.
+  useEffect(() => {
+    if (autoOpen && !isOpen) {
+      setIsOpen(true);
+      onAutoOpenConsumed?.();
+    }
+  }, [autoOpen]);
 
   // Section tracker for the Stepper. Click any step to scroll that
   // section into view; the active step updates as the user scrolls.
