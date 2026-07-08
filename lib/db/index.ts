@@ -519,7 +519,20 @@ export const db = {
     return credits.find((c) => c.driver_id === driverId)?.amount ?? 0;
   },
 
-  async createWeeklyRental(rental: Omit<WeeklyRental, "id" | "created_at" | "payments_log">): Promise<WeeklyRental> {
+  async createWeeklyRental(rental: Omit<WeeklyRental, "id" | "created_at" | "payments_log">): Promise<WeeklyRental | null> {
+    // Prevent duplicates: if a rental already exists for this driver + week,
+    // return null instead of creating a second one.
+    const existing = getLocalData("weekly_rentals", seedWeeklyRentals);
+    const dup = existing.find(
+      (r) => r.driver_id === rental.driver_id && r.week_start === rental.week_start
+    );
+    if (dup) {
+      console.warn(
+        `[fleet] Duplicate weekly rental skipped: driver=${rental.driver_id} week=${rental.week_start}`
+      );
+      return null;
+    }
+
     const fullRental: WeeklyRental = {
       id: genId(),
       payments_log: [],

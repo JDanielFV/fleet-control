@@ -33,6 +33,43 @@ export function getLocalData<T>(key: string, seed: T[]): T[] {
       localStorage.setItem(`fleet_${key}`, JSON.stringify(seed));
       return seed;
     }
+
+    // Deduplicate: if multiple rentals exist for the same driver + week,
+    // keep the one with the highest paid_amount (most recent data) and
+    // merge their payments_log. This fixes the duplicate-rental bug that
+    // existed before the createWeeklyRental guard was added.
+    const seen = new Map<string, number>();
+    const deduped: Record<string, unknown>[] = [];
+    for (const item of parsed as Record<string, unknown>[]) {
+      const driverId = String(item.driver_id ?? "");
+      const weekStart = String(item.week_start ?? "");
+      const key_ = `${driverId}::${weekStart}`;
+      const existingIdx = seen.get(key_);
+      if (existingIdx !== undefined) {
+        const existing = deduped[existingIdx];
+        // Merge payments_log arrays.
+        const existingLog = (existing.payments_log as unknown[]) ?? [];
+        const itemLog = (item.payments_log as unknown[]) ?? [];
+        existing.payments_log = [...existingLog, ...itemLog];
+        // Keep the higher paid_amount.
+        const existingPaid = Number(existing.paid_amount ?? 0);
+        const itemPaid = Number(item.paid_amount ?? 0);
+        if (itemPaid > existingPaid) {
+          existing.paid_amount = itemPaid;
+          existing.status = item.status;
+        }
+        console.warn(
+          `[fleet] Merged duplicate weekly rental: driver=${driverId} week=${weekStart}`
+        );
+      } else {
+        seen.set(key_, deduped.length);
+        deduped.push(item);
+      }
+    }
+    if (deduped.length !== (parsed as unknown[]).length) {
+      localStorage.setItem(`fleet_${key}`, JSON.stringify(deduped));
+    }
+    return deduped as T[];
   }
 
   return parsed as T[];
