@@ -75,10 +75,27 @@ export interface WeeklyRental {
   week_start: string; // YYYY-MM-DD (typically a Monday)
   rent_amount: number;
   paid_amount: number;
-  accumulated_debt: number;
+  /**
+   * If true, the rent was prorated for a partial first week
+   * (driver assigned mid-week). Display a 'Proporcional · N días'
+   * badge in the UI. Subsequent weeks are always full price.
+   */
+  is_prorated: boolean;
+  /** Days worked in the prorated first week (only meaningful when is_prorated). */
+  prorated_days?: number;
   status: "PAID" | "PARTIAL" | "UNPAID";
   payments_log: Payment[];
   created_at: string;
+}
+
+/**
+ * Credit a driver has built up because a payment exceeded the total
+ * pending debt. Applied to the next rental created for this driver.
+ */
+export interface DriverCredit {
+  driver_id: string;
+  amount: number;
+  updated_at: string;
 }
 
 export interface Maintenance {

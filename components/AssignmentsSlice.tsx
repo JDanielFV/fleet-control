@@ -87,7 +87,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
 
     if (!driverId) return;
 
-    await db.createAssignment(selectedVehicle, driverId, assignType, assignReason, assignSubtype === "FIRST_TIME");
+    await db.createAssignment(selectedVehicle, driverId, assignType, assignReason);
     
     setIsAssignOpen(false);
 

@@ -10,6 +10,7 @@ import type {
 } from "./types";
 export type * from "./types";
 export { getVerificationSchedule, genId, normalizeEmptyDates } from "./utils";
+export { getMondayOf, prorateRent } from "../utils";
 
 import {
   seedDrivers,
@@ -33,6 +34,7 @@ import {
   normalizeEmptyDates,
   getVerificationSchedule,
 } from "./utils";
+import { getMondayOf, prorateRent, applyPayment } from "../utils";
 
 // --- Supabase Connection ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -197,7 +199,7 @@ export const db = {
     return getLocalData("assignments", seedAssignments);
   },
 
-  async createAssignment(vehicleId: string, driverId: string, type: "ASSIGN" | "RELEASE", reason: string, isFirstTime: boolean = false): Promise<Assignment> {
+  async createAssignment(vehicleId: string, driverId: string, type: "ASSIGN" | "RELEASE", reason: string): Promise<Assignment> {
     const newAssignment: Assignment = {
       id: genId(),
       vehicle_id: vehicleId,
@@ -215,16 +217,12 @@ export const db = {
       setLocalData("vehicles", vehicles);
     }
 
-    // Auto-generate Weekly Rental if it's an ASSIGN action
+    // Auto-generate Weekly Rental if it's an ASSIGN action.
+    // First-time drivers get a prorated first week (charges only the
+    // days remaining in the current week); subsequent weeks are full
+    // price via the manual "Nueva Renta" flow.
     if (type === "ASSIGN") {
-      const d = new Date();
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d.setDate(diff));
-      const yyyy = monday.getFullYear();
-      const mm = String(monday.getMonth() + 1).padStart(2, "0");
-      const dd = String(monday.getDate()).padStart(2, "0");
-      const weekStart = `${yyyy}-${mm}-${dd}`;
+      const weekStart = getMondayOf(new Date());
 
       const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
       const exists = rentals.some((r) => r.driver_id === driverId && r.week_start === weekStart);
@@ -232,13 +230,19 @@ export const db = {
         const vehicleObj = vehicles.find((v) => v.id === vehicleId);
         const rentCost = vehicleObj?.rent_cost || 2500;
 
+        // isFirstTime was the old signal that triggered rentCost*2; we
+        // now ignore it and prorate by current weekday instead. The
+        // argument is kept for backwards compatibility with callers.
+        const { amount, days } = prorateRent(rentCost, new Date());
+
         const newRental: WeeklyRental = {
           id: genId(),
           driver_id: driverId,
           week_start: weekStart,
-          rent_amount: rentCost,
+          rent_amount: amount,
           paid_amount: 0,
-          accumulated_debt: isFirstTime ? rentCost * 2 : rentCost,
+          is_prorated: days < 7,
+          prorated_days: days < 7 ? days : undefined,
           status: "UNPAID",
           payments_log: [],
           created_at: new Date().toISOString(),
@@ -425,60 +429,94 @@ export const db = {
     return getLocalData("weekly_rentals", seedWeeklyRentals);
   },
 
-  async addPayment(driverId: string, weekStart: string, amount: number): Promise<WeeklyRental> {
-    const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
-    const rentalIndex = rentals.findIndex((r) => r.driver_id === driverId && r.week_start === weekStart);
-
-    let updatedRental: WeeklyRental;
-
-    if (rentalIndex >= 0) {
-      const current = rentals[rentalIndex];
-      const newPaid = current.paid_amount + amount;
-      let newStatus: "PAID" | "PARTIAL" | "UNPAID" = "PARTIAL";
-      if (newPaid >= current.rent_amount) {
-        newStatus = "PAID";
-      } else if (newPaid === 0) {
-        newStatus = "UNPAID";
-      }
-
-      const newAccumulatedDebt = Math.max(0, current.accumulated_debt - amount);
-
-      updatedRental = {
-        ...current,
-        paid_amount: newPaid,
-        accumulated_debt: newAccumulatedDebt,
-        status: newStatus,
-        payments_log: [...current.payments_log, { amount, date: new Date().toISOString().split("T")[0] }],
-      };
-      rentals[rentalIndex] = updatedRental;
-    } else {
-      const newAccumulatedDebt = Math.max(0, 2500 - amount);
-      updatedRental = {
-        id: genId(),
-        driver_id: driverId,
-        week_start: weekStart,
-        rent_amount: 2500,
-        paid_amount: amount,
-        accumulated_debt: newAccumulatedDebt,
-        status: amount >= 2500 ? "PAID" : amount > 0 ? "PARTIAL" : "UNPAID",
-        payments_log: [{ amount, date: new Date().toISOString().split("T")[0] }],
-        created_at: new Date().toISOString(),
-      };
-      rentals.unshift(updatedRental);
+  /**
+   * Apply a payment to a driver. The amount is spread across the
+   * driver's rentals using FIFO (oldest week first). If the amount
+   * exceeds the total pending debt, the leftover becomes a credit
+   * for the driver (returned in `applied.leftover`).
+   *
+   * @returns the array of rentals after the payment was applied.
+   */
+  async addPayment(
+    driverId: string,
+    amount: number,
+    paymentDate: string = new Date().toISOString().split("T")[0]
+  ): Promise<{
+    rentals: WeeklyRental[];
+    appliedPerWeek: { week_start: string; amount: number }[];
+    leftover: number;
+  }> {
+    if (amount <= 0) {
+      return { rentals: getLocalData("weekly_rentals", seedWeeklyRentals), appliedPerWeek: [], leftover: 0 };
     }
 
-    setLocalData("weekly_rentals", rentals);
+    const allRentals = getLocalData("weekly_rentals", seedWeeklyRentals);
+    const driverRentals = allRentals.filter((r) => r.driver_id === driverId);
+    const otherRentals = allRentals.filter((r) => r.driver_id !== driverId);
 
+    const { updatedRentals, appliedPerWeek, leftover } = applyPayment(
+      driverRentals,
+      amount,
+      paymentDate
+    );
+
+    // Persist the full rentals list (other drivers + updated this driver).
+    const merged = [...updatedRentals, ...otherRentals];
+    setLocalData("weekly_rentals", merged);
+
+    // Credit leftover, if any.
+    if (leftover > 0) {
+      const credits = getLocalData<{ driver_id: string; amount: number; updated_at: string }>(
+        "driver_credits",
+        []
+      );
+      const idx = credits.findIndex((c) => c.driver_id === driverId);
+      const now = new Date().toISOString();
+      if (idx >= 0) {
+        credits[idx] = {
+          driver_id: driverId,
+          amount: credits[idx].amount + leftover,
+          updated_at: now,
+        };
+      } else {
+        credits.push({ driver_id: driverId, amount: leftover, updated_at: now });
+      }
+      setLocalData("driver_credits", credits);
+    }
+
+    // Supabase sync (best-effort; the local store is the source of truth).
     if (supabase) {
-      const { data, error } = await supabase.from("weekly_rentals").upsert(updatedRental).select().single();
-      if (!error && data) {
-        clearPendingIds("weekly_rentals", [updatedRental.id]);
-        return data;
+      for (const r of updatedRentals) {
+        const { error } = await supabase
+          .from("weekly_rentals")
+          .upsert(r)
+          .eq("id", r.id);
+        if (error) addPendingId("weekly_rentals", r.id);
+        else clearPendingIds("weekly_rentals", [r.id]);
       }
+    } else {
+      // No Supabase: every updated row is a pending write.
+      for (const r of updatedRentals) addPendingId("weekly_rentals", r.id);
     }
-    addPendingId("weekly_rentals", updatedRental.id);
 
-    return updatedRental;
+    return { rentals: updatedRentals, appliedPerWeek, leftover };
+  },
+
+  /** Sum of all pending (unpaid + partial) rentals for a driver. */
+  async getDriverDebt(driverId: string): Promise<number> {
+    const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
+    return rentals
+      .filter((r) => r.driver_id === driverId && r.status !== "PAID")
+      .reduce((acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount), 0);
+  },
+
+  /** Credit the driver has built up from overpayments. */
+  async getDriverCredit(driverId: string): Promise<number> {
+    const credits = getLocalData<{ driver_id: string; amount: number; updated_at: string }>(
+      "driver_credits",
+      []
+    );
+    return credits.find((c) => c.driver_id === driverId)?.amount ?? 0;
   },
 
   async createWeeklyRental(rental: Omit<WeeklyRental, "id" | "created_at" | "payments_log">): Promise<WeeklyRental> {

@@ -15,7 +15,27 @@ export function getLocalData<T>(key: string, seed: T[]): T[] {
     localStorage.setItem(`fleet_${key}`, JSON.stringify(seed));
     return seed;
   }
-  return JSON.parse(stored);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stored);
+  } catch {
+    localStorage.setItem(`fleet_${key}`, JSON.stringify(seed));
+    return seed;
+  }
+
+  // Schema reset: detect old `weekly_rentals` shape (had `accumulated_debt`
+  // and no `is_prorated`). The new model derives total debt on the fly and
+  // marks the first partial week as prorated. Per the user's request, we
+  // discard old rentals rather than try to migrate them.
+  if (key === "weekly_rentals" && Array.isArray(parsed) && parsed.length > 0) {
+    const first = parsed[0] as Record<string, unknown>;
+    if ("accumulated_debt" in first || !("is_prorated" in first)) {
+      localStorage.setItem(`fleet_${key}`, JSON.stringify(seed));
+      return seed;
+    }
+  }
+
+  return parsed as T[];
 }
 
 export function setLocalData<T>(key: string, data: T[]): void {
