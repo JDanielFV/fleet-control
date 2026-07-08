@@ -49,6 +49,7 @@ export const seedVehicles: Vehicle[] = [
     insurance_expiration_date: "2026-07-15", // Expiring soon
     active_driver_id: "d1",
     rent_cost: 2500,
+    next_service_mileage: 50000,
     created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
   },
   {

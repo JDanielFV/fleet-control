@@ -91,15 +91,31 @@ export function prorateRent(
 }
 
 /**
- * FIFO payment application: spread `amount` across the driver's rentals
- * starting from the oldest unpaid week. Returns:
- *   - updatedRentals: a new array with payments applied and statuses refreshed
- *   - appliedPerWeek: how much of the payment went to each week (for UI)
- *   - leftover: amount that exceeded the total pending debt (becomes driver credit)
+ * Given a vehicle's latest odometer reading and its next_service_mileage,
+ * compute how many km remain until service and an estimated date based on
+ * the vehicle's average daily km usage.
  *
- * Pure function — does not mutate the input. Status is recomputed from
- * paid_amount vs rent_amount on every rental, not stored separately.
+ * @returns null if there's no next_service_mileage or no usage data.
  */
+export function estimateServiceDate(
+  latestMileage: number,
+  nextServiceMileage: number | null | undefined,
+  avgKmPerDay: number | null
+): { kmRemaining: number; estimatedDate: string } | null {
+  if (!nextServiceMileage) return null;
+  const kmRemaining = Math.max(0, nextServiceMileage - latestMileage);
+  if (avgKmPerDay && avgKmPerDay > 0) {
+    const daysRemaining = Math.ceil(kmRemaining / avgKmPerDay);
+    const est = new Date();
+    est.setDate(est.getDate() + daysRemaining);
+    const yyyy = est.getFullYear();
+    const mm = String(est.getMonth() + 1).padStart(2, "0");
+    const dd = String(est.getDate()).padStart(2, "0");
+    return { kmRemaining, estimatedDate: `${yyyy}-${mm}-${dd}` };
+  }
+  return { kmRemaining, estimatedDate: "—" };
+}
+
 export function applyPayment<
   T extends {
     week_start: string;

@@ -10,7 +10,7 @@ import type {
 } from "./types";
 export type * from "./types";
 export { getVerificationSchedule, genId, normalizeEmptyDates } from "./utils";
-export { getMondayOf, prorateRent } from "../utils";
+export { getMondayOf, prorateRent, estimateServiceDate } from "../utils";
 
 import {
   seedDrivers,
@@ -34,7 +34,7 @@ import {
   normalizeEmptyDates,
   getVerificationSchedule,
 } from "./utils";
-import { getMondayOf, prorateRent, applyPayment } from "../utils";
+import { getMondayOf, prorateRent, applyPayment, estimateServiceDate } from "../utils";
 
 // --- Supabase Connection ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -713,6 +713,49 @@ export const db = {
         });
       }
     });
+
+    // 5. Mileage-based maintenance alerts — compare each vehicle's
+    //    next_service_mileage against the latest odometer reading from
+    //    checklists. If the vehicle is within 1000 km of the service
+    //    threshold, fire an alert with an estimated date based on usage.
+    const checklists = await this.getChecklists();
+    for (const vehicle of vehicles) {
+      if (!vehicle.next_service_mileage) continue;
+
+      const vChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
+      if (vChecklists.length === 0) continue;
+
+      const sorted = [...vChecklists].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const latestMileage = sorted[0].mileage;
+      const kmRemaining = Math.max(0, vehicle.next_service_mileage - latestMileage);
+
+      // Only alert when within 1000 km of the service threshold.
+      if (kmRemaining > 1000) continue;
+
+      // Compute average daily km from the last 4 weeks of checklists.
+      const { computeUsageStats } = await import("../usageStats");
+      const stats = computeUsageStats(vChecklists);
+      const est = estimateServiceDate(latestMileage, vehicle.next_service_mileage, stats.monthlyAverage);
+
+      const severity: "critical" | "warning" | "info" =
+        kmRemaining <= 0 ? "critical" : kmRemaining <= 200 ? "warning" : "info";
+
+      alerts.push({
+        id: `alert-mileage-${vehicle.id}-${vehicle.next_service_mileage}`,
+        type: "MAINTENANCE",
+        title: kmRemaining <= 0
+          ? `Mantenimiento Vencido — ${vehicle.brand} ${vehicle.vehicle_name}`
+          : `Mantenimiento Próximo — ${vehicle.brand} ${vehicle.vehicle_name}`,
+        description: kmRemaining <= 0
+          ? `El vehículo ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) superó el kilometraje de servicio (${vehicle.next_service_mileage} km). Odómetro actual: ${latestMileage.toLocaleString()} km.`
+          : `El vehículo ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) está a ${kmRemaining} km del servicio de ${vehicle.next_service_mileage.toLocaleString()} km. Odómetro actual: ${latestMileage.toLocaleString()} km.${est?.estimatedDate && est.estimatedDate !== "—" ? ` Fecha estimada: ${est.estimatedDate}.` : ""}`,
+        targetId: vehicle.id,
+        severity,
+        dueDate: est?.estimatedDate && est.estimatedDate !== "—" ? est.estimatedDate : new Date().toISOString().split("T")[0],
+      });
+    }
 
     const completed = getLocalData("completed_alerts", [] as string[]);
     return alerts.filter((a) => !completed.includes(a.id));
