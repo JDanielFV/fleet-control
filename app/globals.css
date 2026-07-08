@@ -69,6 +69,7 @@
   --color-success: #34C759;
   --color-warning: #FFCC00;
   --color-critical: #FF3B30;
+  --font-size-base: 18px;
 }
 
 /* Ensure mobile viewport layout uses full screen including safe areas */
