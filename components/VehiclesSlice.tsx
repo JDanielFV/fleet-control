@@ -696,13 +696,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         ref={circFileRef}
                         onChange={(e) => handleFileChange(e, "CIRCULACION")}
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => triggerOcrScanDemo("CIRCULACION")}
-                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center h-10"
                       >
                         Simular Tarjeta Demo
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -733,13 +734,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         ref={insFileRef}
                         onChange={(e) => handleFileChange(e, "SEGURO")}
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => triggerOcrScanDemo("SEGURO")}
-                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center h-10"
                       >
                         Simular Seguro Demo
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -1230,7 +1232,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 <Button
                   onClick={(e) => { e.stopPropagation(); toggleVehicleDetails(vehicle.id); }}
                   variant="ghost"
-                  className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
+                  className="h-10 text-xs px-3 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
                 >
                   {expandedVehicleDetails[vehicle.id] ? "Ocultar Detalles" : "Ver Detalles"}
                 </Button>

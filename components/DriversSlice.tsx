@@ -895,13 +895,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         ref={ineFileRef}
                         onChange={(e) => handleFileChange(e, "INE")}
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => fillDemoData("INE")}
-                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center h-10"
                       >
                         Simular INE Demo
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -931,13 +932,14 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         ref={licFileRef}
                         onChange={(e) => handleFileChange(e, "LICENCIA")}
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => fillDemoData("LICENCIA")}
-                        className="col-span-2 text-[9px] text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center pt-0.5"
+                        className="col-span-2 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center h-10"
                       >
                         Simular Licencia Demo
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -1337,7 +1339,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
               <Button
                 onClick={(e) => { e.stopPropagation(); toggleDriverDetails(driver.id); }}
                 variant="ghost"
-                className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
+                className="h-10 text-xs px-3 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
               >
                 {expandedDriverDetails[driver.id] ? "Ocultar Detalles" : "Ver Detalles"}
               </Button>
