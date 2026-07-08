@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Camera, StopCircle, Terminal } from "lucide-react";
+import { Camera, StopCircle, Terminal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UseOcrScannerResult } from "@/components/useOcrScanner";
 
@@ -37,6 +37,7 @@ export default function ScannerViewfinder<T extends string>({
     canvasRef,
     capturePhoto,
     stopCamera,
+    cancelScan,
   } = scanner;
 
   if (!isScanning) return null;
@@ -48,6 +49,18 @@ export default function ScannerViewfinder<T extends string>({
       exit={{ opacity: 0, scale: 0.95 }}
       className="flex flex-col gap-4 py-3"
     >
+      {/* Cancel button — always visible while scanning */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => { cancelScan(); }}
+          className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+        >
+          <X className="w-3.5 h-3.5" /> Cancelar escaneo
+        </Button>
+      </div>
+
       <div className="relative aspect-video w-full rounded-xl border border-primary/30 bg-muted overflow-hidden flex items-center justify-center">
         {isCameraActive && !cameraError ? (
           <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />

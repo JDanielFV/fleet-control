@@ -76,6 +76,19 @@ export function useOcrScanner<T extends string>({
     setIsCameraActive(false);
   }, []);
 
+  /**
+   * Full cancel: stop the camera AND reset all scanning state so the
+   * ScannerViewfinder disappears and the form is visible again.
+   */
+  const cancelScan = useCallback(() => {
+    stopCamera();
+    setIsScanning(false);
+    setScanTarget(null);
+    setOcrStep("align");
+    setCameraError(null);
+    setOcrLogs([]);
+  }, [stopCamera]);
+
   const preprocessCanvasForOcr = useCallback((canvas: HTMLCanvasElement) => {
     const context = canvas.getContext("2d");
     if (!context) return;
@@ -111,11 +124,22 @@ export function useOcrScanner<T extends string>({
     console.log(initMsg);
     setOcrLogs([initMsg]);
 
+    // Timeout: if the camera doesn't start within 15 seconds, cancel.
+    const timeoutId = setTimeout(() => {
+      if (!streamRef.current) {
+        const timeoutMsg = "[Cámara] Tiempo de espera agotado. No se pudo acceder a la cámara.";
+        setCameraError(timeoutMsg);
+        setOcrLogs((prev) => [...prev, `❌ ${timeoutMsg}`]);
+        stopCamera();
+      }
+    }, 15000);
+
     navigator.mediaDevices
       .getUserMedia({
         video: { facingMode: facingModeRef.current(target), width: { ideal: 1280 }, height: { ideal: 720 } },
       })
       .then((stream) => {
+        clearTimeout(timeoutId);
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -125,12 +149,18 @@ export function useOcrScanner<T extends string>({
         setOcrLogs((prev) => [...prev, successMsg]);
       })
       .catch((err: unknown) => {
+        clearTimeout(timeoutId);
         console.error("[Cámara] Error al abrir el stream:", err);
-        const errMsg = `[Cámara] Error: ${err instanceof Error ? err.message : "Permiso denegado."}`;
+        const errMsg = err instanceof DOMException && err.name === "NotAllowedError"
+          ? "[Cámara] Permiso denegado. Ve a Configuración → Privacidad → Cámara y permite el acceso."
+          : err instanceof DOMException && err.name === "NotFoundError"
+          ? "[Cámara] No se encontró ninguna cámara en este dispositivo."
+          : `[Cámara] Error: ${err instanceof Error ? err.message : "Error desconocido."}`;
         setCameraError(errMsg);
-        setOcrLogs((prev) => [...prev, errMsg]);
+        setOcrLogs((prev) => [...prev, `❌ ${errMsg}`]);
+        stopCamera();
       });
-  }, []);
+  }, [stopCamera]);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !scanTarget) {
@@ -193,6 +223,7 @@ export function useOcrScanner<T extends string>({
     startCamera,
     stopCamera,
     capturePhoto,
+    cancelScan,
   };
 }
 
