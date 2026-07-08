@@ -215,7 +215,7 @@ export default function MaintenanceSlice({ onRefreshAlerts }: MaintenanceSlicePr
                     {getVehicleName(vehicles, maint.vehicle_id)}
                   </h4>
                   <p className="text-xs text-muted-foreground">{maint.description}</p>
-                  <div className="flex gap-2 text-[10px] text-muted-foreground pt-1">
+                  <div className="flex gap-2 text-xs text-muted-foreground pt-1">
                     <span>Servicio: {maint.maintenance_date}</span>
                     <span>•</span>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">Próximo: {maint.next_maintenance_date}</span>

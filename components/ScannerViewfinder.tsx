@@ -102,7 +102,7 @@ export default function ScannerViewfinder<T extends string>({
 
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="bg-muted border border-border rounded-xl p-3 h-36 overflow-y-auto font-mono text-[10px] text-primary/90 flex flex-col gap-1 shadow-inner">
+      <div className="bg-muted border border-border rounded-xl p-3 h-36 overflow-y-auto font-mono text-xs text-primary/90 flex flex-col gap-1 shadow-inner">
         <div className="flex items-center gap-1.5 text-muted-foreground border-b border-border pb-1 mb-1">
           <Terminal className="w-3.5 h-3.5" />
           <span>{labels.logsHeader}</span>

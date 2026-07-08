@@ -171,21 +171,21 @@ export default function FinancesSlice() {
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Rentas Cobradas</span>
           </div>
-          <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 border border-emerald-500/20 font-bold rounded-md">
+          <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 border border-emerald-500/20 font-bold rounded-md">
             Total General
           </span>
         </div>
         <div className="grid grid-cols-3 gap-4 pt-4 text-center">
           <div>
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Recaudado</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground block font-bold">Recaudado</span>
             <p className="text-lg font-black text-emerald-400 font-mono">${totalCollected}</p>
           </div>
           <div>
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Pendiente</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground block font-bold">Pendiente</span>
             <p className="text-lg font-black text-red-400 font-mono">${totalPending}</p>
           </div>
           <div>
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Crédito</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground block font-bold">Crédito</span>
             <p className="text-lg font-black text-amber-400 font-mono">${totalCredit}</p>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function FinancesSlice() {
                 <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Scale className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Aplicación FIFO</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Aplicación FIFO</span>
                   </div>
                   {preview.map((p, i) => (
                     <div key={i} className="flex justify-between font-mono">
@@ -369,7 +369,7 @@ export default function FinancesSlice() {
                     <p className="text-2xs text-muted-foreground font-medium">
                       Semana: <span className="font-mono">{rental.week_start}</span>
                       {rental.is_prorated && (
-                        <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
                           Proporcional · {rental.prorated_days}d
                         </span>
                       )}
@@ -382,7 +382,7 @@ export default function FinancesSlice() {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider mb-1.5 border ${
+                    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider mb-1.5 border ${
                       rental.status === "PAID"
                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                         : rental.status === "PARTIAL"
@@ -398,7 +398,7 @@ export default function FinancesSlice() {
                 </div>
 
                 {rental.payments_log.length > 0 && (
-                  <div className="px-4 py-2.5 bg-muted/40 border-t border-border text-[10px] text-muted-foreground space-y-1.5">
+                  <div className="px-4 py-2.5 bg-muted/40 border-t border-border text-xs text-muted-foreground space-y-1.5">
                     <span className="font-bold block uppercase tracking-wider text-muted-foreground/80 text-[8px]">Historial de abonos:</span>
                     {rental.payments_log.map((log, index) => (
                       <div key={index} className="flex justify-between font-medium">

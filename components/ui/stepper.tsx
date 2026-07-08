@@ -100,7 +100,7 @@ export function Stepper({
               </motion.div>
               <span
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider text-center max-w-[80px] truncate transition-colors duration-300",
+                  "text-xs font-bold uppercase tracking-wider text-center max-w-[80px] truncate transition-colors duration-300",
                   isActive && "text-foreground",
                   isCompleted && "text-primary",
                   !isCompleted && !isActive && "text-muted-foreground/60"

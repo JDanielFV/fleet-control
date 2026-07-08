@@ -239,7 +239,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
                         <SelectItem value="CAR_CHANGE">Cambio de Auto (Solo Renta)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-[10px] text-muted-foreground leading-snug">
+                    <p className="text-xs text-muted-foreground leading-snug">
                       {assignSubtype === "FIRST_TIME" 
                         ? "Carga una fianza de una semana ($2,500) más la renta inicial ($2,500). Total: $5,000 MXN."
                         : "Solo aplica el cobro normal de la renta semanal ($2,500 MXN)."}
@@ -357,7 +357,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
 
                 <TabsContent value="estado" className="space-y-3">
                   <div className="bg-muted/60 p-4 rounded-xl border border-border space-y-3.5">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Estado de Sistemas</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Estado de Sistemas</h4>
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { label: "Luces OK", state: lights, setter: setLights },
@@ -435,11 +435,11 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex items-center gap-1.5">
                     {asg.action_type === "ASSIGN" ? (
-                      <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-primary/10 text-primary border border-primary/20">
+                      <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-primary/10 text-primary border border-primary/20">
                         Entrega / Asignación
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
                         Devolución / Retiro
                       </span>
                     )}
@@ -448,7 +448,7 @@ export default function AssignmentsSlice({ onRefreshAll }: AssignmentsSliceProps
                   <p className="text-xs text-muted-foreground">Conductor: {getDriverName(drivers, asg.driver_id)}</p>
                   <p className="text-xs text-muted-foreground italic leading-snug border-l border-border pl-2">“{asg.reason}”</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium">{formatDate(asg.created_at)}</span>
+                <span className="text-xs text-muted-foreground font-medium">{formatDate(asg.created_at)}</span>
               </div>
             </Card>
           ))}

@@ -66,7 +66,7 @@ export const AssignmentSelector = ({ selecting, onSelect, onCancel }: Assignment
                     ? `${(item as Vehicle).brand} ${(item as Vehicle).vehicle_name} (${(item as Vehicle).plate_number})`
                     : `${(item as Driver).first_name} ${(item as Driver).paternal_last_name}`}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
+                <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
                   {item.id.slice(0, 4)}
                 </span>
               </div>

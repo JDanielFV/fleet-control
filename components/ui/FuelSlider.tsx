@@ -39,7 +39,7 @@ export const FuelSlider = React.forwardRef<HTMLInputElement, FuelSliderProps>(
           )}
         >
           <span>{label}</span>
-          <span className="font-bold text-foreground uppercase tracking-wider text-[10px]">
+          <span className="font-bold text-foreground uppercase tracking-wider text-xs">
             {value} ({fuelLabel(value)})
           </span>
         </div>

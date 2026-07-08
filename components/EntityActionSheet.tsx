@@ -212,11 +212,10 @@ export const EntityActionSheet = ({
 
   const renderSheetContents = () => (
     <>
-      {/* Top Control Bar with Drag Handle & Close Button */}
-      <div className="flex items-center justify-between px-6 pt-4 pb-2 shrink-0 border-b border-border/40">
-        <div className="w-12 h-1.5 bg-muted rounded-full cursor-pointer md:hidden" onClick={onClose} aria-hidden="true" />
-        <span className="hidden md:inline text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Panel de Control</span>
-        {!isInline && (
+      {/* Top Control Bar with Close Button */}
+      <div className="flex items-center justify-end px-6 pt-4 pb-2 shrink-0 border-b border-border/40">
+        <div className="w-12 h-1.5 bg-muted rounded-full cursor-pointer md:hidden mr-auto" onClick={onClose} aria-hidden="true" />
+        {onClose && (
           <button
             onClick={onClose}
             className="p-3 -mr-2 rounded-full text-foreground hover:bg-secondary/80 focus-visible:ring-4 focus-visible:ring-primary focus-visible:outline-hidden cursor-pointer transition-all active:scale-90"

@@ -671,7 +671,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   
                   {/* Tarjeta de Circulación Photo / Upload picker */}
                   <div id="section-circ" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -709,7 +709,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
                   {/* Seguro Photo / Upload picker */}
                   <div id="section-seguro" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro (OCR)</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro (OCR)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -746,7 +746,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   </div>
 
                   <div id="section-datos" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="min-w-0">
                         <Label htmlFor="brand" className="text-muted-foreground text-xs">Marca</Label>
@@ -768,14 +768,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   </div>
 
                   <div id="section-vig" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Identificación & Vigencias</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Identificación & Vigencias</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="min-w-0">
                           <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa</Label>
                           <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" required className="border-input bg-background rounded-xl w-full min-w-0" />
                           {isPlateLengthInvalid && (
-                            <span className="text-[10px] text-amber-400 flex items-center gap-1 mt-1">
+                            <span className="text-xs text-amber-400 flex items-center gap-1 mt-1">
                               <AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.
                             </span>
                           )}
@@ -784,7 +784,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                           <Label htmlFor="vin" className="text-muted-foreground text-xs">NIV / Serie</Label>
                           <Input id="vin" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="17 caracteres" className="border-input bg-background rounded-xl w-full min-w-0" />
                           {isVinLengthInvalid && (
-                            <span className="text-[10px] text-amber-400 flex items-center gap-1 mt-1 font-semibold">
+                            <span className="text-xs text-amber-400 flex items-center gap-1 mt-1 font-semibold">
                               <AlertTriangle className="w-3.5 h-3.5" /> El NIV debe tener 17 caracteres (leídos: {vin.length}).
                             </span>
                           )}
@@ -818,7 +818,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   </div>
 
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro</h4>
                     <div className="space-y-3">
                       <div>
                         <Label className="text-muted-foreground text-xs">Foto de Póliza</Label>
@@ -994,7 +994,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-sm font-bold text-foreground truncate">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</CardTitle>
                       <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5 truncate block">{vehicle.vin}</CardDescription>
-                      <div className="mt-1 text-[10px] font-bold truncate">
+                      <div className="mt-1 text-xs font-bold truncate">
                         {vehicle.active_driver_id ? (
                           <span className="text-primary dark:text-blue-400 truncate block">
                             Asignado a: {getDriverName(drivers, vehicle.active_driver_id)}
@@ -1019,7 +1019,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         // Only flag weekly review for assigned vehicles.
                         if (vehicle.active_driver_id && !hasThisWeeksChecklist) {
                           return (
-                            <div className="mt-1.5 px-2 py-0.5 w-fit bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-[9px] font-extrabold rounded-md flex items-center gap-1 animate-pulse">
+                            <div className="mt-1.5 px-2 py-0.5 w-fit bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-[11px] font-extrabold rounded-md flex items-center gap-1 animate-pulse">
                               <AlertTriangle className="w-3 h-3 shrink-0" />
                               <span>Revisión de Lunes Pendiente</span>
                             </div>
@@ -1064,21 +1064,21 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-2 text-muted-foreground">
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
                           <span className="font-semibold text-foreground truncate block">
                             {getDriverName(drivers, vehicle.active_driver_id)}
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
                           <span className="text-foreground font-medium truncate block">{vehicle.class_type || "Sedán"}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Color</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Color</span>
                           <span className="text-foreground font-medium truncate block">{vehicle.color || "Sin registrar"}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Engomado</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Engomado</span>
                           <span className="flex items-center gap-1.5 font-semibold text-foreground truncate">
                             <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
                               backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
@@ -1090,79 +1090,79 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Circ.</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Vence Circ.</span>
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="text-foreground font-medium truncate">{vehicle.circulation_expiration_date || "—"}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
-                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
+                              className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
                             >
                               <RefreshCcw className="w-3 h-3" /> Renovar
                             </button>
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
                           <div className="flex items-center gap-1.5 min-w-0">
                             <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
                             <span className="text-foreground font-medium truncate">{vehicle.insurance_expiration_date || "—"}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
-                              className="text-[9px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
+                              className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
                             >
                               <RefreshCcw className="w-3 h-3" /> Renovar
                             </button>
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
                           <span className="text-foreground font-medium truncate block">{lastServiceDate}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
                           <span className="text-foreground font-medium truncate block">{mileage}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Próx. Servicio</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80 font-black">Próx. Servicio</span>
                           <span className={`font-semibold truncate block ${isServiceOverdue ? "text-amber-500 animate-pulse font-bold" : "text-foreground font-medium"}`}>{nextServiceText}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 font-black">Est. Fecha</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80 font-black">Est. Fecha</span>
                           <span className={`font-semibold flex items-center gap-1 min-w-0 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground font-medium"}`}>
                             {isServiceOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
                             <span className="truncate">{nextServiceEstimate}</span>
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Verificación</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Verificación</span>
                           <span className={`font-semibold truncate block ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
                             {verificationStatus}
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Renta</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Renta</span>
                           <span className={`truncate block ${rentStatusColor}`}>{rentStatusText}</span>
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Uso Semanal (km/día)</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Uso Semanal (km/día)</span>
                           <span className="text-foreground font-medium truncate block">
                             {latestWeek ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/día` : "—"}
                           </span>
                           {latestWeek && (
-                            <span className="text-[9px] text-muted-foreground/80 font-medium block truncate">
+                            <span className="text-[11px] text-muted-foreground/80 font-medium block truncate">
                               {latestWeek.km.toLocaleString()} km en la semana
                             </span>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Media de Uso Mensual</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Media de Uso Mensual</span>
                           <span className="text-foreground font-medium truncate block">
                             {monthlyUsageAverage !== null
                               ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día`
                               : "—"}
                           </span>
                           {monthlyUsageAverage !== null && (
-                            <span className="text-[9px] text-muted-foreground/80 font-medium block truncate">
+                            <span className="text-[11px] text-muted-foreground/80 font-medium block truncate">
                               Últimas 4 semanas
                             </span>
                           )}
@@ -1170,7 +1170,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                       </div>
 
                       <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-[10px] text-muted-foreground font-semibold">
+                        <span className="text-xs text-muted-foreground font-semibold">
                           {vehicleChecklists.length} bitácoras / checklists
                         </span>
                         <Button
@@ -1212,7 +1212,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                                         <span>Gas: <strong className="text-foreground">{c.gasoline_level}</strong></span>
                                       </div>
                                       {c.irregularities && (
-                                        <p className="text-[10px] text-amber-500/90 font-medium">
+                                        <p className="text-xs text-amber-500/90 font-medium">
                                           <span className="font-bold">Incidencia:</span> {c.irregularities}
                                         </p>
                                       )}
@@ -1262,7 +1262,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   <DialogTitle className="text-foreground font-black text-lg">
                     Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : "Póliza de Seguro"}
                   </DialogTitle>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
                     Actualización
                   </span>
                 </div>

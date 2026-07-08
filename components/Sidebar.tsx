@@ -50,7 +50,7 @@ export default function Sidebar({
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-extrabold text-foreground leading-none">Fleet Control</h2>
-            <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">Operación diaria</p>
+            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-semibold">Operación diaria</p>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function Sidebar({
         >
           <Bell className="w-4 h-4" />
           {alertCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">
               {alertCount}
             </span>
           )}

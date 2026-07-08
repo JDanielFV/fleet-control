@@ -812,7 +812,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   
                   {/* Foto de Perfil del Chofer */}
                   <div id="section-foto" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 flex flex-col items-center text-center scroll-mt-2">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black self-start">Foto de Perfil del Chofer</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black self-start">Foto de Perfil del Chofer</h4>
                     <div className="relative w-24 h-24 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner group">
                       {driverPhotoImg ? (
                         <Image src={driverPhotoImg} alt="Foto Chofer" fill className="object-cover" />
@@ -870,7 +870,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   
                   {/* Two separate triggers for camera vs file uploads */}
                   <div id="section-doc" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear INE (Identificación)</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear INE (Identificación)</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -907,7 +907,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   </div>
 
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear Licencia de Conducir</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear Licencia de Conducir</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -945,9 +945,9 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
                   <div id="section-dom" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <div className="flex justify-between items-center">
-                      <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Comprobante de Domicilio</h4>
+                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Comprobante de Domicilio</h4>
                       {addressProofImg && (
-                        <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-bold">
+                        <span className="text-[11px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-bold">
                           Cargado
                         </span>
                       )}
@@ -1016,12 +1016,12 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                             !showManualFields && "-rotate-90"
                           )}
                         />
-                        <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">
                           Datos Manuales
                         </h4>
                         <span
                           className={cn(
-                            "text-[10px] font-bold px-1.5 py-0.5 rounded-md border",
+                            "text-xs font-bold px-1.5 py-0.5 rounded-md border",
                             manualFieldsCount === MANUAL_FIELDS_TOTAL
                               ? "bg-primary/10 text-primary border-primary/20"
                               : manualFieldsCount > 0
@@ -1032,7 +1032,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                           {manualFieldsCount}/{MANUAL_FIELDS_TOTAL} campos
                         </span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground italic shrink-0">
+                      <span className="text-xs text-muted-foreground italic shrink-0">
                         Opcional — solo para correcciones
                       </span>
                     </button>
@@ -1050,7 +1050,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                           <div className="p-4 pt-1 space-y-3 border-t border-border/60">
 
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos Personales</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos Personales</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="min-w-0 md:col-span-2">
                         <Label htmlFor="firstName" className="text-muted-foreground text-xs">Nombres</Label>
@@ -1079,7 +1079,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         <button
                           type="button"
                           onClick={applySuggestedCurp}
-                          className="text-[10px] font-black uppercase text-primary hover:text-primary/80 underline cursor-pointer"
+                          className="text-xs font-black uppercase text-primary hover:text-primary/80 underline cursor-pointer"
                         >
                           Autocompletar
                         </button>
@@ -1092,7 +1092,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
                   {/* Licencia Details */}
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Licencia de Conducir</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Licencia de Conducir</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="min-w-0">
@@ -1131,7 +1131,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
                   {/* INE Details */}
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
-                    <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos INE</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos INE</h4>
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="min-w-0">
@@ -1252,7 +1252,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   {/* Subtle actions toolbar */}
                   <div className="flex items-center gap-1.5 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                     {driver.license_is_permanent ? (
-                      <span className="px-1.5 py-0.5 text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
+                      <span className="px-1.5 py-0.5 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
                         P
                       </span>
                     ) : (
@@ -1314,20 +1314,20 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-2 gap-y-1.5 text-muted-foreground">
                       <div className="min-w-0">
-                        <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
+                        <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Licencia</span>
                         <span className="text-foreground font-medium truncate block">{driver.license_number || "N/D"}</span>
                       </div>
                       <div className="min-w-0">
-                        <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
+                        <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
                         <span className="text-foreground font-medium truncate block">{driver.ine_elector_key || "N/D"}</span>
                       </div>
                       <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5 min-w-0">
-                        <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
+                        <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
                         <span className="text-foreground leading-snug break-words">{driver.ine_address || "N/D"}</span>
                       </div>
                       {driver.address_proof_img && (
                         <div className="col-span-2 border-t border-border/60 pt-2 mt-1">
-                          <span className="font-semibold block text-[10px] uppercase tracking-wider text-muted-foreground/80 mb-1">Comprobante de Domicilio</span>
+                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80 mb-1">Comprobante de Domicilio</span>
                           <div className="relative rounded-lg overflow-hidden border border-border/70 max-h-32 w-fit bg-card">
                             <Image src={driver.address_proof_img} alt="Comprobante" width={128} height={128} className="max-h-32 object-contain" />
                           </div>
@@ -1372,7 +1372,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   <DialogTitle className="text-foreground font-black text-lg">
                     Renovar Licencia
                   </DialogTitle>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
                     Actualización
                   </span>
                 </div>

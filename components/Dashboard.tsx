@@ -413,7 +413,7 @@ export default function Dashboard() {
                         >
                           <Bell className="w-4 h-4" />
                           {alerts.length > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[11px] font-black rounded-full flex items-center justify-center">
                               {alerts.length}
                             </span>
                           )}
@@ -510,7 +510,7 @@ export default function Dashboard() {
                                       <h3 className="text-base font-black text-foreground leading-snug truncate group-hover:text-primary transition-colors">
                                         {`${driver.first_name} ${driver.paternal_last_name}`}
                                       </h3>
-                                      <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                      <span className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
                                         assignedVehicle ? "bg-green-500/10 text-green-600 dark:text-green-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                       }`}>
                                         {assignedVehicle ? "🟢 Activo" : "🟡 Inactivo"}
@@ -529,11 +529,11 @@ export default function Dashboard() {
                                           </p>
                                           <div className="grid grid-cols-2 gap-2 text-[11px] border-t border-border/20 pt-2 font-mono">
                                             <div>
-                                              <span className="block text-[9px] uppercase font-bold text-muted-foreground">Último Odómetro</span>
+                                              <span className="block text-[11px] uppercase font-bold text-muted-foreground">Último Odómetro</span>
                                               <span className="text-foreground font-bold">{latestMileage}</span>
                                             </div>
                                             <div>
-                                              <span className="block text-[9px] uppercase font-bold text-muted-foreground">Costo Renta</span>
+                                              <span className="block text-[11px] uppercase font-bold text-muted-foreground">Costo Renta</span>
                                               <span className="text-foreground font-bold">${assignedVehicle.rent_cost.toLocaleString()}/sem</span>
                                             </div>
                                           </div>
@@ -541,7 +541,7 @@ export default function Dashboard() {
                                           {/* Verification info display */}
                                           {verifInfo && (
                                             <div className="border-t border-border/20 pt-2 mt-1 space-y-1">
-                                              <span className="block text-[9px] uppercase font-bold text-muted-foreground">Verificación Semestral</span>
+                                              <span className="block text-[11px] uppercase font-bold text-muted-foreground">Verificación Semestral</span>
                                               <div className="flex items-center gap-2">
                                                 <span className={`w-3.5 h-3.5 rounded-full shrink-0 border border-black/15 ${
                                                   verifInfo.color === "Amarillo" ? "bg-yellow-400" :
@@ -551,7 +551,7 @@ export default function Dashboard() {
                                                 }`} title={`Engomado ${verifInfo.color}`} />
                                                 <div className="text-[11px] font-semibold text-foreground">
                                                   <span>{verifInfo.period}</span>
-                                                  <span className="block text-[10px] text-muted-foreground font-medium">Límite: {formatDate(verifInfo.limitDate)}</span>
+                                                  <span className="block text-xs text-muted-foreground font-medium">Límite: {formatDate(verifInfo.limitDate)}</span>
                                                 </div>
                                               </div>
                                             </div>
@@ -568,25 +568,25 @@ export default function Dashboard() {
 
                                 {/* Vigencias Row */}
                                 <div className="mt-4 pt-3 border-t border-border/40 space-y-2">
-                                  <span className="block text-[9px] font-black uppercase tracking-wider text-muted-foreground">Estado de Vigencias</span>
+                                  <span className="block text-[11px] font-black uppercase tracking-wider text-muted-foreground">Estado de Vigencias</span>
                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <div className="p-2 rounded-xl bg-secondary/20 border border-border/30">
-                                      <span className="block text-[9px] font-bold text-muted-foreground uppercase leading-none">🪪 Licencia</span>
-                                      <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-md ${licenseStatus.colorClass}`}>
+                                      <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">🪪 Licencia</span>
+                                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-md ${licenseStatus.colorClass}`}>
                                         {licenseStatus.label}
                                       </span>
                                     </div>
                                     {assignedVehicle ? (
                                       <>
                                         <div className="p-2 rounded-xl bg-secondary/20 border border-border/30">
-                                          <span className="block text-[9px] font-bold text-muted-foreground uppercase leading-none">🛡️ Seguro</span>
-                                          <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-md ${insuranceStatus?.colorClass}`}>
+                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">🛡️ Seguro</span>
+                                          <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-md ${insuranceStatus?.colorClass}`}>
                                             {insuranceStatus?.label}
                                           </span>
                                         </div>
                                         <div className="p-2 rounded-xl bg-secondary/20 border border-border/30">
-                                          <span className="block text-[9px] font-bold text-muted-foreground uppercase leading-none">📄 Tarj. Circ.</span>
-                                          <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-md ${circulationStatus?.colorClass}`}>
+                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">📄 Tarj. Circ.</span>
+                                          <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-md ${circulationStatus?.colorClass}`}>
                                             {circulationStatus?.label}
                                           </span>
                                         </div>
@@ -594,12 +594,12 @@ export default function Dashboard() {
                                     ) : (
                                       <>
                                         <div className="p-2 rounded-xl bg-secondary/10 border border-border/20 opacity-50">
-                                          <span className="block text-[9px] font-bold text-muted-foreground uppercase leading-none">🛡️ Seguro</span>
-                                          <span className="text-[10px] text-muted-foreground mt-1 block font-medium">N/A</span>
+                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">🛡️ Seguro</span>
+                                          <span className="text-xs text-muted-foreground mt-1 block font-medium">N/A</span>
                                         </div>
                                         <div className="p-2 rounded-xl bg-secondary/10 border border-border/20 opacity-50">
-                                          <span className="block text-[9px] font-bold text-muted-foreground uppercase leading-none">📄 Tarj. Circ.</span>
-                                          <span className="text-[10px] text-muted-foreground mt-1 block font-medium">N/A</span>
+                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">📄 Tarj. Circ.</span>
+                                          <span className="text-xs text-muted-foreground mt-1 block font-medium">N/A</span>
                                         </div>
                                       </>
                                     )}
@@ -689,7 +689,7 @@ export default function Dashboard() {
                                 <h4 className="text-sm font-extrabold text-foreground leading-snug">
                                   {alert.title}
                                 </h4>
-                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm shrink-0 ${
+                                <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm shrink-0 ${
                                   isCritical ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                                 }`}>
                                   {isCritical ? "Crítica" : "Media"}
@@ -836,7 +836,7 @@ export default function Dashboard() {
                                 <h4 className="text-sm font-extrabold text-foreground leading-snug">
                                   {alert.title}
                                 </h4>
-                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm shrink-0 ${
+                                <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm shrink-0 ${
                                   isCritical ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                                 }`}>
                                   {isCritical ? "Crítica" : "Media"}
@@ -888,7 +888,7 @@ export default function Dashboard() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as TabId)}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] transition-all active:scale-95 cursor-pointer relative ${
+              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-xs transition-all active:scale-95 cursor-pointer relative ${
                 isSelected ? "text-primary font-bold" : "text-muted-foreground"
               }`}
             >
