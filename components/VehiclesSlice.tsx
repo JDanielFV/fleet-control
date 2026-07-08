@@ -1176,7 +1176,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         <Button
                           onClick={(e) => { e.stopPropagation(); toggleLogs(vehicle.id); }}
                           variant="ghost"
-                          className="h-7 text-xs px-2.5 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer animate-pulse"
+                          className="h-10 text-xs px-3 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer animate-pulse"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           {expandedVehicleLogs[vehicle.id] ? "Ocultar Historial" : "Ver Historial"}
