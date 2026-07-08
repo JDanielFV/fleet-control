@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { db, Alert, Driver, Vehicle, Assignment, Checklist, getVerificationSchedule } from "@/lib/db";
+import { db, Alert, Driver, Vehicle, Assignment, Checklist, WeeklyRental, getVerificationSchedule } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
+import { getDriverName } from "@/lib/lookups";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import AssignmentsSlice from "./AssignmentsSlice";
@@ -13,6 +14,8 @@ import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
 import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import {
   Bell,
@@ -31,6 +34,7 @@ import {
   Search,
   X,
   CheckCircle2,
+  BarChart3,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -44,6 +48,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ vehicles: 0, drivers: 0, assigned: 0 });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
   const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -63,6 +68,15 @@ export default function Dashboard() {
   // dialog on mount. The slice calls onAutoOpenConsumed to clear the flag.
   const [autoOpenDriver, setAutoOpenDriver] = useState(false);
   const [autoOpenVehicle, setAutoOpenVehicle] = useState(false);
+  // Stats dialog state
+  const [statsDialog, setStatsDialog] = useState<{
+    driver: Driver;
+    usage: { weeks: { weekStart: string; km: number; kmPerDay: number }[]; monthlyAverage: number | null };
+  } | null>(null);
+  const openStatsDialog = (
+    driver: Driver,
+    usage: { weeks: { weekStart: string; km: number; kmPerDay: number }[]; monthlyAverage: number | null }
+  ) => setStatsDialog({ driver, usage });
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -88,10 +102,12 @@ export default function Dashboard() {
     const dList = await db.getDrivers();
     const aList = await db.getAssignments();
     const cList = await db.getChecklists();
+    const rList = await db.getWeeklyRentals();
 
     setVehicles(vList);
     setDrivers(dList);
     setChecklists(cList);
+    setWeeklyRentals(rList);
 
     const activeAss = aList.filter((x) => x.action_type === "ASSIGN");
     const activeVehicles = new Set(activeAss.map((x) => x.vehicle_id));
@@ -305,7 +321,7 @@ export default function Dashboard() {
   };
 
   const desktopNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "dashboard", label: "Inicio", icon: Sparkles },
+    { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
     { id: "assignments", label: "Asignaciones", icon: ArrowLeftRight },
@@ -314,7 +330,7 @@ export default function Dashboard() {
   ];
 
   const mobileNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "dashboard", label: "Inicio", icon: Sparkles },
+    { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
     { id: "finances", label: "Rentas", icon: DollarSign },
@@ -442,172 +458,108 @@ export default function Dashboard() {
 
                     {/* Scrollable list container */}
                     <div className="flex-1 overflow-y-auto pr-1">
-                      {/* DRIVERS GRID (ACCESSIBLE & SPACIOUS) */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-6">
-                        {filteredDriversList.length === 0 ? (
-                          <p className="text-center py-10 text-muted-foreground italic col-span-full">
-                            No se encontraron choferes que coincidan con la búsqueda.
-                          </p>
-                        ) : (
-                          filteredDriversList.map((driver, index) => {
-                            const assignedVehicle = vehicles.find(v => v.active_driver_id === driver.id) || null;
-                            
-                            // Calculate mileage
-                            let latestMileage = "Sin registros";
-                            if (assignedVehicle) {
-                              const vChecklists = checklists.filter(c => c.vehicle_id === assignedVehicle.id);
-                              if (vChecklists.length > 0) {
-                                const latestCheck = sortByDateDesc(vChecklists, "created_at")[0];
-                                latestMileage = `${latestCheck.mileage.toLocaleString()} km`;
-                              }
-                            }
+                      {/* CHECKLIST TABLE — shows all drivers with assigned vehicles */}
+                      <div className="w-full overflow-x-auto pb-6">
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+                              <th className="text-left py-2.5 px-2 whitespace-nowrap">Chofer</th>
+                              <th className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
+                              <th className="text-left py-2.5 px-2 whitespace-nowrap">Placa</th>
+                              <th className="text-left py-2.5 px-2 whitespace-nowrap">ID Auto</th>
+                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Km Anterior</th>
+                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Km Nuevo</th>
+                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Renta</th>
+                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Pendiente</th>
+                              <th className="text-center py-2.5 px-2 whitespace-nowrap">Stats</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredDriversList.length === 0 ? (
+                              <tr>
+                                <td colSpan={9} className="text-center py-10 text-muted-foreground italic">
+                                  No se encontraron choferes que coincidan con la búsqueda.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredDriversList.map((driver) => {
+                                const assignedVehicle = vehicles.find(v => v.active_driver_id === driver.id);
+                                if (!assignedVehicle) return null;
 
-                            // Calculate verification info if vehicle is assigned
-                            const verifInfo = assignedVehicle ? getVerificationWindow(assignedVehicle.plate_number) : null;
+                                // Mileage: previous (second-to-last) and latest
+                                const vChecklists = checklists.filter(c => c.vehicle_id === assignedVehicle.id);
+                                const sortedChecks = sortByDateDesc(vChecklists, "created_at");
+                                const latestKm = sortedChecks[0]?.mileage;
+                                const prevKm = sortedChecks[1]?.mileage;
 
-                            // License Status
-                            const licenseStatus = driver.license_is_permanent 
-                              ? { label: "Permanente", colorClass: "bg-primary/10 text-primary border border-primary/25" }
-                              : getDateStatus(driver.license_expiration_date);
+                                // Vehicle ID = last 6 chars of VIN
+                                const vehicleId = assignedVehicle.vin?.slice(-6).toUpperCase() || "—";
 
-                            // Vehicle Expirations Status
-                            const insuranceStatus = assignedVehicle ? getDateStatus(assignedVehicle.insurance_expiration_date) : null;
-                            const circulationStatus = assignedVehicle ? getDateStatus(assignedVehicle.circulation_expiration_date) : null;
+                                // Pending payment for this driver
+                                const driverRentals = weeklyRentals.filter(
+                                  (r) => r.driver_id === driver.id && r.status !== "PAID"
+                                );
+                                const totalPending = driverRentals.reduce(
+                                  (acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount), 0
+                                );
 
-                            return (
-                              <motion.div
-                                key={driver.id}
-                                custom={index + 1}
-                                initial="hidden"
-                                animate="visible"
-                                variants={tileVariants}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => openActionSheet(driver, "driver")}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    openActionSheet(driver, "driver");
+                                // Usage stats for this driver (across all vehicles they've driven)
+                                const driverChecklists = checklists.filter(
+                                  (c) => {
+                                    const v = vehicles.find(vv => vv.id === c.vehicle_id);
+                                    return v?.active_driver_id === driver.id;
                                   }
-                                }}
-                                className="group p-5 border border-border/60 hover:border-border/100 bg-card hover:shadow-md rounded-3xl cursor-pointer transition-all duration-200 focus-visible:ring-4 focus-visible:ring-primary focus-visible:outline-hidden ring-offset-4"
-                                aria-label={`Chofer ${driver.first_name} ${driver.paternal_last_name}, estatus: ${assignedVehicle ? `Con vehículo ${assignedVehicle.brand} ${assignedVehicle.vehicle_name}` : "Sin vehículo asignado"}`}
-                              >
-                                <div className="flex flex-col gap-4">
-                                  {/* Avatar circle */}
-                                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-muted/65 flex items-center justify-center shrink-0 shadow-inner mx-auto">
-                                    {driver.driver_photo_img ? (
-                                      <img src={driver.driver_photo_img} alt={`Foto de ${driver.first_name}`} className="object-cover w-full h-full" />
-                                    ) : (
-                                      <User className="w-8 h-8 text-muted-foreground/80" />
-                                    )}
-                                  </div>
+                                );
+                                const usageStats = computeUsageStats(driverChecklists);
 
-                                  {/* Core Name & Status */}
-                                  <div className="min-w-0">
-                                    <div className="flex items-center justify-between gap-2 pb-2">
-                                      <h3 className="text-base font-black text-foreground leading-snug truncate group-hover:text-primary transition-colors">
-                                        {`${driver.first_name} ${driver.paternal_last_name}`}
-                                      </h3>
-                                      <span className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                                        assignedVehicle ? "bg-green-500/10 text-green-600 dark:text-green-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                      }`}>
-                                        {assignedVehicle ? "🟢 Activo" : "🟡 Inactivo"}
-                                      </span>
-                                    </div>
-
-                                    <div className="text-xs text-muted-foreground mt-2 space-y-1.5">
-                                      <p className="font-medium">
-                                        CURP: <span className="font-mono font-bold text-foreground tracking-tight">{driver.curp}</span>
-                                      </p>
-                                      {assignedVehicle ? (
-                                        <div className="bg-secondary/40 dark:bg-muted/30 px-4 py-3.5 rounded-2xl space-y-3 mt-3 border border-border/30">
-                                          <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                                            <Car className="w-4 h-4 text-primary shrink-0" />
-                                            <span className="truncate">{assignedVehicle.brand} {assignedVehicle.vehicle_name} ({assignedVehicle.plate_number})</span>
-                                          </p>
-                                          <div className="grid grid-cols-2 gap-3 text-xs border-t border-border/20 pt-3">
-                                            <div>
-                                              <span className="block text-[11px] uppercase font-bold text-muted-foreground">Último Odómetro</span>
-                                              <span className="text-foreground font-bold text-sm">{latestMileage}</span>
-                                            </div>
-                                            <div>
-                                              <span className="block text-[11px] uppercase font-bold text-muted-foreground">Costo Renta</span>
-                                              <span className="text-foreground font-bold text-sm">${assignedVehicle.rent_cost.toLocaleString()}/sem</span>
-                                            </div>
-                                          </div>
-
-                                          {/* Verification info display */}
-                                          {verifInfo && (
-                                            <div className="border-t border-border/20 pt-3 space-y-1.5">
-                                              <span className="block text-[11px] uppercase font-bold text-muted-foreground">Verificación Semestral</span>
-                                              <div className="flex items-center gap-2.5">
-                                                <span className={`w-4 h-4 rounded-full shrink-0 border border-black/15 ${
-                                                  verifInfo.color === "Amarillo" ? "bg-yellow-400" :
-                                                  verifInfo.color === "Rosa" ? "bg-pink-400" :
-                                                  verifInfo.color === "Rojo" ? "bg-red-500" :
-                                                  verifInfo.color === "Verde" ? "bg-green-500" : "bg-blue-600"
-                                                }`} title={`Engomado ${verifInfo.color}`} />
-                                                <div className="text-xs font-semibold text-foreground">
-                                                  <span>{verifInfo.period}</span>
-                                                  <span className="block text-xs text-muted-foreground font-medium">Límite: {formatDate(verifInfo.limitDate)}</span>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <div className="bg-amber-500/5 text-amber-600 dark:text-amber-400 p-3.5 rounded-2xl text-xs font-semibold border border-amber-500/10 mt-3">
-                                          ⚠️ Este conductor no tiene vehículo asignado.
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Vigencias Row */}
-                                <div className="mt-4 pt-3 border-t border-border/40 space-y-2">
-                                  <span className="block text-[11px] font-black uppercase tracking-wider text-muted-foreground">Estado de Vigencias</span>
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <div className="p-2 rounded-xl bg-secondary/20 border border-border/30">
-                                      <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">🪪 Licencia</span>
-                                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-md ${licenseStatus.colorClass}`}>
-                                        {licenseStatus.label}
-                                      </span>
-                                    </div>
-                                    {assignedVehicle ? (
-                                      <>
-                                        <div className="p-2 rounded-xl bg-secondary/20 border border-border/30">
-                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">🛡️ Seguro</span>
-                                          <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-md ${insuranceStatus?.colorClass}`}>
-                                            {insuranceStatus?.label}
-                                          </span>
-                                        </div>
-                                        <div className="p-2 rounded-xl bg-secondary/20 border border-border/30">
-                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">📄 Tarj. Circ.</span>
-                                          <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-bold rounded-md ${circulationStatus?.colorClass}`}>
-                                            {circulationStatus?.label}
-                                          </span>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <div className="p-2 rounded-xl bg-secondary/10 border border-border/20 opacity-50">
-                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">🛡️ Seguro</span>
-                                          <span className="text-xs text-muted-foreground mt-1 block font-medium">N/A</span>
-                                        </div>
-                                        <div className="p-2 rounded-xl bg-secondary/10 border border-border/20 opacity-50">
-                                          <span className="block text-[11px] font-bold text-muted-foreground uppercase leading-none">📄 Tarj. Circ.</span>
-                                          <span className="text-xs text-muted-foreground mt-1 block font-medium">N/A</span>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            );
-                          })
-                        )}
+                                return (
+                                  <tr
+                                    key={driver.id}
+                                    className="border-b border-border/20 hover:bg-muted/30 transition-colors"
+                                  >
+                                    <td className="py-3 px-2">
+                                      <span className="font-bold text-foreground">{driver.first_name} {driver.paternal_last_name}</span>
+                                    </td>
+                                    <td className="py-3 px-2 text-muted-foreground">
+                                      {assignedVehicle.brand} {assignedVehicle.vehicle_name}
+                                    </td>
+                                    <td className="py-3 px-2 font-mono text-muted-foreground">
+                                      {assignedVehicle.plate_number}
+                                    </td>
+                                    <td className="py-3 px-2 font-mono text-muted-foreground">
+                                      {vehicleId}
+                                    </td>
+                                    <td className="py-3 px-2 text-right font-mono text-muted-foreground">
+                                      {prevKm != null ? prevKm.toLocaleString() : "—"}
+                                    </td>
+                                    <td className="py-3 px-2 text-right font-mono font-bold text-foreground">
+                                      {latestKm != null ? latestKm.toLocaleString() : "—"}
+                                    </td>
+                                    <td className="py-3 px-2 text-right font-mono text-muted-foreground">
+                                      ${assignedVehicle.rent_cost.toLocaleString()}
+                                    </td>
+                                    <td className="py-3 px-2 text-right font-mono font-bold text-red-400">
+                                      ${totalPending.toLocaleString()}
+                                    </td>
+                                    <td className="py-3 px-2 text-center">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openStatsDialog(driver, usageStats);
+                                        }}
+                                        className="text-primary hover:text-primary hover:bg-primary/10 text-xs gap-1"
+                                      >
+                                        <BarChart3 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>
@@ -874,6 +826,65 @@ export default function Dashboard() {
             onComplete={handleActionComplete}
           />
         )}
+
+        {/* Stats Dialog */}
+        <Dialog open={!!statsDialog} onOpenChange={(o) => { if (!o) setStatsDialog(null); }}>
+          <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
+            <DialogHeader>
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-foreground font-black text-lg">
+                    Estadísticas de Uso
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground text-xs">
+                    {statsDialog?.driver
+                      ? `${statsDialog.driver.first_name} ${statsDialog.driver.paternal_last_name}`
+                      : ""}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              {statsDialog?.usage.monthlyAverage != null ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
+                    <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Semanal</span>
+                    <p className="text-lg font-black text-foreground font-mono mt-1">
+                      {Math.round(statsDialog.usage.monthlyAverage * 7).toLocaleString()} km
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
+                    <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Diario</span>
+                    <p className="text-lg font-black text-foreground font-mono mt-1">
+                      {Math.round(statsDialog.usage.monthlyAverage).toLocaleString()} km
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center py-4 text-muted-foreground text-xs">
+                  No hay suficientes datos de kilometraje para calcular promedios.
+                </p>
+              )}
+
+              {statsDialog && statsDialog.usage.weeks.length > 0 && (
+                <div>
+                  <span className="block text-[11px] uppercase font-bold text-muted-foreground mb-2">Historial Semanal</span>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {[...statsDialog.usage.weeks].reverse().map((w, i) => (
+                      <div key={i} className="flex justify-between text-xs py-1.5 px-2 rounded-lg bg-muted/20 border border-border/30">
+                        <span className="text-muted-foreground font-mono">{w.weekStart}</span>
+                        <span className="font-bold text-foreground">{w.km.toLocaleString()} km</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </AnimatePresence>
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
