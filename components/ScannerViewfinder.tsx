@@ -54,7 +54,7 @@ export default function ScannerViewfinder<T extends string>({
           type="button"
           variant="ghost"
           onClick={() => { cancelScan(); }}
-          className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+          className="text-xs text-muted-foreground hover:text-foreground gap-1.5 active:scale-95 transition-transform"
         >
           <X className="w-3.5 h-3.5" /> Cancelar escaneo
         </Button>

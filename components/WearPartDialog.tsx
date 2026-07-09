@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface WearPartDialogProps {
   open: boolean;
@@ -73,8 +74,16 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
-          <div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="space-y-4 pt-2">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+          >
             <Label className="text-muted-foreground text-xs">Pieza *</Label>
             <Input
               type="text"
@@ -83,8 +92,12 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
               onChange={(e) => setPartName(e.target.value)}
               className="mt-1.5 border-input bg-background rounded-xl"
             />
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          >
             <Label className="text-muted-foreground text-xs">Costo estimado ($)</Label>
             <Input
               type="number"
@@ -95,8 +108,12 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
               onChange={(e) => setPartCost(e.target.value)}
               className="mt-1.5 border-input bg-background rounded-xl"
             />
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+          >
             <Label className="text-muted-foreground text-xs">Fecha de reparación</Label>
             <Input
               type="date"
@@ -104,25 +121,30 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
               onChange={(e) => setPartDate(e.target.value)}
               className="mt-1.5 border-input bg-background rounded-xl"
             />
-          </div>
+          </motion.div>
 
-          <div className="flex gap-2 pt-2">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="flex gap-2 pt-2"
+          >
             <Button
               variant="outline"
               onClick={onClose}
-              className="flex-1 rounded-xl border-border"
+              className="flex-1 rounded-xl border-border active:scale-95 transition-transform"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={!partName.trim() || isLoading}
-              className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50"
+              className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50 active:scale-95 transition-transform"
             >
               {isLoading ? "Guardando..." : "Guardar"}
             </Button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { db, type Maintenance, type Assignment, type Driver, type RenewalLog, type Vehicle } from "@/lib/db";
 import { getDriverName } from "@/lib/lookups";
 import { Wrench, AlertTriangle, ArrowLeftRight, RefreshCcw, Shield, DollarSign } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface VehicleHistoryProps {
   vehicle: Vehicle;
@@ -93,9 +94,14 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
   return (
     <div className="pt-4 border-t border-border/40">
       <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 mb-3">Historial del Auto</h4>
-      <div className="bg-muted/20 rounded-xl border border-border/60 p-4 max-h-64 overflow-y-auto space-y-2">
+      <div className="bg-muted/20 rounded-xl border border-border/60 p-4 space-y-2">
         {events.map((ev, i) => (
-          <div key={i} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
             <div className="mt-0.5 shrink-0">{iconMap[ev.type]}</div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -110,7 +116,7 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

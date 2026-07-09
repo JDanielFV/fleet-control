@@ -184,7 +184,12 @@ export const EntityActionSheet = ({
 
       <div className="px-6 overflow-y-auto overflow-x-hidden flex-1 overscroll-contain pb-6">
         {view === "main" && (
-          <div className="space-y-6 pt-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-6 pt-4"
+          >
             <div>
               <h2 id="sheet-title" className="text-[20px] font-black text-foreground tracking-tight leading-tight mb-2">
                 Detalles de Operación
@@ -285,7 +290,7 @@ export const EntityActionSheet = ({
                 </button>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {view === "assign" && (

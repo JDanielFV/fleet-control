@@ -6,6 +6,7 @@ import { getDriverName } from "@/lib/lookups";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { User, Car, ArrowLeftRight, CheckCircle2, X } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface AssignmentDialogProps {
   open: boolean;
@@ -76,10 +77,15 @@ export default function AssignmentDialog({ open, onClose, onComplete, drivers, v
         ) : (
           <div className="grid grid-cols-2 gap-4 pt-2">
             {/* Drivers column */}
-            <div>
-              <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80 mb-2 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5" /> Choferes
-              </h4>
+            <motion.div
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.35, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-1 min-w-0"
+            >
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" /> Choferes Disponibles
+              </h3>
               <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
                 {availableDrivers.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic py-4 text-center">Todos los choferes tienen auto asignado</p>
@@ -100,10 +106,15 @@ export default function AssignmentDialog({ open, onClose, onComplete, drivers, v
                   ))
                 )}
               </div>
-            </div>
+            </motion.div>
 
             {/* Vehicles column */}
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.35, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-1 min-w-0"
+            >
               <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80 mb-2 flex items-center gap-1.5">
                 <Car className="w-3.5 h-3.5" /> Vehículos
               </h4>
@@ -127,7 +138,7 @@ export default function AssignmentDialog({ open, onClose, onComplete, drivers, v
                   ))
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
 
