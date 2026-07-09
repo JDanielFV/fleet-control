@@ -25,7 +25,7 @@ export function normalizeEmptyDates<T extends Record<string, unknown>>(
 }
 
 export const DRIVER_DATE_KEYS = ["dob", "license_issue_date", "license_expiration_date"] as const;
-export const VEHICLE_DATE_KEYS = ["circulation_expiration_date", "insurance_expiration_date"] as const;
+export const VEHICLE_DATE_KEYS = ["circulation_expiration_date", "insurance_expiration_date", "verification_expiration_date", "service_out_date", "service_return_date"] as const;
 
 // Mexican Verification Rules Helper
 // Returns the months and color based on the last numeric digit of the license plate

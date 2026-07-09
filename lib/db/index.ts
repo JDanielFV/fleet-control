@@ -519,6 +519,23 @@ export const db = {
     return credits.find((c) => c.driver_id === driverId)?.amount ?? 0;
   },
 
+  /** Add a credit to a driver (e.g. for days the vehicle was in service). */
+  async addDriverCredit(driverId: string, amount: number): Promise<void> {
+    const credits = getLocalData<{ driver_id: string; amount: number; updated_at: string }>(
+      "driver_credits",
+      []
+    );
+    const existing = credits.find((c) => c.driver_id === driverId);
+    if (existing) {
+      existing.amount += amount;
+      existing.updated_at = new Date().toISOString();
+    } else {
+      credits.push({ driver_id: driverId, amount, updated_at: new Date().toISOString() });
+    }
+    setLocalData("driver_credits", credits);
+    addPendingId("driver_credits", driverId);
+  },
+
   async createWeeklyRental(rental: Omit<WeeklyRental, "id" | "created_at" | "payments_log">): Promise<WeeklyRental | null> {
     // Prevent duplicates: if a rental already exists for this driver + week,
     // return null instead of creating a second one.

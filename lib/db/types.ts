@@ -33,7 +33,12 @@ export interface Vehicle {
   vin: string;
   plate_number: string;
   insurance_policy_img: string; // Base64 or URL
+  insurance_policy_number: string; // Número de póliza
   insurance_expiration_date: string | null;
+  verification_expiration_date: string | null; // Fecha de verificación vehicular
+  status: "active" | "in_service"; // Estado del auto
+  service_out_date: string | null; // Fecha de retiro a servicio
+  service_return_date: string | null; // Fecha de regreso de servicio
   active_driver_id: string | null;
   rent_cost: number;
   next_service_mileage?: number | null;

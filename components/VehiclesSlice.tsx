@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
-import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield } from "lucide-react";
+import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -66,17 +66,23 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     setVin(v.vin);
     setPlateNumber(v.plate_number);
     setInsurancePolicyImg(v.insurance_policy_img);
+    setInsurancePolicyNumber(v.insurance_policy_number ?? "");
     setInsuranceExpirationDate(v.insurance_expiration_date ?? "");
+    setVerificationExpirationDate(v.verification_expiration_date ?? "");
     setRentCost(v.rent_cost);
     setNextServiceMileage(v.next_service_mileage?.toString() ?? "");
     setColor(v.color ?? "");
     setIsOpen(true);
   };
 
-  const handleRenewDocument = (v: Vehicle, target: "CIRCULACION" | "SEGURO") => {
+  const handleRenewDocument = (v: Vehicle, target: "CIRCULACION" | "SEGURO" | "VERIFICACION") => {
     setRenewingVehicle(v);
     setRenewTarget(target);
-    setRenewExpirationDate((target === "CIRCULACION" ? v.circulation_expiration_date : v.insurance_expiration_date) ?? "");
+    setRenewExpirationDate(
+      target === "CIRCULACION" ? (v.circulation_expiration_date ?? "") :
+      target === "SEGURO" ? (v.insurance_expiration_date ?? "") :
+      (v.verification_expiration_date ?? "")
+    );
     setRenewPolicyImg(target === "SEGURO" ? v.insurance_policy_img : "");
     setIsRenewOpen(true);
   };
@@ -86,9 +92,11 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     const patch: Partial<Vehicle> = {};
     if (renewTarget === "CIRCULACION") {
       patch.circulation_expiration_date = renewExpirationDate;
-    } else {
+    } else if (renewTarget === "SEGURO") {
       patch.insurance_expiration_date = renewExpirationDate;
       if (renewPolicyImg) patch.insurance_policy_img = renewPolicyImg;
+    } else if (renewTarget === "VERIFICACION") {
+      patch.verification_expiration_date = renewExpirationDate;
     }
     await db.saveVehicle({ ...renewingVehicle, ...patch });
     setIsRenewOpen(false);
@@ -96,6 +104,61 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     setRenewTarget(null);
     setRenewExpirationDate("");
     setRenewPolicyImg("");
+    loadData();
+    onRefreshAlerts();
+  };
+
+  // Service out: mark vehicle as in_service, record the date
+  const handleServiceOut = async (vehicle: Vehicle) => {
+    if (!confirm(`¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`)) return;
+    await db.saveVehicle({
+      ...vehicle,
+      status: "in_service",
+      service_out_date: new Date().toISOString().split("T")[0],
+      service_return_date: null,
+    });
+    loadData();
+    onRefreshAlerts();
+  };
+
+  // Service return: mark as active, calculate rental discount
+  const handleServiceReturn = async (vehicle: Vehicle) => {
+    if (!confirm(`¿Regresar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a su chofer?`)) return;
+    const returnDate = new Date();
+    const outDate = vehicle.service_out_date ? new Date(vehicle.service_out_date) : returnDate;
+    const daysOut = Math.max(1, Math.round((returnDate.getTime() - outDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const discountDays = daysOut === 1 ? 0.5 : daysOut; // same day = half day, more = full days
+
+    await db.saveVehicle({
+      ...vehicle,
+      status: "active",
+      service_return_date: returnDate.toISOString().split("T")[0],
+    });
+
+    // If the vehicle has an assigned driver, apply a credit for the days out
+    if (vehicle.active_driver_id) {
+      const dailyRate = vehicle.rent_cost / 7;
+      const creditAmount = Math.round(dailyRate * discountDays);
+      await db.addDriverCredit(vehicle.active_driver_id, creditAmount);
+    }
+
+    loadData();
+    onRefreshAlerts();
+  };
+
+  // Report a wear part maintenance (separate from periodic service)
+  const handleReportWearPart = async (vehicle: Vehicle) => {
+    const desc = prompt(`Reportar pieza de desgaste para ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}):\nEj: Frenos, Llantas, Batería, Embrague, etc.`);
+    if (!desc || !desc.trim()) return;
+    const costStr = prompt("Costo estimado de la reparación ($):");
+    const cost = costStr ? parseFloat(costStr) : 0;
+    await db.saveMaintenance({
+      vehicle_id: vehicle.id,
+      cost: isNaN(cost) ? 0 : cost,
+      description: `[PIEZA DESGASTE] ${desc.trim()}`,
+      maintenance_date: new Date().toISOString().split("T")[0],
+      next_maintenance_date: null,
+    });
     loadData();
     onRefreshAlerts();
   };
@@ -112,6 +175,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [isRenewOpen, setIsRenewOpen] = useState(false);
   const [renewingVehicle, setRenewingVehicle] = useState<Vehicle | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Auto-open the registration dialog when the parent sets autoOpen=true.
   useEffect(() => {
@@ -159,7 +223,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     }
     return () => observer.disconnect();
   }, [isOpen]);
-  const [renewTarget, setRenewTarget] = useState<"CIRCULACION" | "SEGURO" | null>(null);
+  const [renewTarget, setRenewTarget] = useState<"CIRCULACION" | "SEGURO" | "VERIFICACION" | null>(null);
   const [renewExpirationDate, setRenewExpirationDate] = useState("");
   const [renewPolicyImg, setRenewPolicyImg] = useState("");
 
@@ -195,6 +259,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [rentCost, setRentCost] = useState<number>(2500);
   const [nextServiceMileage, setNextServiceMileage] = useState<string>("");
   const [color, setColor] = useState("");
+  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState("");
+  const [verificationExpirationDate, setVerificationExpirationDate] = useState("");
 
   const loadData = async () => {
     const list = await db.getVehicles();
@@ -276,7 +342,18 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       vin: formattedVin,
       plate_number: formattedPlate,
       insurance_policy_img: insUrl || insurancePolicyImg,
+      insurance_policy_number: insurancePolicyNumber,
       insurance_expiration_date: insuranceExpirationDate,
+      verification_expiration_date: verificationExpirationDate,
+      status: editingVehicleId
+        ? (vehicles.find((v) => v.id === editingVehicleId)?.status ?? "active")
+        : "active",
+      service_out_date: editingVehicleId
+        ? (vehicles.find((v) => v.id === editingVehicleId)?.service_out_date ?? null)
+        : null,
+      service_return_date: editingVehicleId
+        ? (vehicles.find((v) => v.id === editingVehicleId)?.service_return_date ?? null)
+        : null,
       active_driver_id: editingVehicleId
         ? vehicles.find((v) => v.id === editingVehicleId)?.active_driver_id ?? null
         : null,
@@ -975,112 +1052,226 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                       </tr>
                       {expandedVehicleDetails[vehicle.id] && (
                         <tr className="border-b border-border/20 bg-muted/10">
-                          <td colSpan={5} className="p-3">
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                          <td colSpan={5} className="p-4">
+                            <div className="space-y-5">
+                              {/* ─── SECTION 1: Vehicle Info + Actions ─── */}
                               <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
-                                <span className="block text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
+                                    <Car className="w-3.5 h-3.5" /> Información del Auto
+                                  </h4>
+                                  <div className="flex items-center gap-1.5">
+                                    {vehicle.status === "active" ? (
+                                      <>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => { e.stopPropagation(); handleServiceOut(vehicle); }}
+                                          className="text-[11px] h-7 px-2.5 rounded-lg border-amber-500/40 text-amber-600 hover:bg-amber-500/10 gap-1"
+                                        >
+                                          <Wrench className="w-3 h-3" /> Retirar a Servicio
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => { e.stopPropagation(); handleReportWearPart(vehicle); }}
+                                          className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
+                                        >
+                                          <AlertTriangle className="w-3 h-3" /> Pieza de Desgaste
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => { e.stopPropagation(); handleServiceReturn(vehicle); }}
+                                        className="text-[11px] h-7 px-2.5 rounded-lg border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 gap-1"
+                                      >
+                                        <ArrowLeftRight className="w-3 h-3" /> Regresar a Chofer
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
+                                    <span className="block text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Color</span>
+                                    <span className="block text-foreground font-medium">{vehicle.color || "Sin registrar"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Engomado</span>
+                                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                                      <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
+                                        backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
+                                                        schedule.color === "Rosa" ? "#ec4899" :
+                                                        schedule.color === "Rojo" ? "#ef4444" :
+                                                        schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
+                                      }} />
+                                      <span>{schedule.color}</span>
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Estado</span>
+                                    <span className={`block font-bold ${vehicle.status === "in_service" ? "text-amber-500" : "text-emerald-500"}`}>
+                                      {vehicle.status === "in_service" ? "🛠 En Servicio" : "✅ Activo"}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
+                                    <span className="block text-foreground font-medium">{lastServiceDate}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                                    <span className="block text-foreground font-medium">{mileage}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Próx. Servicio</span>
+                                    <span className={`block font-semibold ${isServiceOverdue ? "text-amber-500 animate-pulse" : "text-foreground"}`}>{nextServiceText}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Est. Fecha</span>
+                                    <span className={`flex items-center gap-1 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground"}`}>
+                                      {isServiceOverdue && <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />}
+                                      <span>{nextServiceEstimate}</span>
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Renta</span>
+                                    <span className={`block ${rentStatusColor}`}>{rentStatusText}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Uso Semanal</span>
+                                    <span className="block text-foreground font-medium">{latestWeek ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/día` : "—"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Media Mensual</span>
+                                    <span className="block text-foreground font-medium">{monthlyUsageAverage !== null ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día` : "—"}</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Color</span>
-                                <span className="block text-foreground font-medium">{vehicle.color || "Sin registrar"}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Engomado</span>
-                                <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                                  <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
-                                    backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
-                                                    schedule.color === "Rosa" ? "#ec4899" :
-                                                    schedule.color === "Rojo" ? "#ef4444" :
-                                                    schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
-                                  }} />
-                                  <span>{schedule.color}</span>
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Vence Circ.</span>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-foreground font-medium">{vehicle.circulation_expiration_date || "—"}</span>
-                                  <button
+
+                              {/* ─── SECTION 2: Tarjeta de Circulación ─── */}
+                              <div className="pt-4 border-t border-border/40">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
+                                    <Shield className="w-3.5 h-3.5" /> Tarjeta de Circulación
+                                  </h4>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
-                                    className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline"
+                                    className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
                                   >
-                                    <RefreshCcw className="w-3 h-3 inline" /> Renovar
-                                  </button>
+                                    <RefreshCcw className="w-3 h-3" /> Renovar
+                                  </Button>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                  {vehicle.circulation_img ? (
+                                    <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer"
+                                      onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.circulation_img!); }}>
+                                      <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover hover:scale-105 transition-transform" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-24 h-16 rounded-lg border border-dashed border-border/50 bg-muted/20 flex items-center justify-center shrink-0">
+                                      <Camera className="w-5 h-5 text-muted-foreground/40" />
+                                    </div>
+                                  )}
+                                  <div className="text-xs space-y-1">
+                                    <div>
+                                      <span className="text-muted-foreground/80">Vence: </span>
+                                      <strong className={vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
+                                        {vehicle.circulation_expiration_date || "—"}
+                                      </strong>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground/80">Placas: </span>
+                                      <strong className="text-foreground font-mono">{vehicle.plate_number}</strong>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
-                                <div className="flex items-center gap-1.5">
-                                  <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
-                                  <span className="text-foreground font-medium">{vehicle.insurance_expiration_date || "—"}</span>
-                                  <button
+
+                              {/* ─── SECTION 3: Póliza de Seguro + Verificación ─── */}
+                              <div className="pt-4 border-t border-border/40">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
+                                    <Shield className="w-3.5 h-3.5" /> Póliza de Seguro
+                                  </h4>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
-                                    className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline"
+                                    className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
                                   >
-                                    <RefreshCcw className="w-3 h-3 inline" /> Renovar
-                                  </button>
+                                    <RefreshCcw className="w-3 h-3" /> Renovar
+                                  </Button>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                  {vehicle.insurance_policy_img ? (
+                                    <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer"
+                                      onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.insurance_policy_img); }}>
+                                      <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover hover:scale-105 transition-transform" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-24 h-16 rounded-lg border border-dashed border-border/50 bg-muted/20 flex items-center justify-center shrink-0">
+                                      <Camera className="w-5 h-5 text-muted-foreground/40" />
+                                    </div>
+                                  )}
+                                  <div className="text-xs space-y-1">
+                                    <div>
+                                      <span className="text-muted-foreground/80">Póliza: </span>
+                                      <strong className="text-foreground font-mono">{vehicle.insurance_policy_number || "—"}</strong>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground/80">Vence: </span>
+                                      <strong className={vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
+                                        {vehicle.insurance_expiration_date || "—"}
+                                      </strong>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
-                                <span className="block text-foreground font-medium">{lastServiceDate}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
-                                <span className="block text-foreground font-medium">{mileage}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Próx. Servicio</span>
-                                <span className={`block font-semibold ${isServiceOverdue ? "text-amber-500 animate-pulse" : "text-foreground"}`}>{nextServiceText}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Est. Fecha</span>
-                                <span className={`flex items-center gap-1 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground"}`}>
-                                  {isServiceOverdue && <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />}
-                                  <span>{nextServiceEstimate}</span>
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Verificación</span>
-                                <span className={`block font-semibold ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>{verificationStatus}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Renta</span>
-                                <span className={`block ${rentStatusColor}`}>{rentStatusText}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Uso Semanal</span>
-                                <span className="block text-foreground font-medium">{latestWeek ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/día` : "—"}</span>
-                              </div>
-                              <div>
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Media Mensual</span>
-                                <span className="block text-foreground font-medium">{monthlyUsageAverage !== null ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día` : "—"}</span>
+
+                              {/* ─── Verificación Vehicular ─── */}
+                              <div className="pt-4 border-t border-border/40">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
+                                    <Calendar className="w-3.5 h-3.5" /> Verificación Vehicular
+                                  </h4>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "VERIFICACION"); }}
+                                    className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
+                                  >
+                                    <RefreshCcw className="w-3 h-3" /> Renovar
+                                  </Button>
+                                </div>
+                                <div className="text-xs space-y-1">
+                                  <div>
+                                    <span className="text-muted-foreground/80">Vence: </span>
+                                    <strong className={vehicle.verification_expiration_date && new Date(vehicle.verification_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
+                                      {vehicle.verification_expiration_date || "—"}
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground/80">Engomado: </span>
+                                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                                      <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
+                                        backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
+                                                        schedule.color === "Rosa" ? "#ec4899" :
+                                                        schedule.color === "Rojo" ? "#ef4444" :
+                                                        schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
+                                      }} />
+                                      <span>{schedule.color} · {schedule.months}</span>
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            {(vehicle.circulation_img || vehicle.insurance_policy_img) && (
-                              <div className="mt-3 pt-3 border-t border-border/60">
-                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80 block mb-2">Documentos</span>
-                                <div className="grid grid-cols-2 gap-3">
-                                  {vehicle.circulation_img && (
-                                    <div>
-                                      <div className="relative h-20 rounded-lg overflow-hidden border border-border bg-card">
-                                        <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover" />
-                                      </div>
-                                      <span className="text-2xs text-muted-foreground mt-1 block">Circ. vence: <strong className={vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>{vehicle.circulation_expiration_date || "—"}</strong></span>
-                                    </div>
-                                  )}
-                                  {vehicle.insurance_policy_img && (
-                                    <div>
-                                      <div className="relative h-20 rounded-lg overflow-hidden border border-border bg-card">
-                                        <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover" />
-                                      </div>
-                                      <span className="text-2xs text-muted-foreground mt-1 block">Seguro vence: <strong className={vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>{vehicle.insurance_expiration_date || "—"}</strong></span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
                           </td>
                         </tr>
                       )}
@@ -1105,7 +1296,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <DialogTitle className="text-foreground font-black text-lg">
-                    Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : "Póliza de Seguro"}
+                    Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : renewTarget === "SEGURO" ? "Póliza de Seguro" : "Verificación Vehicular"}
                   </DialogTitle>
                   <span className="text-[11px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
                     Actualización
