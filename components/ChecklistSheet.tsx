@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db, Vehicle, Checklist } from "../lib/db";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { Check, CheckCircle, X } from "lucide-react";
 
 interface ChecklistSheetProps {
   isOpen: boolean;
@@ -125,7 +125,7 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
             {savedToast ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
-                  <span className="text-2xl text-emerald-500">✓</span>
+                  <CheckCircle className="w-8 h-8 text-emerald-500" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground">Checklist guardado</h3>
                 <p className="text-sm text-muted-foreground">La revisión técnica ha sido registrada exitosamente.</p>
@@ -170,7 +170,7 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
                               : "bg-red-500/10 border-red-500/30 text-red-500"
                           }`}
                         >
-                          <span className="text-base">{items[key] ? "✓" : "✕"}</span>
+                          <span className="text-base">{items[key] ? <Check className="w-4 h-4 inline" /> : <X className="w-4 h-4 inline" />}</span>
                           <span>{labels[key]}</span>
                         </button>
                       );

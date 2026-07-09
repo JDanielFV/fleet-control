@@ -394,7 +394,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       if (apiResponse.ok) {
         const parsed = await apiResponse.json();
         console.log("[OCR API Result]:", parsed);
-        setOcrLogs(prev => [...prev, "✓ [OCR] Transcripción por Gemini finalizada exitosamente."]);
+        setOcrLogs(prev => [...prev, "[OK] [OCR] Transcripción por Gemini finalizada exitosamente."]);
         setOcrStep("extract");
 
         if (target === "INE") {
@@ -403,11 +403,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
           if (parsed.curp) {
             setIneCurp(parsed.curp);
             setIneDob(parsed.dob || "");
-            setOcrLogs(prev => [...prev, `✓ [Gemini] CURP INE: ${parsed.curp}`]);
+            setOcrLogs(prev => [...prev, `[OK] [Gemini] CURP INE: ${parsed.curp}`]);
           }
           if (parsed.electorKey) {
             setIneElectorKey(parsed.electorKey);
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Clave Elector: ${parsed.electorKey}`]);
+            setOcrLogs(prev => [...prev, `[OK] [Gemini] Clave Elector: ${parsed.electorKey}`]);
           }
           if (parsed.firstName) setFirstName(parsed.firstName);
           if (parsed.paternalLastName) setPaternalLastName(parsed.paternalLastName);
@@ -424,7 +424,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
             } else {
               setLicenseNumber(parsed.licenseNumber);
             }
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Licencia: ${parsed.licenseNumber}`]);
+            setOcrLogs(prev => [...prev, `[OK] [Gemini] Licencia: ${parsed.licenseNumber}`]);
           }
           if (parsed.expirationDate) {
             if (renewingDriver) {
@@ -432,7 +432,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
             } else {
               setLicenseExpirationDate(parsed.expirationDate);
             }
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Expiración Licencia: ${parsed.expirationDate}`]);
+            setOcrLogs(prev => [...prev, `[OK] [Gemini] Expiración Licencia: ${parsed.expirationDate}`]);
           }
           
           // After OCR completes in renew mode, open the renew dialog with scanned data
@@ -490,11 +490,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         if (parsed.curp) {
           setIneCurp(parsed.curp);
           setIneDob(parsed.dob || "");
-          setOcrLogs(prev => [...prev, `✓ [Parser Local] CURP INE: ${parsed.curp}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser Local] CURP INE: ${parsed.curp}`]);
         }
         if (parsed.electorKey) {
           setIneElectorKey(parsed.electorKey);
-          setOcrLogs(prev => [...prev, `✓ [Parser Local] Clave Elector: ${parsed.electorKey}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser Local] Clave Elector: ${parsed.electorKey}`]);
         }
         if (parsed.firstName) setFirstName(parsed.firstName);
         if (parsed.paternalLastName) setPaternalLastName(parsed.paternalLastName);
@@ -513,7 +513,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       }
 
       setOcrStep("done");
-      setOcrLogs(prev => [...prev, "✓ [OCR] Extracción local finalizada."]);
+      setOcrLogs(prev => [...prev, "[OK] [OCR] Extracción local finalizada."]);
       
       setTimeout(() => {
         setIsScanning(false);
@@ -522,7 +522,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
     } catch (err: unknown) {
       console.error("[OCR] Fallo en la transcripción local:", err);
-      const errorMsg = `❌ [OCR] Error: ${err instanceof Error ? err.message : String(err)}`;
+      const errorMsg = `[ERROR] [OCR] Error: ${err instanceof Error ? err.message : String(err)}`;
       setOcrLogs(prev => [...prev, errorMsg]);
       setTimeout(() => {
         setIsScanning(false);
@@ -548,13 +548,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         console.log("[Archivo] Conversión exitosa a Base64 Data URL.");
         processOcrOnImageSource(reader.result, target);
       } else {
-        setOcrLogs(prev => [...prev, "❌ Error al leer el archivo en formato Base64"]);
+        setOcrLogs(prev => [...prev, "[ERROR] Error al leer el archivo en formato Base64"]);
         setIsScanning(false);
       }
     };
     reader.onerror = () => {
       console.error("[Archivo] Error de lectura");
-      setOcrLogs(prev => [...prev, "❌ Error de lectura del archivo"]);
+      setOcrLogs(prev => [...prev, "[ERROR] Error de lectura del archivo"]);
       setIsScanning(false);
     };
     reader.readAsDataURL(file);
@@ -590,7 +590,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     setOcrLogs((prev) => [
       ...prev,
       `[Demo] Rellenando campos de ${target}…`,
-      "[Demo] ✓ Listo, puedes seguir editando.",
+      "[Demo] [OK] Listo, puedes seguir editando.",
     ]);
 
     if (target === "INE") {

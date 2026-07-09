@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Camera, StopCircle, Terminal, X } from "lucide-react";
+import { Camera, Check, StopCircle, Terminal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UseOcrScannerResult } from "@/components/useOcrScanner";
 
@@ -72,7 +72,7 @@ export default function ScannerViewfinder<T extends string>({
               {ocrStep === "align" && (cameraError || "Iniciando captura...")}
               {ocrStep === "scan" && labels.scan}
               {ocrStep === "extract" && labels.extract}
-              {ocrStep === "done" && "✓ Procesado"}
+              {ocrStep === "done" && <><Check className="w-4 h-4 inline text-emerald-400" /> Procesado</>}
             </p>
           </div>
         )}

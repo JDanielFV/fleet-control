@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
-import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight } from "lucide-react";
+import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -522,7 +522,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       if (apiResponse.ok) {
         const parsed = await apiResponse.json();
         console.log("[OCR API Result]:", parsed);
-        setOcrLogs(prev => [...prev, "✓ [OCR] Transcripción por Gemini finalizada exitosamente."]);
+        setOcrLogs(prev => [...prev, "[OK] [OCR] Transcripción por Gemini finalizada exitosamente."]);
         setOcrStep("extract");
 
         if (target === "CIRCULACION") {
@@ -541,11 +541,11 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
             if (parsed.classType) setClassType(parsed.classType);
             if (parsed.plateNumber) {
               setPlateNumber(parsed.plateNumber);
-              setOcrLogs(prev => [...prev, `✓ [Gemini] Placa: ${parsed.plateNumber}`]);
+              setOcrLogs(prev => [...prev, `[OK] [Gemini] Placa: ${parsed.plateNumber}`]);
             }
             if (parsed.vin) {
               setVin(parsed.vin);
-              setOcrLogs(prev => [...prev, `✓ [Gemini] Serie/VIN: ${parsed.vin}`]);
+              setOcrLogs(prev => [...prev, `[OK] [Gemini] Serie/VIN: ${parsed.vin}`]);
             }
             if (parsed.expirationDate) {
               setCirculationExpirationDate(parsed.expirationDate);
@@ -615,19 +615,19 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         setCirculationImg(imageSource);
         if (parsed.brand) {
           setBrand(parsed.brand);
-          setOcrLogs(prev => [...prev, `✓ [Parser Local] Marca: ${parsed.brand}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser Local] Marca: ${parsed.brand}`]);
         }
         if (parsed.modelYear) {
           setModel(parsed.modelYear);
-          setOcrLogs(prev => [...prev, `✓ [Parser] Año: ${parsed.modelYear}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser] Año: ${parsed.modelYear}`]);
         }
         if (parsed.plateNumber) {
           setPlateNumber(parsed.plateNumber);
-          setOcrLogs(prev => [...prev, `✓ [Parser Local] Placa: ${parsed.plateNumber}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser Local] Placa: ${parsed.plateNumber}`]);
         }
         if (parsed.vin) {
           setVin(parsed.vin);
-          setOcrLogs(prev => [...prev, `✓ [Parser Local] Serie/NIV: ${parsed.vin}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser Local] Serie/NIV: ${parsed.vin}`]);
         }
         if (parsed.expirationDate) {
           setCirculationExpirationDate(parsed.expirationDate);
@@ -636,12 +636,12 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         setInsurancePolicyImg(imageSource);
         if (parsed.expirationDate) {
           setInsuranceExpirationDate(parsed.expirationDate);
-          setOcrLogs(prev => [...prev, `✓ [Parser Local] Expiración Póliza de Seguro: ${parsed.expirationDate}`]);
+          setOcrLogs(prev => [...prev, `[OK] [Parser Local] Expiración Póliza de Seguro: ${parsed.expirationDate}`]);
         }
       }
 
       setOcrStep("done");
-      setOcrLogs(prev => [...prev, "✓ [OCR] Análisis local finalizado."]);
+      setOcrLogs(prev => [...prev, "[OK] [OCR] Análisis local finalizado."]);
       
       setTimeout(() => {
         setIsScanning(false);
@@ -650,7 +650,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
     } catch (err: unknown) {
       console.error("[OCR] Error al transcribir documento:", err);
-      const errorMsg = `❌ [OCR] Fallo: ${err instanceof Error ? err.message : String(err)}`;
+      const errorMsg = `[ERROR] [OCR] Fallo: ${err instanceof Error ? err.message : String(err)}`;
       setOcrLogs(prev => [...prev, errorMsg]);
       setTimeout(() => {
         setIsScanning(false);
@@ -697,12 +697,12 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         console.log("[Archivo] Conversión exitosa a Base64 Data URL.");
         processOcrOnImageSource(reader.result, target);
       } else {
-        setOcrLogs(prev => [...prev, "❌ Error al leer el archivo"]);
+        setOcrLogs(prev => [...prev, "[ERROR] Error al leer el archivo"]);
         setIsScanning(false);
       }
     };
     reader.onerror = () => {
-      setOcrLogs(prev => [...prev, "❌ Error de lectura"]);
+      setOcrLogs(prev => [...prev, "[ERROR] Error de lectura"]);
       setIsScanning(false);
     };
     reader.readAsDataURL(file);
@@ -727,7 +727,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
     setTimeout(() => {
       setOcrStep("done");
-      setOcrLogs(prev => [...prev, "✓ Simulación completada"]);
+      setOcrLogs(prev => [...prev, "[OK] Simulación completada"]);
       
       if (target === "CIRCULACION") {
         const demoVehicles = [
@@ -1301,7 +1301,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                                   <div>
                                     <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Estado</span>
                                     <span className={`block font-bold ${vehicle.status === "in_service" ? "text-amber-500" : "text-emerald-500"}`}>
-                                      {vehicle.status === "in_service" ? "🛠 En Servicio" : "✅ Activo"}
+                                      {vehicle.status === "in_service" ? <><Wrench className="w-3 h-3 inline text-amber-400" /> En Servicio</> : <><CheckCircle className="w-3 h-3 inline text-emerald-400" /> Activo</>}
                                     </span>
                                   </div>
                                   <div>

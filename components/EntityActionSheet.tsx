@@ -203,7 +203,7 @@ export const EntityActionSheet = ({
                   </div>
                 ) : (
                   <div className="p-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-2xl border border-yellow-500/20 text-xs font-semibold">
-                    ⚠️ Sin chofer asignado a esta operación
+                    Sin chofer asignado a esta operación
                   </div>
                 )}
 
@@ -224,7 +224,7 @@ export const EntityActionSheet = ({
                   </div>
                 ) : (
                   <div className="p-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-2xl border border-yellow-500/20 text-xs font-semibold">
-                    ⚠️ Sin vehículo asignado actualmente
+                    Sin vehículo asignado actualmente
                   </div>
                 )}
               </div>
