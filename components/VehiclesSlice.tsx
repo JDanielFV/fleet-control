@@ -218,7 +218,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     await db.saveMaintenance({
       vehicle_id: wearPartVehicleState.id,
       cost: parseFloat(wearPartCost) || 0,
-      description: `[PIEZA DESGASTE] ${wearPartName.trim()}`,
+      description: `[REEMPLAZO PIEZA] ${wearPartName.trim()}`,
       maintenance_date: wearPartDate,
       next_maintenance_date: null,
     });
@@ -1575,7 +1575,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <DialogTitle className="text-foreground font-black text-lg">
-                    Pieza de Desgaste
+                    Reemplazo de Pieza de Desgaste
                   </DialogTitle>
                   <span className="text-[11px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
                     Reporte

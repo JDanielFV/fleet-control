@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ClipboardList, Wrench, AlertTriangle, X } from "lucide-react";
+import { ClipboardList, Wrench, AlertTriangle, Package, X } from "lucide-react";
 import type { Vehicle } from "@/lib/db";
 
 interface ChecklistActionModalProps {
@@ -11,6 +11,7 @@ interface ChecklistActionModalProps {
   onChecklist: (vehicle: Vehicle) => void;
   onServiceOut: (vehicle: Vehicle) => void;
   onWearPart: (vehicle: Vehicle) => void;
+  onInventory: (vehicle: Vehicle) => void;
 }
 
 export default function ChecklistActionModal({
@@ -20,6 +21,7 @@ export default function ChecklistActionModal({
   onChecklist,
   onServiceOut,
   onWearPart,
+  onInventory,
 }: ChecklistActionModalProps) {
   if (!open || !vehicle) return null;
 
@@ -103,9 +105,24 @@ export default function ChecklistActionModal({
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold">Pieza de Desgaste</span>
+                <span className="block text-sm font-extrabold">Reemplazo de Pieza de Desgaste</span>
                 <span className="block text-[11px] text-muted-foreground mt-0.5">
-                  Reportar cambio de pieza (llantas, balatas, etc.)
+                  Reportar reemplazo de pieza (llantas, balatas, etc.)
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => { onInventory(vehicle); onClose(); }}
+              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-600 dark:text-blue-400 transition-all cursor-pointer text-left"
+            >
+              <div className="p-2.5 rounded-xl bg-blue-500/20 shrink-0">
+                <Package className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-extrabold">Inventario del Auto</span>
+                <span className="block text-[11px] text-muted-foreground mt-0.5">
+                  Tomar fotos del auto y registrar objetos a bordo
                 </span>
               </div>
             </button>

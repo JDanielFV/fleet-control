@@ -11,6 +11,8 @@ import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
 import AssignmentDialog from "./AssignmentDialog";
 import ChecklistActionModal from "./ChecklistActionModal";
+import WearPartDialog from "./WearPartDialog";
+import InventoryWizard from "./InventoryWizard";
 import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -325,8 +327,32 @@ export default function Dashboard() {
 
   // Wear part: open the wear part dialog via VehiclesSlice
   const [wearPartVehicle, setWearPartVehicle] = useState<Vehicle | null>(null);
+  const [wearPartDialogOpen, setWearPartDialogOpen] = useState(false);
   const handleWearPart = (vehicle: Vehicle) => {
     setWearPartVehicle(vehicle);
+    setWearPartDialogOpen(true);
+  };
+
+  // Inventory wizard
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [inventoryVehicle, setInventoryVehicle] = useState<Vehicle | null>(null);
+  const handleInventory = (vehicle: Vehicle) => {
+    setInventoryVehicle(vehicle);
+    setInventoryOpen(true);
+  };
+  const handleSaveInventory = async (photos: { angle: string; dataUrl: string | null }[], items: { name: string; quantity: number }[]) => {
+    // Save inventory data to the vehicle
+    if (!inventoryVehicle) return;
+    const taken = photos.filter(p => p.dataUrl).length;
+    const desc = `[INVENTARIO] ${taken} fotos, ${items.length} objetos: ${items.map(i => `${i.name} x${i.quantity}`).join(", ")}`;
+    await db.saveMaintenance({
+      vehicle_id: inventoryVehicle.id,
+      cost: 0,
+      description: desc,
+      maintenance_date: new Date().toISOString().split("T")[0],
+      next_maintenance_date: null,
+    });
+    triggerRefresh();
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
@@ -935,6 +961,7 @@ export default function Dashboard() {
             onChecklist={openChecklistSheet}
             onServiceOut={handleServiceOut}
             onWearPart={handleWearPart}
+            onInventory={handleInventory}
           />
         )}
       </AnimatePresence>
@@ -948,6 +975,26 @@ export default function Dashboard() {
             vehicle={checklistSheet.vehicle}
             onClose={() => setChecklistSheet({ open: false, vehicle: null })}
             onComplete={handleActionComplete}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Wear Part Dialog */}
+      <WearPartDialog
+        open={wearPartDialogOpen}
+        onClose={() => { setWearPartDialogOpen(false); setWearPartVehicle(null); }}
+        vehicle={wearPartVehicle}
+        onComplete={triggerRefresh}
+      />
+
+      {/* Inventory Wizard */}
+      <AnimatePresence>
+        {inventoryOpen && (
+          <InventoryWizard
+            key="inventory-wizard"
+            open={true}
+            onClose={() => { setInventoryOpen(false); setInventoryVehicle(null); }}
+            onSave={handleSaveInventory}
           />
         )}
       </AnimatePresence>

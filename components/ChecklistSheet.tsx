@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { db, Vehicle, Checklist } from "../lib/db";
 import { motion } from "framer-motion";
-import { Check, CheckCircle, X } from "lucide-react";
+import { Check, CheckCircle, Camera, X } from "lucide-react";
 
 interface ChecklistSheetProps {
   isOpen: boolean;
@@ -22,8 +22,44 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
   const [mileage, setMileage] = useState<string>("");
   const [items, setItems] = useState<Checklist["checklist_items"]>(DEFAULT_ITEMS);
   const [irregularities, setIrregularities] = useState("");
+  const [irregularityPhoto, setIrregularityPhoto] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setShowCamera(true);
+    } catch (e) {
+      alert("No se pudo acceder a la cámara: " + e);
+    }
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")!.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    setIrregularityPhoto(dataUrl);
+    stopCamera();
+  }, [stopCamera]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -31,10 +67,12 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
         setMileage("");
         setItems(DEFAULT_ITEMS);
         setIrregularities("");
+        setIrregularityPhoto(null);
         setSavedToast(false);
+        stopCamera();
       });
     }
-  }, [isOpen]);
+  }, [isOpen, stopCamera]);
 
   if (!isOpen || !vehicle) return null;
 
@@ -189,6 +227,48 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
                     placeholder="Describe cualquier detalle adicional..."
                     className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
                   />
+
+                  {/* Photo capture for irregularity */}
+                  <div className="mt-2">
+                    {showCamera ? (
+                      <div className="relative aspect-video w-full rounded-lg bg-muted overflow-hidden border border-border">
+                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
+                          <button
+                            onClick={capturePhoto}
+                            className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-full shadow-lg cursor-pointer"
+                          >
+                            <Camera className="w-4 h-4 inline mr-1" /> Capturar
+                          </button>
+                          <button
+                            onClick={stopCamera}
+                            className="px-4 py-2 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : irregularityPhoto ? (
+                      <div className="relative mt-2 rounded-lg overflow-hidden border border-border">
+                        <img src={irregularityPhoto} alt="Evidencia" className="w-full h-32 object-cover" />
+                        <button
+                          onClick={() => setIrregularityPhoto(null)}
+                          className="absolute top-2 right-2 p-1 bg-black/60 text-white rounded-full cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={startCamera}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-muted/20 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all cursor-pointer w-full"
+                      >
+                        <Camera className="w-4 h-4" />
+                        Agregar foto de evidencia
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-2 pb-1">

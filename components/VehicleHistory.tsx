@@ -34,7 +34,7 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
     events.push({
       date: m.maintenance_date,
       type: isWear ? "desgaste" : "mantenimiento",
-      label: isWear ? "Pieza de Desgaste" : "Mantenimiento",
+      label: isWear ? "Reemplazo de Pieza de Desgaste" : "Mantenimiento",
       description: isWear ? m.description.replace("[PIEZA DESGASTE] ", "") : m.description,
     });
   }
