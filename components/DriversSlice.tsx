@@ -18,6 +18,7 @@ import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
+import { uploadDocumentImage } from "@/lib/db/storage";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +66,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     setIneElectorKey(d.ine_elector_key);
     setDriverPhotoImg(d.driver_photo_img ?? "");
     setAddressProofImg(d.address_proof_img ?? "");
+    setIneImg(d.ine_img ?? "");
+    setLicenseImg(d.license_img ?? "");
     setIsOpen(true);
   };
 
@@ -120,6 +123,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   const [renewIsPermanent, setRenewIsPermanent] = useState(false);
   const [driverPhotoImg, setDriverPhotoImg] = useState("");
   const [addressProofImg, setAddressProofImg] = useState("");
+  const [ineImg, setIneImg] = useState("");
+  const [licenseImg, setLicenseImg] = useState("");
 
   // File picker refs
   const ineFileRef = useRef<HTMLInputElement>(null);
@@ -283,6 +288,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     }
 
     try {
+      const [ineUrl, licenseUrl] = await Promise.all([
+        ineImg ? uploadDocumentImage(ineImg, "ine") : Promise.resolve(null),
+        licenseImg ? uploadDocumentImage(licenseImg, "license") : Promise.resolve(null),
+      ]);
+
       await db.saveDriver({
         id: editingDriverId || undefined,
         first_name: firstName,
@@ -297,6 +307,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         ine_address: ineAddress,
         ine_sex: ineSex,
         ine_elector_key: ineElectorKey,
+        ine_img: ineUrl,
+        license_img: licenseUrl,
         driver_photo_img: driverPhotoImg || null,
         address_proof_img: addressProofImg || null,
       });
@@ -330,6 +342,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     setBirthState("DF");
     setDriverPhotoImg("");
     setAddressProofImg("");
+    setIneImg("");
+    setLicenseImg("");
     setDemoIndex(null);
     setEditingDriverId(null);
     setShowManualFields(false);
@@ -358,6 +372,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         setOcrStep("extract");
 
         if (target === "INE") {
+          setIneImg(imageSource);
           // INE fills primary identity data
           if (parsed.curp) {
             setIneCurp(parsed.curp);
@@ -374,6 +389,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
           if (parsed.sex) setIneSex(parsed.sex);
           if (parsed.address) setIneAddress(parsed.address);
         } else {
+          setLicenseImg(imageSource);
           // LICENSE ONLY fills license specific values to avoid overwriting clean INE data
           if (parsed.licenseNumber) {
             setLicenseNumber(parsed.licenseNumber);
@@ -430,6 +446,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       console.log(`[OCR Objeto Fallback]:`, parsed);
 
       if (target === "INE") {
+        setIneImg(imageSource);
         if (parsed.curp) {
           setIneCurp(parsed.curp);
           setIneDob(parsed.dob || "");
@@ -445,6 +462,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         if (parsed.sex) setIneSex(parsed.sex);
         if (parsed.address) setIneAddress(parsed.address);
       } else {
+        setLicenseImg(imageSource);
         if (parsed.licenseNumber) {
           setLicenseNumber(parsed.licenseNumber);
         }
@@ -871,6 +889,19 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   {/* Two separate triggers for camera vs file uploads */}
                   <div id="section-doc" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear INE (Identificación)</h4>
+                    {ineImg && (
+                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={ineImg} alt="INE" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setIneImg("")}
+                          className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90"
+                          title="Eliminar INE"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -908,6 +939,19 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear Licencia de Conducir</h4>
+                    {licenseImg && (
+                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={licenseImg} alt="Licencia" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setLicenseImg("")}
+                          className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90"
+                          title="Eliminar Licencia"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -1221,141 +1265,122 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
 
 
-      <div className="space-y-3">
+      <div className="w-full overflow-x-auto pb-6">
         {isLoading ? (
           <DriversListSkeleton count={4} />
         ) : (
-          filteredDrivers.map((driver) => (
-          <Card 
-            key={driver.id} 
-            onClick={() => onOpenActionSheet(driver, "driver")}
-            className="border border-[#F2F2F2] dark:border-border/60 bg-white dark:bg-card/45 rounded-[20px] overflow-hidden hover:border-border/80 transition-all duration-200 shadow-2xs cursor-pointer active:scale-[0.99]"
-          >
-            <div className="p-3.5 flex items-center gap-4">
-              {/* Profile Image Avatar Circle/Square */}
-              <div className="relative w-14 h-14 rounded-[14px] overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0 shadow-inner">
-                {driver.driver_photo_img ? (
-                  <Image src={driver.driver_photo_img} alt="Foto Chofer" fill className="object-cover" />
+          <>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Foto</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Nombre</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">CURP</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Licencia</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Vence</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
+                  <th className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDrivers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-muted-foreground italic">
+                      No se encontraron conductores.
+                    </td>
+                  </tr>
                 ) : (
-                  <div className="w-full h-full bg-[#E0E0E0] dark:bg-muted/80 flex items-center justify-center">
-                    <User className="w-6 h-6 text-muted-foreground/60" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info Block */}
-              <div className="flex-1 min-w-0">
-                {/* Name with subtle border under it */}
-                <div className="border-b border-[#F0F0F0] dark:border-border/40 pb-1.5 flex justify-between items-center">
-                  <span className="text-[15px] font-bold text-foreground truncate">{`${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name}`}</span>
-                  
-                  {/* Subtle actions toolbar */}
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                    {driver.license_is_permanent ? (
-                      <span className="px-1.5 py-0.5 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
-                        P
-                      </span>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1.5"
-                        title={`Renovar licencia (Vence: ${driver.license_expiration_date ?? "—"})`}
-                      >
-                        <RefreshCcw className="w-3.5 h-3.5" /> Renovar
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}
-                      className="text-muted-foreground hover:text-primary text-xs gap-1.5"
-                    >
-                      <Pencil className="w-3.5 h-3.5" /> Editar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}
-                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                    </Button>
-                  </div>
-                </div>
-
-                {/* CURP & Assignment Row */}
-                <div className="flex justify-between items-center gap-2 text-[11px] font-medium pt-2 text-foreground/90 min-w-0">
-                  <span className="font-bold font-mono text-foreground tracking-tight truncate">{driver.curp}</span>
-
-                  {(() => {
+                  filteredDrivers.map((driver) => {
                     const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
                     return (
-                      <span className="flex items-center gap-1 font-semibold text-foreground/80 shrink-0">
-                        <Car className="w-3.5 h-3.5 text-foreground/75" />
-                        {assignedVehicle ? "Con auto" : "Sin auto"}
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-
-            <AnimatePresence initial={false}>
-              {expandedDriverDetails[driver.id] && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-                  className="overflow-hidden"
-                >
-                  <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-2 gap-y-1.5 text-muted-foreground">
-                      <div className="min-w-0">
-                        <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Licencia</span>
-                        <span className="text-foreground font-medium truncate block">{driver.license_number || "N/D"}</span>
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
-                        <span className="text-foreground font-medium truncate block">{driver.ine_elector_key || "N/D"}</span>
-                      </div>
-                      <div className="col-span-2 border-t border-border/60 pt-1.5 mt-0.5 min-w-0">
-                        <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
-                        <span className="text-foreground leading-snug break-words">{driver.ine_address || "N/D"}</span>
-                      </div>
-                      {driver.address_proof_img && (
-                        <div className="col-span-2 border-t border-border/60 pt-2 mt-1">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80 mb-1">Comprobante de Domicilio</span>
-                          <div className="relative rounded-lg overflow-hidden border border-border/70 max-h-32 w-fit bg-card">
-                            <Image src={driver.address_proof_img} alt="Comprobante" width={128} height={128} className="max-h-32 object-contain" />
+                      <tr
+                        key={driver.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onOpenActionSheet(driver, "driver")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onOpenActionSheet(driver, "driver");
+                          }
+                        }}
+                        className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                      >
+                        <td className="py-2.5 px-2">
+                          <div className="relative w-8 h-8 rounded-full overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0">
+                            {driver.driver_photo_img ? (
+                              <Image src={driver.driver_photo_img} alt="Foto" fill className="object-cover" />
+                            ) : (
+                              <User className="w-4 h-4 text-muted-foreground/60" />
+                            )}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10" onClick={(e) => e.stopPropagation()}>
-              <Button
-                onClick={(e) => { e.stopPropagation(); toggleDriverDetails(driver.id); }}
-                variant="ghost"
-                className="h-10 text-xs px-3 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
-              >
-                {expandedDriverDetails[driver.id] ? "Ocultar Detalles" : "Ver Detalles"}
-              </Button>
-            </div>
-          </Card>
-        ))
-        )}
-
-        {!isLoading && filteredDrivers.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No se encontraron conductores.
-          </div>
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <span className="font-bold text-foreground">{`${driver.first_name} ${driver.paternal_last_name}`}</span>
+                        </td>
+                        <td className="py-2.5 px-2 font-mono text-muted-foreground">
+                          {driver.curp}
+                        </td>
+                        <td className="py-2.5 px-2 font-mono text-muted-foreground">
+                          {driver.license_number || "—"}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          {driver.license_is_permanent ? (
+                            <span className="px-1.5 py-0.5 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-md">Permanente</span>
+                          ) : (
+                            <span className={`text-muted-foreground ${driver.license_expiration_date && new Date(driver.license_expiration_date) < new Date() ? "text-red-400 font-bold" : ""}`}>
+                              {driver.license_expiration_date || "—"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          {assignedVehicle ? (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Car className="w-3.5 h-3.5 shrink-0" />
+                              {assignedVehicle.plate_number}
+                            </span>
+                          ) : (
+                            <span className="text-amber-500 font-semibold">Sin auto</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2 text-right">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            {!driver.license_is_permanent && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1 h-7 px-2"
+                                title="Renovar licencia"
+                              >
+                                <RefreshCcw className="w-3 h-3" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}
+                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-7 px-2"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}
+                              className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1 h-7 px-2"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 

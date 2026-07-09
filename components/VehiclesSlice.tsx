@@ -1,25 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db, Vehicle, getVerificationSchedule, Driver, Maintenance, Checklist, WeeklyRental } from "@/lib/db";
+import { db, Vehicle, Driver } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
-import { formatDate, sortByDateDesc } from "@/lib/utils";
-import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
 import Tesseract from "tesseract.js";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
-import { Car, FileText, CheckCircle2, AlertTriangle, Search, Shield, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic } from "lucide-react";
+import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
 import { VehiclesListSkeleton } from "@/components/ui/skeletons";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
-
+import { uploadDocumentImage } from "@/lib/db/storage";
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
@@ -34,27 +32,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
-  const [checklists, setChecklists] = useState<Checklist[]>([]);
-  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
-  const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedVehicleLogs, setExpandedVehicleLogs] = useState<Record<string, boolean>>({});
-  const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
-
-  const toggleLogs = (vehicleId: string) => {
-    setExpandedVehicleLogs(prev => ({
-      ...prev,
-      [vehicleId]: !prev[vehicleId]
-    }));
-  };
-
-  const toggleVehicleDetails = (vehicleId: string) => {
-    setExpandedVehicleDetails(prev => ({
-      ...prev,
-      [vehicleId]: !prev[vehicleId]
-    }));
-  };
+  const [search, setSearch] = useState("");
 
   const handleDeleteVehicle = async (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.")) {
@@ -73,6 +52,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     setModel(v.model);
     setClassType(v.class_type);
     setCirculationExpirationDate(v.circulation_expiration_date ?? "");
+    setCirculationImg(v.circulation_img ?? "");
     setVin(v.vin);
     setPlateNumber(v.plate_number);
     setInsurancePolicyImg(v.insurance_policy_img);
@@ -201,6 +181,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [plateNumber, setPlateNumber] = useState("");
   const [insurancePolicyImg, setInsurancePolicyImg] = useState("");
   const [insuranceExpirationDate, setInsuranceExpirationDate] = useState("");
+  const [circulationImg, setCirculationImg] = useState("");
   const [rentCost, setRentCost] = useState<number>(2500);
   const [nextServiceMileage, setNextServiceMileage] = useState<string>("");
   const [color, setColor] = useState("");
@@ -208,32 +189,20 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const loadData = async () => {
     const list = await db.getVehicles();
     const dList = await db.getDrivers();
-    const mList = await db.getMaintenances();
-    const cList = await db.getChecklists();
-    const rList = await db.getWeeklyRentals();
     setVehicles(list);
     setDrivers(dList);
-    setMaintenances(mList);
-    setChecklists(cList);
-    setWeeklyRentals(rList);
   };
 
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, dList, mList, cList, rList] = await Promise.all([
+      const [list, dList] = await Promise.all([
         db.getVehicles(),
         db.getDrivers(),
-        db.getMaintenances(),
-        db.getChecklists(),
-        db.getWeeklyRentals(),
       ]);
       if (isStale) return;
       setVehicles(list);
       setDrivers(dList);
-      setMaintenances(mList);
-      setChecklists(cList);
-      setWeeklyRentals(rList);
       setIsLoading(false);
     })();
     return () => {
@@ -245,19 +214,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, dList, mList, cList, rList] = await Promise.all([
+      const [list, dList] = await Promise.all([
         db.getVehicles(),
         db.getDrivers(),
-        db.getMaintenances(),
-        db.getChecklists(),
-        db.getWeeklyRentals(),
       ]);
       if (isStale) return;
       setVehicles(list);
       setDrivers(dList);
-      setMaintenances(mList);
-      setChecklists(cList);
-      setWeeklyRentals(rList);
       setIsLoading(false);
     })();
     return () => {
@@ -288,6 +251,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       return;
     }
 
+    const circUrl = circulationImg ? await uploadDocumentImage(circulationImg, "circulation") : null;
+
     await db.saveVehicle({
       id: editingVehicleId || undefined,
       brand,
@@ -296,6 +261,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       class_type: classType,
       color: color.trim() || null,
       circulation_expiration_date: circulationExpirationDate,
+      circulation_img: circUrl,
       vin: formattedVin,
       plate_number: formattedPlate,
       insurance_policy_img: insurancePolicyImg,
@@ -324,6 +290,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     setPlateNumber("");
     setInsurancePolicyImg("");
     setInsuranceExpirationDate("");
+    setCirculationImg("");
     setRentCost(2500);
     setNextServiceMileage("");
     setColor("");
@@ -355,6 +322,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         setOcrStep("extract");
 
         if (target === "CIRCULACION") {
+          setCirculationImg(imageSource);
           if (parsed.brand) setBrand(parsed.brand);
           if (parsed.vehicleName) setVehicleName(parsed.vehicleName);
           if (parsed.model) setModel(parsed.model);
@@ -414,6 +382,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       console.log(`[OCR Objeto Fallback]:`, parsed);
 
       if (target === "CIRCULACION") {
+        setCirculationImg(imageSource);
         if (parsed.brand) {
           setBrand(parsed.brand);
           setOcrLogs(prev => [...prev, `✓ [Parser Local] Marca: ${parsed.brand}`]);
@@ -672,6 +641,19 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   {/* Tarjeta de Circulación Photo / Upload picker */}
                   <div id="section-circ" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
+                    {circulationImg && (
+                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setCirculationImg("")}
+                          className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90"
+                          title="Eliminar Tarjeta de Circulación"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -868,384 +850,137 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
 
 
-      <div className="space-y-3">
+      <div className="w-full overflow-x-auto pb-6">
         {isLoading ? (
-          <VehiclesListSkeleton count={3} />
+          <VehiclesListSkeleton count={4} />
         ) : (
-          filteredVehicles.map((vehicle) => {
-          const schedule = getVerificationSchedule(vehicle.plate_number);
-          
-          // 1. Last service calculation
-          const vehicleMaints = maintenances.filter((m) => m.vehicle_id === vehicle.id);
-          const lastMaint = vehicleMaints.length > 0
-            ? sortByDateDesc(vehicleMaints, "maintenance_date")[0]
-            : null;
-          const lastServiceDate = lastMaint ? lastMaint.maintenance_date : "Sin registros";
-          
-          // 2. Mileage calculation
-          const vehicleChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
-          const lastChecklist = vehicleChecklists.length > 0
-            ? sortByDateDesc(vehicleChecklists, "created_at")[0]
-            : null;
-          const mileage = lastChecklist ? `${lastChecklist.mileage} km` : "Sin registros";
-          
-          // 3. Verification status check
-          let verificationStatus = "Pendiente";
-          if (typeof window !== "undefined") {
-            const completed = JSON.parse(localStorage.getItem("fleet_completed_alerts") || "[]");
-            if (completed.includes(`alert-ver-${vehicle.id}`)) {
-              verificationStatus = "Verificado (Al corriente)";
-            }
-          }
-
-          // 3b. Usage stats — weekly km, km/day and 4-week rolling average.
-          // The last 4 weeks' km/day average is what we surface as the
-          // "media de uso mensual" in the expanded details tab.
-          const { weeks: usageWeeks, monthlyAverage: monthlyUsageAverage } = computeUsageStats(vehicleChecklists);
-          const latestWeek = usageWeeks.length > 0 ? usageWeeks[usageWeeks.length - 1] : null;
-          
-          // 4. Next service prediction formula based on checklists and average daily mileage
-          const currentKm = lastChecklist ? lastChecklist.mileage : 0;
-          const targetKm = vehicle.next_service_mileage || null;
-          
-          let nextServiceText = "No programado";
-          let nextServiceEstimate = "N/D";
-          let isServiceOverdue = false;
-          let daysToService = 0;
-
-          if (targetKm) {
-            nextServiceText = `${targetKm.toLocaleString()} km`;
-            
-            // Calculate average daily usage
-            let averageDailyKm = 80; // default typical daily mileage for taxi/uber fleet (e.g. 80km/day)
-            if (vehicleChecklists.length >= 2) {
-              const sortedChecklists = [...vehicleChecklists].sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              );
-              const first = sortedChecklists[0];
-              const last = sortedChecklists[sortedChecklists.length - 1];
-              const kmDiff = last.mileage - first.mileage;
-              const daysDiff = (new Date(last.created_at).getTime() - new Date(first.created_at).getTime()) / (1000 * 60 * 60 * 24);
-              if (daysDiff > 0 && kmDiff > 0) {
-                averageDailyKm = kmDiff / daysDiff;
-              }
-            }
-
-            if (currentKm >= targetKm) {
-              isServiceOverdue = true;
-              const diff = currentKm - targetKm;
-              nextServiceEstimate = `Excedido por ${diff.toLocaleString()} km`;
-            } else {
-              const remainingKm = targetKm - currentKm;
-              daysToService = Math.ceil(remainingKm / averageDailyKm);
-              
-              const estDate = new Date();
-              estDate.setDate(estDate.getDate() + daysToService);
-              nextServiceEstimate = estDate.toLocaleDateString("es-MX", {
-                day: "numeric",
-                month: "short",
-                year: "numeric"
-              });
-            }
-          }
-
-          // 5. Rent status check (si está pagada)
-          let rentStatusText = "Sin chofer";
-          let rentStatusColor = "text-muted-foreground";
-          if (vehicle.active_driver_id) {
-            const d = new Date();
-            const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(d.setDate(diff));
-            const currentMondayStr = monday.toISOString().split("T")[0];
-            
-            const activeRent = weeklyRentals.find(
-              (r) => r.driver_id === vehicle.active_driver_id && r.week_start === currentMondayStr
-            );
-            if (activeRent) {
-              if (activeRent.status === "PAID") {
-                rentStatusText = "Al corriente (Pagada)";
-                rentStatusColor = "text-emerald-400 font-bold";
-              } else if (activeRent.status === "PARTIAL") {
-                rentStatusText = "Abono Parcial";
-                rentStatusColor = "text-amber-400 font-bold";
-              } else {
-                rentStatusText = "Pendiente de Pago";
-                rentStatusColor = "text-red-400 font-bold";
-              }
-            } else {
-              rentStatusText = "Sin cobro generado";
-              rentStatusColor = "text-muted-foreground font-medium";
-            }
-          }
-
-          return (
-            <Card 
-              key={vehicle.id} 
-              onClick={() => onOpenActionSheet(vehicle, "vehicle")}
-              className="border-border bg-card/30 overflow-hidden hover:bg-card/45 hover:border-border/80 transition-all duration-200 cursor-pointer active:scale-[0.99]"
-            >
-              <CardHeader className="p-4 pb-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2.5 bg-muted border border-border rounded-xl shrink-0">
-                      <Car className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="text-sm font-bold text-foreground truncate">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</CardTitle>
-                      <CardDescription className="text-2xs font-mono font-bold text-muted-foreground tracking-wide pt-0.5 truncate block">{vehicle.vin}</CardDescription>
-                      <div className="mt-1 text-xs font-bold truncate">
-                        {vehicle.active_driver_id ? (
-                          <span className="text-primary dark:text-blue-400 truncate block">
-                            Asignado a: {getDriverName(drivers, vehicle.active_driver_id)}
-                          </span>
-                        ) : (
-                          <span className="text-amber-500">
-                            Disponible (En Patio)
-                          </span>
-                        )}
-                      </div>
-                      {/* Alerta de revisión semanal de lunes */}
-                      {(() => {
-                        const d = new Date();
-                        const day = d.getDay();
-                        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                        const monday = new Date(d.setDate(diff));
-                        monday.setHours(0, 0, 0, 0);
-
-                        const hasThisWeeksChecklist = vehicleChecklists.some(
-                          c => new Date(c.created_at) >= monday
-                        );
-                        // Only flag weekly review for assigned vehicles.
-                        if (vehicle.active_driver_id && !hasThisWeeksChecklist) {
-                          return (
-                            <div className="mt-1.5 px-2 py-0.5 w-fit bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-[11px] font-extrabold rounded-md flex items-center gap-1 animate-pulse">
-                              <AlertTriangle className="w-3 h-3 shrink-0" />
-                              <span>Revisión de Lunes Pendiente</span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="px-2.5 py-1 text-xs font-black font-mono tracking-wide border border-border bg-card/80 text-foreground rounded-lg shadow-sm whitespace-nowrap">
-                      {vehicle.plate_number}
-                    </span>
-                    <Button
-                      onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:text-primary hover:bg-primary/10 text-xs gap-1.5"
-                    >
-                      <Pencil className="w-3.5 h-3.5" /> Editar
-                    </Button>
-                    <Button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <AnimatePresence initial={false}>
-                {expandedVehicleDetails[vehicle.id] && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <CardContent className="px-4 pb-3.5 pt-2 text-xs space-y-2 border-t border-border bg-muted/20">
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-2 text-muted-foreground">
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Chofer Asignado</span>
-                          <span className="font-semibold text-foreground truncate block">
-                            {getDriverName(drivers, vehicle.active_driver_id)}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
-                          <span className="text-foreground font-medium truncate block">{vehicle.class_type || "Sedán"}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Color</span>
-                          <span className="text-foreground font-medium truncate block">{vehicle.color || "Sin registrar"}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Engomado</span>
-                          <span className="flex items-center gap-1.5 font-semibold text-foreground truncate">
-                            <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
-                              backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
-                                              schedule.color === "Rosa" ? "#ec4899" :
-                                              schedule.color === "Rojo" ? "#ef4444" :
-                                              schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
-                            }} />
-                            <span className="truncate">{schedule.color}</span>
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Vence Circ.</span>
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-foreground font-medium truncate">{vehicle.circulation_expiration_date || "—"}</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
-                              className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
-                            >
-                              <RefreshCcw className="w-3 h-3" /> Renovar
-                            </button>
-                          </div>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
-                            <span className="text-foreground font-medium truncate">{vehicle.insurance_expiration_date || "—"}</span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
-                              className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline flex items-center gap-0.5 shrink-0"
-                            >
-                              <RefreshCcw className="w-3 h-3" /> Renovar
-                            </button>
-                          </div>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
-                          <span className="text-foreground font-medium truncate block">{lastServiceDate}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
-                          <span className="text-foreground font-medium truncate block">{mileage}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80 font-black">Próx. Servicio</span>
-                          <span className={`font-semibold truncate block ${isServiceOverdue ? "text-amber-500 animate-pulse font-bold" : "text-foreground font-medium"}`}>{nextServiceText}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80 font-black">Est. Fecha</span>
-                          <span className={`font-semibold flex items-center gap-1 min-w-0 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground font-medium"}`}>
-                            {isServiceOverdue && <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
-                            <span className="truncate">{nextServiceEstimate}</span>
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Verificación</span>
-                          <span className={`font-semibold truncate block ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>
-                            {verificationStatus}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Renta</span>
-                          <span className={`truncate block ${rentStatusColor}`}>{rentStatusText}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Uso Semanal (km/día)</span>
-                          <span className="text-foreground font-medium truncate block">
-                            {latestWeek ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/día` : "—"}
-                          </span>
-                          {latestWeek && (
-                            <span className="text-[11px] text-muted-foreground/80 font-medium block truncate">
-                              {latestWeek.km.toLocaleString()} km en la semana
+          <>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Placa</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">ID</th>
+                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Chofer</th>
+                  <th className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVehicles.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-10 text-muted-foreground italic">
+                      No se encontraron vehículos.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVehicles.map((vehicle) => {
+                    const vehicleId = vehicle.vin?.slice(-6).toUpperCase() || "—";
+                    return (
+                      <tr
+                        key={vehicle.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onOpenActionSheet(vehicle, "vehicle")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onOpenActionSheet(vehicle, "vehicle");
+                          }
+                        }}
+                        className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                      >
+                        <td className="py-2.5 px-2">
+                          <span className="font-bold text-foreground">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</span>
+                        </td>
+                        <td className="py-2.5 px-2 font-mono font-bold text-foreground">
+                          {vehicle.plate_number}
+                        </td>
+                        <td className="py-2.5 px-2 font-mono text-muted-foreground">
+                          {vehicleId}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          {vehicle.active_driver_id ? (
+                            <span className="text-primary font-semibold">
+                              {getDriverName(drivers, vehicle.active_driver_id)}
                             </span>
+                          ) : (
+                            <span className="text-amber-500 font-semibold">Disponible</span>
                           )}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold block text-xs uppercase tracking-wider text-muted-foreground/80">Media de Uso Mensual</span>
-                          <span className="text-foreground font-medium truncate block">
-                            {monthlyUsageAverage !== null
-                              ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día`
-                              : "—"}
-                          </span>
-                          {monthlyUsageAverage !== null && (
-                            <span className="text-[11px] text-muted-foreground/80 font-medium block truncate">
-                              Últimas 4 semanas
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="pt-2.5 border-t border-border mt-3 flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-xs text-muted-foreground font-semibold">
-                          {vehicleChecklists.length} bitácoras / checklists
-                        </span>
-                        <Button
-                          onClick={(e) => { e.stopPropagation(); toggleLogs(vehicle.id); }}
-                          variant="ghost"
-                          className="h-10 text-xs px-3 rounded-lg text-primary hover:bg-primary/10 font-bold flex items-center gap-1 cursor-pointer animate-pulse"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          {expandedVehicleLogs[vehicle.id] ? "Ocultar Historial" : "Ver Historial"}
-                        </Button>
-                      </div>
-
-                      <AnimatePresence initial={false}>
-                        {expandedVehicleLogs[vehicle.id] && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-3 pt-3 border-t border-border/80 space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                              {vehicleChecklists.length === 0 ? (
-                                <p className="text-2xs text-muted-foreground italic text-center py-2">No hay checklists registrados aún.</p>
-                              ) : (
-                                sortByDateDesc(vehicleChecklists, "created_at")
-                                  .map((c) => (
-                                    <div key={c.id} className="p-2 rounded-lg bg-muted/40 border border-border/40 text-2xs space-y-1.5">
-                                      <div className="flex justify-between items-center">
-                                        <span className="font-bold text-foreground/90 uppercase tracking-wide">
-                                          {c.type === "WEEKLY_START" ? "Semanal" : "Entrega"}
-                                        </span>
-                                        <span className="text-muted-foreground font-medium">
-                                          {formatDate(c.created_at)}
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
-                                        <span>KM: <strong className="text-foreground">{c.mileage} km</strong></span>
-                                        <span>Gas: <strong className="text-foreground">{c.gasoline_level}</strong></span>
-                                      </div>
-                                      {c.irregularities && (
-                                        <p className="text-xs text-amber-500/90 font-medium">
-                                          <span className="font-bold">Incidencia:</span> {c.irregularities}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </CardContent>
-                  </motion.div>
+                        </td>
+                        <td className="py-2.5 px-2 text-right">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}
+                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-7 px-2"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}
+                              className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1 h-7 px-2"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
-              </AnimatePresence>
+              </tbody>
+            </table>
 
-              <div className="px-4 py-2 border-t border-border/60 flex justify-end bg-muted/10" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  onClick={(e) => { e.stopPropagation(); toggleVehicleDetails(vehicle.id); }}
-                  variant="ghost"
-                  className="h-10 text-xs px-3 rounded-lg text-primary hover:bg-primary/10 font-bold cursor-pointer"
-                >
-                  {expandedVehicleDetails[vehicle.id] ? "Ocultar Detalles" : "Ver Detalles"}
-                </Button>
+            {/* Documentos Section — shows circulation card and insurance policy with their vigencias */}
+            {filteredVehicles.length > 0 && (
+              <div className="mt-6 space-y-3">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Documentos de Vehículos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {filteredVehicles.map((vehicle) => {
+                    const hasCirc = vehicle.circulation_img || vehicle.circulation_expiration_date;
+                    const hasIns = vehicle.insurance_policy_img || vehicle.insurance_expiration_date;
+                    if (!hasCirc && !hasIns) return null;
+                    return (
+                      <div key={vehicle.id} className="bg-muted/30 border border-border/60 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-foreground truncate">{vehicle.brand} {vehicle.vehicle_name} · {vehicle.plate_number}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {vehicle.circulation_img && (
+                            <div className="relative h-16 rounded-lg overflow-hidden border border-border bg-card">
+                              <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover" />
+                            </div>
+                          )}
+                          {vehicle.insurance_policy_img && (
+                            <div className="relative h-16 rounded-lg overflow-hidden border border-border bg-card">
+                              <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-2xs">
+                          <div>
+                            <span className="text-muted-foreground font-semibold uppercase tracking-wider">Circ. vence</span>
+                            <span className={`block font-bold ${vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}`}>
+                              {vehicle.circulation_expiration_date || "—"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground font-semibold uppercase tracking-wider">Seguro vence</span>
+                            <span className={`block font-bold ${vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}`}>
+                              {vehicle.insurance_expiration_date || "—"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </Card>
-          );
-        })
-        )}
-
-        {!isLoading && filteredVehicles.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No se encontraron vehículos.
-          </div>
+            )}
+          </>
         )}
       </div>
 

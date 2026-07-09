@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS drivers (
     ine_address TEXT,
     ine_sex TEXT CHECK (ine_sex IN ('M', 'F', 'X')),
     ine_elector_key TEXT,
+    ine_img TEXT,
+    license_img TEXT,
     driver_photo_img TEXT,
     address_proof_img TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -26,6 +28,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     model TEXT,
     class_type TEXT,
     circulation_expiration_date DATE,
+    circulation_img TEXT,
     vin TEXT,
     plate_number TEXT UNIQUE NOT NULL,
     insurance_policy_img TEXT,
@@ -117,6 +120,11 @@ CREATE POLICY "Allow public write drivers" ON drivers FOR ALL USING (true) WITH 
 
 CREATE POLICY "Allow public read vehicles" ON vehicles FOR SELECT USING (true);
 CREATE POLICY "Allow public write vehicles" ON vehicles FOR ALL USING (true) WITH CHECK (true);
+
+-- Storage bucket RLS: allow public access to documentos bucket
+CREATE POLICY "Allow public read documentos" ON storage.objects FOR SELECT USING (bucket_id = 'documentos');
+CREATE POLICY "Allow public insert documentos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documentos');
+CREATE POLICY "Allow public delete documentos" ON storage.objects FOR DELETE USING (bucket_id = 'documentos');
 
 CREATE POLICY "Allow public read assignments" ON assignments FOR SELECT USING (true);
 CREATE POLICY "Allow public write assignments" ON assignments FOR ALL USING (true) WITH CHECK (true);

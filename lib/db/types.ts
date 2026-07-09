@@ -14,6 +14,8 @@ export interface Driver {
   ine_address: string;
   ine_sex: "M" | "F" | "X";
   ine_elector_key: string;
+  ine_img?: string | null;
+  license_img?: string | null;
   driver_photo_img?: string | null;
   address_proof_img?: string | null;
   created_at: string;
@@ -27,6 +29,7 @@ export interface Vehicle {
   class_type: string;
   color?: string | null;
   circulation_expiration_date: string | null;
+  circulation_img?: string | null;
   vin: string;
   plate_number: string;
   insurance_policy_img: string; // Base64 or URL
