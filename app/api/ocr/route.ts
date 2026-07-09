@@ -76,9 +76,9 @@ Responde únicamente con un objeto JSON válido con la siguiente estructura (lle
 
 No incluyas formateo de markdown (como \`\`\`json) en tu respuesta, devuelve estrictamente el JSON plano.`;
 
-    // Connect to Google Gemini API using gemini-3.5-flash
+    // Connect to Google Gemini API using gemini-3.1-flash-lite
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
