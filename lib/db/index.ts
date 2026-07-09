@@ -171,11 +171,10 @@ export const db = {
   async updateVehicleServiceSchedule(
     id: string,
     nextServiceMileage: number | null,
-    nextMaintenanceDate: string | null
+    _nextMaintenanceDate: string | null
   ): Promise<void> {
-    const patch = {
+    const patch: Record<string, any> = {
       next_service_mileage: nextServiceMileage,
-      next_maintenance_date: nextMaintenanceDate,
     };
 
     if (supabase) {
