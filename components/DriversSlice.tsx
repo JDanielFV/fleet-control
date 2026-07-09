@@ -252,6 +252,28 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     onRefreshAlerts();
   };
 
+  // Payment dialog state
+  const [paymentDialog, setPaymentDialog] = useState<{ rentalId: string; weekStart: string; amount: number } | null>(null);
+
+  const handlePayment = async (rental: WeeklyRental, amount: number) => {
+    if (amount <= 0) return;
+    const updated: WeeklyRental = {
+      ...rental,
+      paid_amount: rental.paid_amount + amount,
+    };
+    const effectiveRent = rental.rent_amount - (rental.condoned_amount || 0);
+    if (updated.paid_amount >= effectiveRent) {
+      updated.status = "PAID";
+    } else if (updated.paid_amount > 0) {
+      updated.status = "PARTIAL";
+    } else {
+      updated.status = "UNPAID";
+    }
+    await db.saveWeeklyRental(updated);
+    setPaymentDialog(null);
+    onRefreshAlerts();
+  };
+
   const loadDrivers = async () => {
     const list = await db.getDrivers();
     const vList = await db.getVehicles();
@@ -1569,16 +1591,28 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                                                 )}
                                               </td>
                                               <td className="py-1.5 text-right">
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCondonationDialog({ rentalId: r.id, weekStart: r.week_start, days: 0 });
-                                                  }}
-                                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors text-[10px] font-medium"
-                                                >
-                                                  <Plus className="w-2.5 h-2.5" />
-                                                  Cond.
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setPaymentDialog({ rentalId: r.id, weekStart: r.week_start, amount: 0 });
+                                                    }}
+                                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors text-[10px] font-medium"
+                                                  >
+                                                    <DollarSign className="w-2.5 h-2.5" />
+                                                    Pagar
+                                                  </button>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setCondonationDialog({ rentalId: r.id, weekStart: r.week_start, days: 0 });
+                                                    }}
+                                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors text-[10px] font-medium"
+                                                  >
+                                                    <Plus className="w-2.5 h-2.5" />
+                                                    Cond.
+                                                  </button>
+                                                </div>
                                               </td>
                                             </tr>
                                           );
@@ -1659,6 +1693,64 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                                             className="flex-1 text-[10px] py-1.5 rounded-md bg-amber-500 text-white font-medium hover:bg-amber-600 disabled:opacity-50"
                                           >
                                             Aplicar
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Payment Dialog */}
+                                  {paymentDialog && (
+                                    <div
+                                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                                      onClick={() => setPaymentDialog(null)}
+                                    >
+                                      <div
+                                        className="bg-background border border-border rounded-xl p-4 w-64 shadow-xl"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <div className="flex items-center gap-2 mb-3">
+                                          <DollarSign className="w-4 h-4 text-green-400" />
+                                          <span className="text-xs font-semibold text-foreground">
+                                            Registrar Pago
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground mb-3">
+                                          Semana del {new Date(paymentDialog.weekStart + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+                                        </p>
+                                        <div className="flex items-center gap-2 mb-3">
+                                          <span className="text-xs text-muted-foreground">$</span>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            value={paymentDialog.amount || ""}
+                                            onChange={(e) =>
+                                              setPaymentDialog((prev) =>
+                                                prev ? { ...prev, amount: Math.max(0, parseInt(e.target.value) || 0) } : prev
+                                              )
+                                            }
+                                            className="flex-1 text-xs bg-muted/20 border border-border rounded-md py-1.5 px-2 text-foreground text-center"
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => setPaymentDialog(null)}
+                                            className="flex-1 text-[10px] py-1.5 rounded-md border border-border text-muted-foreground hover:bg-muted/20"
+                                          >
+                                            Cancelar
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              const rental = driverRentals.find((r) => r.id === paymentDialog.rentalId);
+                                              if (rental && paymentDialog.amount > 0) {
+                                                handlePayment(rental, paymentDialog.amount);
+                                              }
+                                            }}
+                                            disabled={paymentDialog.amount <= 0}
+                                            className="flex-1 text-[10px] py-1.5 rounded-md bg-green-500 text-white font-medium hover:bg-green-600 disabled:opacity-50"
+                                          >
+                                            Pagar
                                           </button>
                                         </div>
                                       </div>
