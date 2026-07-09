@@ -262,6 +262,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     }
 
     const circUrl = circulationImg ? await uploadDocumentImage(circulationImg, "circulation") : null;
+    const insUrl = insurancePolicyImg ? await uploadDocumentImage(insurancePolicyImg, "insurance") : null;
 
     await db.saveVehicle({
       id: editingVehicleId || undefined,
@@ -274,7 +275,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       circulation_img: circUrl,
       vin: formattedVin,
       plate_number: formattedPlate,
-      insurance_policy_img: insurancePolicyImg,
+      insurance_policy_img: insUrl || insurancePolicyImg,
       insurance_expiration_date: insuranceExpirationDate,
       active_driver_id: editingVehicleId
         ? vehicles.find((v) => v.id === editingVehicleId)?.active_driver_id ?? null

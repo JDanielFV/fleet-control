@@ -288,9 +288,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     }
 
     try {
-      const [ineUrl, licenseUrl] = await Promise.all([
+      const [ineUrl, licenseUrl, photoUrl, addressUrl] = await Promise.all([
         ineImg ? uploadDocumentImage(ineImg, "ine") : Promise.resolve(null),
         licenseImg ? uploadDocumentImage(licenseImg, "license") : Promise.resolve(null),
+        driverPhotoImg ? uploadDocumentImage(driverPhotoImg, "photo") : Promise.resolve(null),
+        addressProofImg ? uploadDocumentImage(addressProofImg, "address") : Promise.resolve(null),
       ]);
 
       await db.saveDriver({
@@ -309,8 +311,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         ine_elector_key: ineElectorKey,
         ine_img: ineUrl,
         license_img: licenseUrl,
-        driver_photo_img: driverPhotoImg || null,
-        address_proof_img: addressProofImg || null,
+        driver_photo_img: photoUrl || driverPhotoImg || null,
+        address_proof_img: addressUrl || addressProofImg || null,
       });
 
       resetForm();
