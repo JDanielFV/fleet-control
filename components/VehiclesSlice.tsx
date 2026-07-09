@@ -1499,6 +1499,24 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Document Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={(o) => { if (!o) setPreviewImage(null); }}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto border border-border bg-black/95 text-foreground rounded-2xl p-2">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {previewImage && (
+              <Image
+                src={previewImage}
+                alt="Documento"
+                width={1200}
+                height={1600}
+                className="object-contain max-w-full max-h-[85vh] rounded-lg"
+                style={{ width: 'auto', height: 'auto' }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
