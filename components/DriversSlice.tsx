@@ -748,7 +748,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       licenseCurp,
       licenseNumber,
       licenseDob,
-      licenseIssueDate,
       licenseExpirationDate,
       ineCurp,
       ineDob,
@@ -763,14 +762,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     licenseCurp,
     licenseNumber,
     licenseDob,
-    licenseIssueDate,
     licenseExpirationDate,
     ineCurp,
     ineDob,
     ineElectorKey,
     ineAddress,
   ]);
-  const MANUAL_FIELDS_TOTAL = 12;
+  const MANUAL_FIELDS_TOTAL = 11;
 
   return (
     <div className="space-y-4">
