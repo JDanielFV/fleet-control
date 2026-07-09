@@ -178,16 +178,31 @@ export function useOcrScanner<T extends string>({
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // Save the color image for storage FIRST
+    const colorDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+
+    // For OCR targets, also create a binarized version for text recognition
+    let ocrDataUrl = colorDataUrl;
     if (!rawTargetsRef.current.includes(scanTarget)) {
-      preprocessCanvasForOcr(canvas);
+      // Clone canvas, binarize the clone, and get the binarized data URL for OCR
+      const ocrCanvas = document.createElement("canvas");
+      ocrCanvas.width = canvas.width;
+      ocrCanvas.height = canvas.height;
+      const ocrCtx = ocrCanvas.getContext("2d");
+      if (ocrCtx) {
+        ocrCtx.drawImage(video, 0, 0, ocrCanvas.width, ocrCanvas.height);
+        preprocessCanvasForOcr(ocrCanvas);
+        ocrDataUrl = ocrCanvas.toDataURL("image/jpeg", 0.95);
+      }
     }
+
     stopCamera();
 
     try {
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-      console.log(`[Captura] Data URL generado con éxito. Longitud cadena: ${dataUrl.length}`);
+      console.log(`[Captura] Data URL generado con éxito. Longitud cadena: ${colorDataUrl.length}`);
       setOcrLogs((prev) => [...prev, `[Captura] Fotograma capturado en Base64.`]);
-      onFrameRef.current(dataUrl, scanTarget);
+      // Pass the COLOR image to onFrame so it gets stored in full color
+      onFrameRef.current(colorDataUrl, scanTarget);
       // Photo-only (raw) targets are done once captured; OCR targets stay
       // "scanning" until the slice's parser finishes and clears the state.
       if (rawTargetsRef.current.includes(scanTarget)) {
