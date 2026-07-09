@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Check, X, ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { motion } from "framer-motion";
+import { Camera, Check, X, ChevronLeft, ChevronRight, Package, Plus, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,15 +33,20 @@ interface InventoryWizardProps {
   open: boolean;
   onClose: () => void;
   onSave: (photos: VehiclePhoto[], items: InventoryItem[]) => void;
+  /** Existing photos to show on open */
+  initialPhotos?: VehiclePhoto[];
+  /** Existing items to show on open */
+  initialItems?: InventoryItem[];
 }
 
-export default function InventoryWizard({ open, onClose, onSave }: InventoryWizardProps) {
-  const [step, setStep] = useState<"photos" | "items" | "review">("photos");
+export default function InventoryWizard({ open, onClose, onSave, initialPhotos, initialItems }: InventoryWizardProps) {
+  const [view, setView] = useState<"main" | "camera" | "items">("main");
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [photos, setPhotos] = useState<VehiclePhoto[]>(PHOTO_ANGLES.map((a) => ({ angle: a.id, dataUrl: null })));
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [photos, setPhotos] = useState<VehiclePhoto[]>(initialPhotos || PHOTO_ANGLES.map((a) => ({ angle: a.id, dataUrl: null })));
+  const [items, setItems] = useState<InventoryItem[]>(initialItems || []);
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState("1");
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -79,8 +84,6 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
     if (photoIndex < PHOTO_ANGLES.length - 1) {
       setPhotoIndex(photoIndex + 1);
       startCamera();
-    } else {
-      setStep("items");
     }
   };
 
@@ -106,6 +109,14 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
     stopCamera();
     onClose();
   };
+
+  const openCamera = () => {
+    setPhotoIndex(0);
+    setView("camera");
+    startCamera();
+  };
+
+  const takenCount = photos.filter((p) => p.dataUrl).length;
 
   if (!open) return null;
 
@@ -134,9 +145,9 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
             <div>
               <h2 className="text-lg font-black text-foreground">Inventario del Auto</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {step === "photos" && `Foto ${photoIndex + 1} de ${PHOTO_ANGLES.length}: ${currentAngle.label}`}
-                {step === "items" && "Agrega los objetos que tiene el auto"}
-                {step === "review" && "Revisa antes de guardar"}
+                {view === "main" && `${takenCount} fotos · ${items.length} objetos`}
+                {view === "camera" && `Foto ${photoIndex + 1} de ${PHOTO_ANGLES.length}: ${currentAngle.label}`}
+                {view === "items" && "Agrega los objetos que tiene el auto"}
               </p>
             </div>
             <button onClick={() => { stopCamera(); onClose(); }} className="p-2 rounded-full text-foreground hover:bg-secondary cursor-pointer">
@@ -145,9 +156,103 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
           </div>
 
           <div className="p-5 overflow-y-auto flex-1">
-            {step === "photos" && (
+            {view === "main" && (
+              <div className="space-y-5">
+                {/* Photo gallery section */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fotos del Auto</h4>
+                    <button onClick={openCamera} className="text-xs font-bold text-primary hover:underline cursor-pointer">
+                      {takenCount > 0 ? "Editar fotos" : "Añadir fotos"}
+                    </button>
+                  </div>
+
+                  {takenCount === 0 ? (
+                    <div className="aspect-video w-full rounded-xl bg-muted/30 border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-3">
+                      <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
+                      <p className="text-xs text-muted-foreground italic">Sin fotos del auto</p>
+                      <button
+                        onClick={openCamera}
+                        className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-sm hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Camera className="w-4 h-4" /> Añadir fotos
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {photos.map((p, i) => (
+                        <button
+                          key={i}
+                          onClick={() => p.dataUrl && setPreviewPhoto(p.dataUrl)}
+                          className={`aspect-video rounded-lg border overflow-hidden relative ${
+                            p.dataUrl ? "border-border/60 hover:border-primary/50 cursor-pointer" : "border-dashed border-border/30 bg-muted/10"
+                          }`}
+                        >
+                          {p.dataUrl ? (
+                            <img src={p.dataUrl} alt={PHOTO_ANGLES[i].label} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-[8px] text-muted-foreground/50 font-bold text-center leading-tight px-1">
+                                {PHOTO_ANGLES[i].label}
+                              </span>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-1 pb-0.5 pt-3">
+                            <span className="text-[8px] text-white/80 font-semibold">{PHOTO_ANGLES[i].label}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Inventory items section */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Objetos a Bordo</h4>
+                    <button onClick={() => setView("items")} className="text-xs font-bold text-primary hover:underline cursor-pointer">
+                      {items.length > 0 ? "Editar" : "Añadir objetos"}
+                    </button>
+                  </div>
+
+                  {items.length === 0 ? (
+                    <div className="p-4 rounded-xl bg-muted/20 border border-dashed border-border/60 flex flex-col items-center gap-2">
+                      <Package className="w-6 h-6 text-muted-foreground/40" />
+                      <p className="text-xs text-muted-foreground italic">Sin objetos registrados</p>
+                      <button
+                        onClick={() => setView("items")}
+                        className="px-3 py-1.5 bg-primary text-white text-[11px] font-bold rounded-lg cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Añadir objeto
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/60">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold text-foreground">{item.name}</span>
+                            <span className="text-xs text-muted-foreground">x{item.quantity}</span>
+                          </div>
+                          <button onClick={() => removeItem(i)} className="p-1 text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Save button */}
+                <Button onClick={handleSave} className="w-full rounded-xl bg-primary text-white font-bold">
+                  Guardar Inventario
+                </Button>
+              </div>
+            )}
+
+            {view === "camera" && (
               <div className="space-y-4">
-                {/* Camera / Photo preview */}
                 <div className="relative aspect-video w-full rounded-xl bg-muted overflow-hidden flex items-center justify-center border border-border">
                   {currentPhoto.dataUrl ? (
                     <img src={currentPhoto.dataUrl} alt={currentAngle.label} className="w-full h-full object-cover" />
@@ -168,7 +273,6 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
                   </div>
                 </div>
 
-                {/* Controls */}
                 <div className="flex items-center justify-center gap-3">
                   {streamRef.current && !currentPhoto.dataUrl && (
                     <Button onClick={capturePhoto} className="rounded-full h-12 px-6 bg-primary text-white font-bold">
@@ -182,7 +286,6 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
                   )}
                 </div>
 
-                {/* Navigation */}
                 <div className="flex justify-between">
                   <Button variant="ghost" onClick={prevPhoto} disabled={photoIndex === 0} className="text-xs">
                     <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
@@ -192,14 +295,18 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
                       <div key={a.id} className={`w-2 h-2 rounded-full ${photos[i].dataUrl ? "bg-emerald-500" : i === photoIndex ? "bg-primary" : "bg-muted-foreground/30"}`} />
                     ))}
                   </div>
-                  <Button variant="ghost" onClick={nextPhoto} className="text-xs">
-                    {photoIndex < PHOTO_ANGLES.length - 1 ? <>Siguiente <ChevronRight className="w-4 h-4 ml-1" /></> : "Continuar →"}
+                  <Button variant="ghost" onClick={nextPhoto} disabled={photoIndex >= PHOTO_ANGLES.length - 1} className="text-xs">
+                    Siguiente <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
+
+                <Button variant="outline" onClick={() => { stopCamera(); setView("main"); }} className="w-full rounded-xl">
+                  Volver al inventario
+                </Button>
               </div>
             )}
 
-            {step === "items" && (
+            {view === "items" && (
               <div className="space-y-4">
                 <div className="flex gap-2">
                   <div className="flex-1">
@@ -246,55 +353,22 @@ export default function InventoryWizard({ open, onClose, onSave }: InventoryWiza
                   )}
                 </div>
 
-                <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={() => setStep("photos")} className="text-xs">
-                    <ChevronLeft className="w-4 h-4 mr-1" /> Volver a fotos
-                  </Button>
-                  <Button onClick={() => setStep("review")} className="text-xs bg-primary text-white rounded-xl">
-                    Revisar y guardar
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {step === "review" && (
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2">Fotos ({photos.filter((p) => p.dataUrl).length}/{PHOTO_ANGLES.length})</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {photos.map((p, i) => (
-                      <div key={i} className={`aspect-video rounded-lg border flex items-center justify-center text-[10px] font-bold ${p.dataUrl ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-500" : "border-border/40 bg-muted/20 text-muted-foreground"}`}>
-                        {p.dataUrl ? <Check className="w-4 h-4" /> : PHOTO_ANGLES[i].label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2">Inventario ({items.length} objetos)</h4>
-                  {items.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">Sin objetos registrados</p>
-                  ) : (
-                    items.map((item, i) => (
-                      <div key={i} className="flex justify-between text-xs py-1 px-2 rounded-lg bg-muted/20 mb-1">
-                        <span className="font-semibold">{item.name}</span>
-                        <span className="text-muted-foreground">x{item.quantity}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" onClick={() => setStep("items")} className="flex-1 rounded-xl">
-                    Volver
-                  </Button>
-                  <Button onClick={handleSave} className="flex-1 rounded-xl bg-primary text-white font-bold">
-                    Guardar Inventario
-                  </Button>
-                </div>
+                <Button variant="outline" onClick={() => setView("main")} className="w-full rounded-xl">
+                  Volver al inventario
+                </Button>
               </div>
             )}
           </div>
+
+          {/* Photo preview modal */}
+          {previewPhoto && (
+            <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setPreviewPhoto(null)}>
+              <img src={previewPhoto} alt="Vista previa" className="max-w-full max-h-full object-contain" />
+              <button onClick={() => setPreviewPhoto(null)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </motion.div>
       </div>
     </>
