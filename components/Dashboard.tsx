@@ -569,6 +569,31 @@ export default function Dashboard() {
                                 );
                                 const usageStats = computeUsageStats(driverChecklists);
 
+                                // ── Traffic light status ──
+                                const today = new Date();
+                                const getRowStatus = (v: Vehicle): "in_service" | "red" | "yellow" | "green" => {
+                                  if (v.status === "in_service") return "in_service";
+                                  const dates = [
+                                    v.circulation_expiration_date,
+                                    v.insurance_expiration_date,
+                                    v.verification_expiration_date,
+                                  ].filter(Boolean) as string[];
+                                  for (const d of dates) {
+                                    const diff = Math.ceil((new Date(d).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                    if (diff <= 0) return "red";
+                                    if (diff <= 30) return "yellow";
+                                  }
+                                  return "green";
+                                };
+                                const rowStatus = getRowStatus(assignedVehicle);
+                                const rowColorClass = rowStatus === "in_service"
+                                  ? "bg-blue-500/5 border-l-4 border-l-blue-500"
+                                  : rowStatus === "red"
+                                  ? "bg-red-500/5 border-l-4 border-l-red-500"
+                                  : rowStatus === "yellow"
+                                  ? "bg-amber-500/5 border-l-4 border-l-amber-500"
+                                  : "border-l-4 border-l-transparent";
+
                                 return (
                                   <tr
                                     key={driver.id}
@@ -581,7 +606,7 @@ export default function Dashboard() {
                                         openActionModal(assignedVehicle);
                                       }
                                     }}
-                                    className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                                    className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${rowColorClass}`}
                                   >
                                     <td className="py-3 px-2">
                                       <span className="font-bold text-foreground">{driver.first_name} {driver.paternal_last_name}</span>
