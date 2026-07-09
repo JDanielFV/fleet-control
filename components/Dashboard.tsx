@@ -1075,6 +1075,10 @@ export default function Dashboard() {
         open={assignmentDialogOpen}
         onClose={() => { setAssignmentDialogOpen(false); setAssignmentPreselect(null, null); }}
         onComplete={triggerRefresh}
+        onAssign={(vehicleId) => {
+          const v = vehicles.find((vv) => vv.id === vehicleId);
+          if (v) openChecklistSheet(v);
+        }}
         drivers={drivers}
         vehicles={vehicles}
         preselectDriver={assignmentPreselectDriver}

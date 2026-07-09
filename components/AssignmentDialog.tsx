@@ -12,13 +12,14 @@ interface AssignmentDialogProps {
   open: boolean;
   onClose: () => void;
   onComplete: () => void;
+  onAssign: (vehicleId: string, driverId: string) => void;
   drivers: Driver[];
   vehicles: Vehicle[];
   preselectDriver?: string | null;
   preselectVehicle?: string | null;
 }
 
-export default function AssignmentDialog({ open, onClose, onComplete, drivers, vehicles, preselectDriver, preselectVehicle }: AssignmentDialogProps) {
+export default function AssignmentDialog({ open, onClose, onComplete, onAssign, drivers, vehicles, preselectDriver, preselectVehicle }: AssignmentDialogProps) {
   const [selectedDriver, setSelectedDriver] = useState<string | null>(preselectDriver || null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(preselectVehicle || null);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,9 +43,10 @@ export default function AssignmentDialog({ open, onClose, onComplete, drivers, v
       await db.createAssignment(selectedVehicle, selectedDriver, "ASSIGN", "Asignación desde panel de checklists");
       setSuccess(true);
       setTimeout(() => {
+        onAssign(selectedVehicle, selectedDriver);
         onComplete();
         onClose();
-      }, 1500);
+      }, 1200);
     } catch (err) {
       alert("Error al asignar: " + err);
     } finally {
