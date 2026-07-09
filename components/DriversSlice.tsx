@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { db, Driver, Vehicle } from "@/lib/db";
+import { db, Driver, Vehicle, WeeklyRental } from "@/lib/db";
 import { parseOcrText, calculateCurp, MEXICAN_STATES } from "@/lib/ocr";
 import Tesseract from "tesseract.js";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
-import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X } from "lucide-react";
+import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X, DollarSign, XCircle, Calendar, Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -30,9 +30,10 @@ interface DriversSliceProps {
   autoOpen?: boolean;
   /** Called after the dialog is closed (to clear the autoOpen flag). */
   onAutoOpenConsumed?: () => void;
+  weeklyRentals?: WeeklyRental[];
 }
 
-export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, weeklyRentals = [] }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
@@ -218,12 +219,36 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   const [birthState, setBirthState] = useState("DF"); // CDMX default
   const [demoIndex, setDemoIndex] = useState<number | null>(null);
   const [expandedDriverDetails, setExpandedDriverDetails] = useState<Record<string, boolean>>({});
+  const [condonationDialog, setCondonationDialog] = useState<{ rentalId: string; weekStart: string; days: number } | null>(null);
 
   const toggleDriverDetails = (driverId: string) => {
     setExpandedDriverDetails(prev => ({
       ...prev,
       [driverId]: !prev[driverId]
     }));
+  };
+
+  const handleCondonation = async (rental: WeeklyRental, days: number) => {
+    if (days <= 0) return;
+    const dailyRate = rental.rent_amount / 7;
+    const condonedAmount = Math.round(dailyRate * days);
+    const updated: WeeklyRental = {
+      ...rental,
+      condoned_days: (rental.condoned_days || 0) + days,
+      condoned_amount: (rental.condoned_amount || 0) + condonedAmount,
+    };
+    // Recompute status based on new paid vs rent
+    const effectiveRent = rental.rent_amount - updated.condoned_amount;
+    if (rental.paid_amount >= effectiveRent) {
+      updated.status = "PAID";
+    } else if (rental.paid_amount > 0) {
+      updated.status = "PARTIAL";
+    } else {
+      updated.status = "UNPAID";
+    }
+    await db.saveWeeklyRental(updated);
+    setCondonationDialog(null);
+    onRefreshAlerts();
   };
 
   const loadDrivers = async () => {
@@ -1428,6 +1453,218 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                                 </div>
                               )}
                             </div>
+
+                            {/* Payment History Section */}
+                            {(() => {
+                              const driverRentals = weeklyRentals
+                                .filter((r) => r.driver_id === driver.id)
+                                .sort((a, b) => b.week_start.localeCompare(a.week_start));
+
+                              if (driverRentals.length === 0) return null;
+
+                              const totalDebt = driverRentals.reduce(
+                                (sum, r) => sum + Math.max(0, r.rent_amount - r.paid_amount - (r.condoned_amount || 0)), 0
+                              );
+                              const totalPaid = driverRentals.reduce((sum, r) => sum + r.paid_amount, 0);
+                              const totalCondoned = driverRentals.reduce((sum, r) => sum + (r.condoned_amount || 0), 0);
+
+                              return (
+                                <div className="mt-4">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">
+                                      Historial de Pagos
+                                    </span>
+                                  </div>
+
+                                  {/* Summary Cards */}
+                                  <div className="grid grid-cols-3 gap-2 mb-3">
+                                    <div className="bg-muted/20 rounded-xl border border-border/60 p-3">
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 block">Deuda Total</span>
+                                      <span className="text-sm font-bold text-red-400">
+                                        ${totalDebt.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className="bg-muted/20 rounded-xl border border-border/60 p-3">
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 block">Total Pagado</span>
+                                      <span className="text-sm font-bold text-green-400">
+                                        ${totalPaid.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className="bg-muted/20 rounded-xl border border-border/60 p-3">
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 block">Total Condonado</span>
+                                      <span className="text-sm font-bold text-amber-400">
+                                        ${totalCondoned.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Rentals Table */}
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-[10px]">
+                                      <thead>
+                                        <tr className="border-b border-border/20 text-muted-foreground/60">
+                                          <th className="text-left py-1.5 pr-2 font-medium">Semana</th>
+                                          <th className="text-right pr-2 font-medium">Renta</th>
+                                          <th className="text-right pr-2 font-medium">Cond.</th>
+                                          <th className="text-right pr-2 font-medium">Pagado</th>
+                                          <th className="text-right pr-2 font-medium">Deuda</th>
+                                          <th className="text-center px-2 font-medium">Status</th>
+                                          <th className="text-right font-medium"></th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {driverRentals.map((r) => {
+                                          const debt = Math.max(0, r.rent_amount - r.paid_amount - (r.condoned_amount || 0));
+                                          return (
+                                            <tr key={r.id} className="border-b border-border/10 hover:bg-muted/10">
+                                              <td className="py-1.5 pr-2 text-foreground whitespace-nowrap">
+                                                <span className="flex items-center gap-1">
+                                                  <Calendar className="w-2.5 h-2.5 text-muted-foreground" />
+                                                  {new Date(r.week_start + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+                                                </span>
+                                              </td>
+                                              <td className="py-1.5 pr-2 text-right text-foreground">
+                                                ${r.rent_amount.toLocaleString()}
+                                              </td>
+                                              <td className="py-1.5 pr-2 text-right">
+                                                {(r.condoned_days || 0) > 0 ? (
+                                                  <span className="text-amber-400 font-medium">
+                                                    {r.condoned_days}d · ${(r.condoned_amount || 0).toLocaleString()}
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-muted-foreground/40">—</span>
+                                                )}
+                                              </td>
+                                              <td className="py-1.5 pr-2 text-right text-foreground">
+                                                ${r.paid_amount.toLocaleString()}
+                                              </td>
+                                              <td className="py-1.5 pr-2 text-right">
+                                                {debt > 0 ? (
+                                                  <span className="text-red-400 font-medium">
+                                                    ${debt.toLocaleString()}
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-green-400">$0</span>
+                                                )}
+                                              </td>
+                                              <td className="py-1.5 px-2 text-center">
+                                                {r.status === "PAID" ? (
+                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-medium">
+                                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                                    PAID
+                                                  </span>
+                                                ) : r.status === "PARTIAL" ? (
+                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                                                    <AlertTriangle className="w-2.5 h-2.5" />
+                                                    PARTIAL
+                                                  </span>
+                                                ) : (
+                                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-medium">
+                                                    <XCircle className="w-2.5 h-2.5" />
+                                                    UNPAID
+                                                  </span>
+                                                )}
+                                              </td>
+                                              <td className="py-1.5 text-right">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCondonationDialog({ rentalId: r.id, weekStart: r.week_start, days: 0 });
+                                                  }}
+                                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors text-[10px] font-medium"
+                                                >
+                                                  <Plus className="w-2.5 h-2.5" />
+                                                  Cond.
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  {/* Condonation Dialog */}
+                                  {condonationDialog && (
+                                    <div
+                                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                                      onClick={() => setCondonationDialog(null)}
+                                    >
+                                      <div
+                                        className="bg-background border border-border rounded-xl p-4 w-64 shadow-xl"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <div className="flex items-center gap-2 mb-3">
+                                          <Minus className="w-4 h-4 text-amber-400" />
+                                          <span className="text-xs font-semibold text-foreground">
+                                            Condonar Días
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground mb-3">
+                                          Semana del {new Date(condonationDialog.weekStart + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+                                        </p>
+                                        <div className="flex items-center gap-2 mb-3">
+                                          <button
+                                            onClick={() =>
+                                              setCondonationDialog((prev) =>
+                                                prev ? { ...prev, days: Math.max(0, prev.days - 1) } : prev
+                                              )
+                                            }
+                                            className="w-7 h-7 rounded-md bg-muted/30 border border-border flex items-center justify-center text-foreground hover:bg-muted/50"
+                                          >
+                                            −
+                                          </button>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={7}
+                                            value={condonationDialog.days}
+                                            onChange={(e) =>
+                                              setCondonationDialog((prev) =>
+                                                prev ? { ...prev, days: Math.max(0, Math.min(7, parseInt(e.target.value) || 0)) } : prev
+                                              )
+                                            }
+                                            className="w-14 text-center text-xs bg-muted/20 border border-border rounded-md py-1 text-foreground"
+                                          />
+                                          <button
+                                            onClick={() =>
+                                              setCondonationDialog((prev) =>
+                                                prev ? { ...prev, days: Math.min(7, prev.days + 1) } : prev
+                                              )
+                                            }
+                                            className="w-7 h-7 rounded-md bg-muted/30 border border-border flex items-center justify-center text-foreground hover:bg-muted/50"
+                                          >
+                                            +
+                                          </button>
+                                          <span className="text-[10px] text-muted-foreground">días</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => setCondonationDialog(null)}
+                                            className="flex-1 text-[10px] py-1.5 rounded-md border border-border text-muted-foreground hover:bg-muted/20"
+                                          >
+                                            Cancelar
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              const rental = driverRentals.find((r) => r.id === condonationDialog.rentalId);
+                                              if (rental && condonationDialog.days > 0) {
+                                                handleCondonation(rental, condonationDialog.days);
+                                              }
+                                            }}
+                                            disabled={condonationDialog.days <= 0}
+                                            className="flex-1 text-[10px] py-1.5 rounded-md bg-amber-500 text-white font-medium hover:bg-amber-600 disabled:opacity-50"
+                                          >
+                                            Aplicar
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                         </tr>
                       )}

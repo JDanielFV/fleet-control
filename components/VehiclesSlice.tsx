@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db, Vehicle, Driver, getVerificationSchedule, Checklist, Maintenance } from "@/lib/db";
+import { db, Vehicle, Driver, getVerificationSchedule, Checklist, Maintenance, Assignment, RenewalLog } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
@@ -21,6 +21,7 @@ import { VehiclesListSkeleton } from "@/components/ui/skeletons";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { uploadDocumentImage } from "@/lib/db/storage";
+import VehicleHistory from "@/components/VehicleHistory";
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
@@ -35,6 +36,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
@@ -95,15 +98,27 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const submitRenewal = async () => {
     if (!renewingVehicle) return;
     const patch: Partial<Vehicle> = {};
+    let prevExpiration: string | null = null;
     if (renewTarget === "CIRCULACION") {
+      prevExpiration = renewingVehicle.circulation_expiration_date;
       patch.circulation_expiration_date = renewExpirationDate;
     } else if (renewTarget === "SEGURO") {
+      prevExpiration = renewingVehicle.insurance_expiration_date;
       patch.insurance_expiration_date = renewExpirationDate;
       if (renewPolicyImg) patch.insurance_policy_img = renewPolicyImg;
     } else if (renewTarget === "VERIFICACION") {
       patch.verification_expiration_date = renewExpirationDate;
     }
     await db.saveVehicle({ ...renewingVehicle, ...patch });
+    // Log the renewal
+    if (renewTarget === "CIRCULACION" || renewTarget === "SEGURO") {
+      await db.saveRenewalLog({
+        vehicle_id: renewingVehicle.id,
+        type: renewTarget,
+        previous_expiration: prevExpiration,
+        new_expiration: renewExpirationDate,
+      });
+    }
     setIsRenewOpen(false);
     setRenewingVehicle(null);
     setRenewTarget(null);
@@ -306,22 +321,32 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [verificationExpirationDate, setVerificationExpirationDate] = useState("");
 
   const loadData = async () => {
-    const list = await db.getVehicles();
-    const dList = await db.getDrivers();
+    const [list, dList, maints, assigns] = await Promise.all([
+      db.getVehicles(),
+      db.getDrivers(),
+      db.getMaintenances(),
+      db.getAssignments(),
+    ]);
     setVehicles(list);
     setDrivers(dList);
+    setMaintenances(maints);
+    setAssignments(assigns);
   };
 
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, dList] = await Promise.all([
+      const [list, dList, maints, assigns] = await Promise.all([
         db.getVehicles(),
         db.getDrivers(),
+        db.getMaintenances(),
+        db.getAssignments(),
       ]);
       if (isStale) return;
       setVehicles(list);
       setDrivers(dList);
+      setMaintenances(maints);
+      setAssignments(assigns);
       setIsLoading(false);
     })();
     return () => {
@@ -333,13 +358,17 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, dList] = await Promise.all([
+      const [list, dList, maints, assigns] = await Promise.all([
         db.getVehicles(),
         db.getDrivers(),
+        db.getMaintenances(),
+        db.getAssignments(),
       ]);
       if (isStale) return;
       setVehicles(list);
       setDrivers(dList);
+      setMaintenances(maints);
+      setAssignments(assigns);
       setIsLoading(false);
     })();
     return () => {
@@ -1382,6 +1411,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                                   </div>
                                 </div>
                               </div>
+
+                              {/* ─── VEHICLE HISTORY ─── */}
+                              <VehicleHistory vehicle={vehicle} maintenances={maintenances} assignments={assignments} drivers={drivers} />
                             </div>
                           </td>
                         </tr>

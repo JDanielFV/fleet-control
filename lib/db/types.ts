@@ -94,6 +94,10 @@ export interface WeeklyRental {
   is_prorated: boolean;
   /** Days worked in the prorated first week (only meaningful when is_prorated). */
   prorated_days?: number;
+  /** Days the vehicle was in service / condoned (no rental charge) */
+  condoned_days: number;
+  /** Amount condoned (rent_amount / 7 * condoned_days) */
+  condoned_amount: number;
   status: "PAID" | "PARTIAL" | "UNPAID";
   payments_log: Payment[];
   created_at: string;
@@ -116,6 +120,15 @@ export interface Maintenance {
   description: string;
   maintenance_date: string;
   next_maintenance_date: string | null;
+  created_at: string;
+}
+
+export interface RenewalLog {
+  id: string;
+  vehicle_id: string;
+  type: "CIRCULACION" | "SEGURO";
+  previous_expiration: string | null;
+  new_expiration: string;
   created_at: string;
 }
 

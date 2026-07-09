@@ -124,6 +124,8 @@ export const seedWeeklyRentals: WeeklyRental[] = [
     rent_amount: 2500,
     paid_amount: 1500,
     is_prorated: false,
+    condoned_days: 0,
+    condoned_amount: 0,
     status: "PARTIAL",
     payments_log: [
       { amount: 1000, date: "2026-06-23" },
@@ -138,6 +140,8 @@ export const seedWeeklyRentals: WeeklyRental[] = [
     rent_amount: 2500,
     paid_amount: 0,
     is_prorated: false,
+    condoned_days: 0,
+    condoned_amount: 0,
     status: "UNPAID",
     payments_log: [],
     created_at: "2026-06-29T08:00:00.000Z",

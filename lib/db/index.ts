@@ -6,6 +6,7 @@ import type {
   Checklist,
   WeeklyRental,
   Maintenance,
+  RenewalLog,
   Alert,
 } from "./types";
 export type * from "./types";
@@ -243,6 +244,8 @@ export const db = {
           paid_amount: 0,
           is_prorated: days < 7,
           prorated_days: days < 7 ? days : undefined,
+          condoned_days: 0,
+          condoned_amount: 0,
           status: "UNPAID",
           payments_log: [],
           created_at: new Date().toISOString(),
@@ -570,6 +573,30 @@ export const db = {
     return fullRental;
   },
 
+  async saveWeeklyRental(rental: WeeklyRental): Promise<WeeklyRental> {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("weekly_rentals")
+        .upsert(rental)
+        .select()
+        .single();
+      if (!error && data) {
+        clearPendingIds("weekly_rentals", [rental.id]);
+        return data;
+      }
+    }
+    const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
+    const idx = rentals.findIndex((r) => r.id === rental.id);
+    if (idx >= 0) {
+      rentals[idx] = rental;
+    } else {
+      rentals.unshift(rental);
+    }
+    setLocalData("weekly_rentals", rentals);
+    addPendingId("weekly_rentals", rental.id);
+    return rental;
+  },
+
   // --- Maintenances ---
   async getMaintenances(): Promise<Maintenance[]> {
     if (supabase) {
@@ -614,6 +641,39 @@ export const db = {
     setLocalData("maintenances", maintenances);
     addPendingId("maintenances", fullMaint.id);
     return fullMaint;
+  },
+
+  // --- Renewal Logs ---
+  async saveRenewalLog(log: Omit<RenewalLog, "id" | "created_at">): Promise<RenewalLog> {
+    const fullLog: RenewalLog = {
+      id: genId(),
+      created_at: new Date().toISOString(),
+      ...log,
+    };
+    if (supabase) {
+      const { data, error } = await supabase.from("renewal_logs").insert(fullLog).select().single();
+      if (!error && data) {
+        clearPendingIds("renewal_logs", [fullLog.id]);
+        return data;
+      }
+    }
+    const logs = getLocalData("renewal_logs", [] as RenewalLog[]);
+    logs.unshift(fullLog);
+    setLocalData("renewal_logs", logs);
+    addPendingId("renewal_logs", fullLog.id);
+    return fullLog;
+  },
+
+  async getRenewalLogs(vehicleId?: string): Promise<RenewalLog[]> {
+    if (supabase) {
+      let query = supabase.from("renewal_logs").select("*").order("created_at", { ascending: false });
+      if (vehicleId) query = query.eq("vehicle_id", vehicleId);
+      const { data, error } = await query;
+      if (!error) return mergePendingLocal("renewal_logs", data, []);
+    }
+    const logs = getLocalData("renewal_logs", [] as RenewalLog[]);
+    if (vehicleId) return logs.filter((l) => l.vehicle_id === vehicleId);
+    return logs;
   },
 
   // --- Alerts (Derived Dynamically) ---
