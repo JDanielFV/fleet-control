@@ -482,9 +482,11 @@ export default function Dashboard() {
                                 </td>
                               </tr>
                             ) : (
-                              filteredDriversList.map((driver) => {
-                                const assignedVehicle = vehicles.find(v => v.active_driver_id === driver.id);
-                                if (!assignedVehicle) return null;
+                              // Only show drivers with an assigned vehicle
+                              filteredDriversList
+                                .filter((driver) => vehicles.some((v) => v.active_driver_id === driver.id))
+                                .map((driver) => {
+                                const assignedVehicle = vehicles.find(v => v.active_driver_id === driver.id)!;
 
                                 // Mileage: previous (second-to-last) and latest
                                 const vChecklists = checklists.filter(c => c.vehicle_id === assignedVehicle.id);
