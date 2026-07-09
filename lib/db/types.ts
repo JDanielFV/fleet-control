@@ -37,6 +37,8 @@ export interface Vehicle {
   insurance_policy_number: string; // Número de póliza
   insurance_expiration_date: string | null;
   verification_expiration_date: string | null; // Fecha de verificación vehicular
+  verification_img: string | null; // Foto de evidencia de verificación
+  verification_completed: boolean; // Marca si ya se verificó
   status: "active" | "in_service"; // Estado del auto
   service_out_date: string | null; // Fecha de retiro a servicio
   service_return_date: string | null; // Fecha de regreso de servicio
