@@ -142,6 +142,15 @@ export interface Alert {
   dueDate: string;
 }
 
+export interface VehicleInventory {
+  id: string;
+  vehicle_id: string;
+  photos: { angle: string; url: string }[];
+  items: { name: string; quantity: number }[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface VerificationSchedule {
   color: string;
   months: string;

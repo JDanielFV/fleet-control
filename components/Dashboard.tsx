@@ -13,6 +13,7 @@ import AssignmentDialog from "./AssignmentDialog";
 import ChecklistActionModal from "./ChecklistActionModal";
 import WearPartDialog from "./WearPartDialog";
 import InventoryWizard from "./InventoryWizard";
+import { uploadDocumentImage } from "@/lib/db/storage";
 import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -421,21 +422,32 @@ export default function Dashboard() {
   // Inventory wizard
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [inventoryVehicle, setInventoryVehicle] = useState<Vehicle | null>(null);
-  const handleInventory = (vehicle: Vehicle) => {
+  const [inventoryExisting, setInventoryExisting] = useState<{ photos: { angle: string; url: string }[]; items: { name: string; quantity: number }[] } | null>(null);
+  const handleInventory = async (vehicle: Vehicle) => {
     setInventoryVehicle(vehicle);
+    // Load existing inventory from DB
+    const existing = await db.getVehicleInventory(vehicle.id);
+    setInventoryExisting(existing ? { photos: existing.photos, items: existing.items } : null);
     setInventoryOpen(true);
   };
   const handleSaveInventory = async (photos: { angle: string; dataUrl: string | null }[], items: { name: string; quantity: number }[]) => {
-    // Save inventory data to the vehicle
     if (!inventoryVehicle) return;
-    const taken = photos.filter(p => p.dataUrl).length;
-    const desc = `[INVENTARIO] ${taken} fotos, ${items.length} objetos: ${items.map(i => `${i.name} x${i.quantity}`).join(", ")}`;
-    await db.saveMaintenance({
+    // Upload photos to storage and get URLs
+    const photoEntries: { angle: string; url: string }[] = [];
+    for (const p of photos) {
+      if (p.dataUrl) {
+        const url = await uploadDocumentImage(p.dataUrl, `inventario/${inventoryVehicle.id}/${p.angle}`);
+        photoEntries.push({ angle: p.angle, url });
+      } else {
+        // Keep existing URL if photo wasn't retaken
+        const existing = inventoryExisting?.photos.find((ep) => ep.angle === p.angle);
+        photoEntries.push({ angle: p.angle, url: existing?.url || "" });
+      }
+    }
+    await db.saveVehicleInventory({
       vehicle_id: inventoryVehicle.id,
-      cost: 0,
-      description: desc,
-      maintenance_date: new Date().toISOString().split("T")[0],
-      next_maintenance_date: null,
+      photos: photoEntries,
+      items,
     });
     triggerRefresh();
   };
@@ -1112,8 +1124,10 @@ export default function Dashboard() {
           <InventoryWizard
             key="inventory-wizard"
             open={true}
-            onClose={() => { setInventoryOpen(false); setInventoryVehicle(null); }}
+            onClose={() => { setInventoryOpen(false); setInventoryVehicle(null); setInventoryExisting(null); }}
             onSave={handleSaveInventory}
+            initialPhotos={inventoryExisting?.photos.map((p) => ({ angle: p.angle, dataUrl: p.url }))}
+            initialItems={inventoryExisting?.items}
           />
         )}
       </AnimatePresence>
