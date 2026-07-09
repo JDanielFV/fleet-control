@@ -34,6 +34,7 @@ import {
   X,
   CheckCircle2,
   BarChart3,
+  Download,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useToast } from "@/components/ui/toast";
@@ -143,6 +144,44 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const exportChecklistCsv = () => {
+    const headers = ["Chofer", "Auto", "Placa", "ID Auto", "Km Anterior", "Km Nuevo", "Renta", "Pendiente"];
+    const rows = filteredDriversList
+      .filter((driver) => vehicles.some((v) => v.active_driver_id === driver.id))
+      .map((driver) => {
+        const v = vehicles.find((vv) => vv.active_driver_id === driver.id)!;
+        const vChecks = checklists.filter((c) => c.vehicle_id === v.id);
+        const sorted = sortByDateDesc(vChecks, "created_at");
+        const latestKm = sorted[0]?.mileage;
+        const prevKm = sorted[1]?.mileage;
+        const vehicleId = v.vin?.slice(-6).toUpperCase() || "—";
+        const driverRentals = weeklyRentals.filter((r) => r.driver_id === driver.id && r.status !== "PAID");
+        const totalPending = driverRentals.reduce((acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount), 0);
+        return [
+          `${driver.first_name} ${driver.paternal_last_name}`,
+          `${v.brand} ${v.vehicle_name}`,
+          v.plate_number,
+          vehicleId,
+          prevKm?.toLocaleString() || "—",
+          latestKm?.toLocaleString() || "—",
+          `$${v.rent_cost.toLocaleString()}`,
+          `$${totalPending.toLocaleString()}`,
+        ];
+      });
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `checklists-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Checklists exportados a CSV", "success");
   };
 
   useEffect(() => {
@@ -495,6 +534,14 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={exportChecklistCsv}
+                          className="p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
+                          aria-label="Exportar checklists a CSV"
+                          title="Exportar CSV"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={toggleTheme}
                           className="md:hidden p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
