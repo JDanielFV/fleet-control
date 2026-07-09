@@ -325,6 +325,47 @@ export default function Dashboard() {
     triggerRefresh();
   };
 
+  // Service return: mark as active, condone days on weekly rental
+  const handleServiceReturn = async (vehicle: Vehicle) => {
+    if (!confirm(`¿Regresar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a su chofer?`)) return;
+    const returnDate = new Date();
+    const outDate = vehicle.service_out_date ? new Date(vehicle.service_out_date) : returnDate;
+    const daysOut = Math.max(1, Math.round((returnDate.getTime() - outDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const discountDays = daysOut === 1 ? 0.5 : daysOut;
+
+    await db.saveVehicle({
+      ...vehicle,
+      status: "active",
+      service_return_date: returnDate.toISOString().split("T")[0],
+    });
+
+    if (vehicle.active_driver_id) {
+      const rentals = await db.getWeeklyRentals();
+      const currentRental = rentals.find(
+        (r) => r.driver_id === vehicle.active_driver_id && r.status !== "PAID"
+      );
+      if (currentRental) {
+        const dailyRate = currentRental.rent_amount / 7;
+        const condonedAmount = Math.round(dailyRate * discountDays);
+        const updated: WeeklyRental = {
+          ...currentRental,
+          condoned_days: (currentRental.condoned_days || 0) + Math.ceil(discountDays),
+          condoned_amount: (currentRental.condoned_amount || 0) + condonedAmount,
+        };
+        const effectiveRent = updated.rent_amount - updated.condoned_amount;
+        if (updated.paid_amount >= effectiveRent) {
+          updated.status = "PAID";
+        } else if (updated.paid_amount > 0) {
+          updated.status = "PARTIAL";
+        } else {
+          updated.status = "UNPAID";
+        }
+        await db.saveWeeklyRental(updated);
+      }
+    }
+    triggerRefresh();
+  };
+
   // Wear part: open the wear part dialog via VehiclesSlice
   const [wearPartVehicle, setWearPartVehicle] = useState<Vehicle | null>(null);
   const [wearPartDialogOpen, setWearPartDialogOpen] = useState(false);
@@ -985,6 +1026,7 @@ export default function Dashboard() {
             onClose={() => setActionModal({ open: false, vehicle: null })}
             onChecklist={openChecklistSheet}
             onServiceOut={handleServiceOut}
+            onServiceReturn={handleServiceReturn}
             onWearPart={handleWearPart}
             onInventory={handleInventory}
           />

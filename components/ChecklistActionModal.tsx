@@ -10,6 +10,7 @@ interface ChecklistActionModalProps {
   onClose: () => void;
   onChecklist: (vehicle: Vehicle) => void;
   onServiceOut: (vehicle: Vehicle) => void;
+  onServiceReturn: (vehicle: Vehicle) => void;
   onWearPart: (vehicle: Vehicle) => void;
   onInventory: (vehicle: Vehicle) => void;
 }
@@ -20,6 +21,7 @@ export default function ChecklistActionModal({
   onClose,
   onChecklist,
   onServiceOut,
+  onServiceReturn,
   onWearPart,
   onInventory,
 }: ChecklistActionModalProps) {
@@ -82,20 +84,37 @@ export default function ChecklistActionModal({
               </div>
             </button>
 
-            <button
-              onClick={() => { onServiceOut(vehicle); onClose(); }}
-              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-600 dark:text-amber-400 transition-all cursor-pointer text-left"
-            >
-              <div className="p-2.5 rounded-xl bg-amber-500/20 shrink-0">
-                <Wrench className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold">Retirar a Servicio</span>
-                <span className="block text-[11px] text-muted-foreground mt-0.5">
-                  Marcar vehículo como en taller (sin costo de renta)
-                </span>
-              </div>
-            </button>
+            {vehicle.status === "in_service" ? (
+              <button
+                onClick={() => { onServiceReturn(vehicle); onClose(); }}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-all cursor-pointer text-left"
+              >
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 shrink-0">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-sm font-extrabold">Devolver a Chofer</span>
+                  <span className="block text-[11px] text-muted-foreground mt-0.5">
+                    Regresar vehículo del taller (aplica condonación)
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => { onServiceOut(vehicle); onClose(); }}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-600 dark:text-amber-400 transition-all cursor-pointer text-left"
+              >
+                <div className="p-2.5 rounded-xl bg-amber-500/20 shrink-0">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-sm font-extrabold">Retirar a Servicio</span>
+                  <span className="block text-[11px] text-muted-foreground mt-0.5">
+                    Marcar vehículo como en taller (sin costo de renta)
+                  </span>
+                </div>
+              </button>
+            )}
 
             <button
               onClick={() => { onWearPart(vehicle); onClose(); }}
