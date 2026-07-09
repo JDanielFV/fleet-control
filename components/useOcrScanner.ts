@@ -89,31 +89,6 @@ export function useOcrScanner<T extends string>({
     setOcrLogs([]);
   }, [stopCamera]);
 
-  const preprocessCanvasForOcr = useCallback((canvas: HTMLCanvasElement) => {
-    const context = canvas.getContext("2d");
-    if (!context) return;
-
-    try {
-      const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        const newVal = gray < 135 ? 0 : 255;
-        data[i] = newVal;
-        data[i + 1] = newVal;
-        data[i + 2] = newVal;
-      }
-      context.putImageData(imgData, 0, 0);
-      console.log("[Preprocessing] Imagen binarizada a blanco y negro para mejorar el OCR.");
-    } catch (e) {
-      console.error("[Preprocessing] Falló el procesamiento de imagen:", e);
-    }
-  }, []);
-
   const startCamera = useCallback((target: T) => {
     setScanTarget(target);
     setIsScanning(true);
@@ -178,23 +153,8 @@ export function useOcrScanner<T extends string>({
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Save the color image for storage FIRST
+    // Capture the raw color image — no preprocessing, Gemini 3.5 Flash handles it natively
     const colorDataUrl = canvas.toDataURL("image/jpeg", 0.95);
-
-    // For OCR targets, also create a binarized version for text recognition
-    let ocrDataUrl = colorDataUrl;
-    if (!rawTargetsRef.current.includes(scanTarget)) {
-      // Clone canvas, binarize the clone, and get the binarized data URL for OCR
-      const ocrCanvas = document.createElement("canvas");
-      ocrCanvas.width = canvas.width;
-      ocrCanvas.height = canvas.height;
-      const ocrCtx = ocrCanvas.getContext("2d");
-      if (ocrCtx) {
-        ocrCtx.drawImage(video, 0, 0, ocrCanvas.width, ocrCanvas.height);
-        preprocessCanvasForOcr(ocrCanvas);
-        ocrDataUrl = ocrCanvas.toDataURL("image/jpeg", 0.95);
-      }
-    }
 
     stopCamera();
 
@@ -213,7 +173,7 @@ export function useOcrScanner<T extends string>({
       console.error("[Captura] Error generating Data URL:", err);
       setOcrLogs((prev) => [...prev, "❌ Error al capturar imagen en formato compatible"]);
     }
-  }, [scanTarget, stopCamera, preprocessCanvasForOcr]);
+  }, [scanTarget, stopCamera]);
 
   // Release the camera stream on unmount.
   useEffect(() => {
