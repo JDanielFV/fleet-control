@@ -73,11 +73,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
   const handleRenewLicense = (d: Driver) => {
     setRenewingDriver(d);
-    setRenewNumber(d.license_number);
-    setRenewIssueDate(d.license_issue_date ?? "");
-    setRenewExpirationDate(d.license_expiration_date ?? "");
-    setRenewIsPermanent(d.license_is_permanent);
-    setIsRenewOpen(true);
+    // Open camera to scan the new license document
+    startCamera("LICENCIA");
   };
 
   const submitLicenseRenewal = async () => {
@@ -395,12 +392,27 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
           setLicenseImg(imageSource);
           // LICENSE ONLY fills license specific values to avoid overwriting clean INE data
           if (parsed.licenseNumber) {
-            setLicenseNumber(parsed.licenseNumber);
+            // If we're in renew mode, fill the renew dialog fields
+            if (renewingDriver) {
+              setRenewNumber(parsed.licenseNumber);
+            } else {
+              setLicenseNumber(parsed.licenseNumber);
+            }
             setOcrLogs(prev => [...prev, `✓ [Gemini] Licencia: ${parsed.licenseNumber}`]);
           }
           if (parsed.expirationDate) {
-            setLicenseExpirationDate(parsed.expirationDate);
+            if (renewingDriver) {
+              setRenewExpirationDate(parsed.expirationDate);
+            } else {
+              setLicenseExpirationDate(parsed.expirationDate);
+            }
             setOcrLogs(prev => [...prev, `✓ [Gemini] Expiración Licencia: ${parsed.expirationDate}`]);
+          }
+          
+          // After OCR completes in renew mode, open the renew dialog with scanned data
+          if (renewingDriver) {
+            setRenewIsPermanent(false);
+            setIsRenewOpen(true);
           }
           
           // Fallback to fill other fields ONLY if they are empty
