@@ -7,9 +7,6 @@ import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
-import AssignmentsSlice from "./AssignmentsSlice";
-import FinancesSlice from "./FinancesSlice";
-import MaintenanceSlice from "./MaintenanceSlice";
 import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
 import Sidebar from "./Sidebar";
@@ -21,14 +18,11 @@ import {
   Bell,
   User,
   Car,
-  DollarSign,
-  ArrowLeftRight,
   CheckCircle,
   AlertTriangle,
   Sun,
   Moon,
   Sparkles,
-  ListChecks,
   ShieldAlert,
   Gauge,
   Search,
@@ -324,16 +318,12 @@ export default function Dashboard() {
     { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
-    { id: "assignments", label: "Asignaciones", icon: ArrowLeftRight },
-    { id: "finances", label: "Rentas", icon: DollarSign },
-    { id: "maintenance", label: "Servicios", icon: ListChecks },
   ];
 
   const mobileNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
-    { id: "finances", label: "Rentas", icon: DollarSign },
   ];
 
   const tileVariants: Variants = {
@@ -581,9 +571,6 @@ export default function Dashboard() {
                 <div className="flex-1 overflow-y-auto pr-1">
                   {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} />}
                   {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} />}
-                  {activeTab === "assignments" && <AssignmentsSlice onRefreshAll={triggerRefresh} />}
-                  {activeTab === "finances" && <FinancesSlice />}
-                  {activeTab === "maintenance" && <MaintenanceSlice onRefreshAlerts={triggerRefresh} />}
                 </div>
               )}
             </motion.div>
