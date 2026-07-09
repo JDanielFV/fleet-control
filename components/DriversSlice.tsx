@@ -21,6 +21,8 @@ import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
@@ -40,8 +42,11 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
+  const { toast } = useToast();
+  const { confirm: showConfirm } = useConfirm();
+
   const handleDeleteDriver = async (id: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.")) {
+    if (await showConfirm({ title: "Eliminar Chofer", message: "¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.", confirmLabel: "Eliminar", variant: "danger" })) {
       const success = await db.deleteDriver(id);
       if (success) {
         setDrivers((prev) => prev.filter((d) => d.id !== id));

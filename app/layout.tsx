@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -82,7 +83,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full bg-background"><ToastProvider>{children}</ToastProvider></body>
+      <body className="min-h-full bg-background"><ConfirmProvider><ToastProvider>{children}</ToastProvider></ConfirmProvider></body>
     </html>
   );
 }

@@ -36,6 +36,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export type TabId = "dashboard" | "drivers" | "vehicles";
 
@@ -84,6 +86,9 @@ export default function Dashboard() {
     driver: Driver,
     usage: { weeks: { weekStart: string; km: number; kmPerDay: number }[]; monthlyAverage: number | null }
   ) => setStatsDialog({ driver, usage });
+
+  const { toast } = useToast();
+  const { confirm: showConfirm } = useConfirm();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -315,7 +320,7 @@ export default function Dashboard() {
 
   // Service out: mark vehicle as in_service
   const handleServiceOut = async (vehicle: Vehicle) => {
-    if (!confirm(`¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`)) return;
+    if (!(await showConfirm({ title: "Retirar a Servicio", message: `¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`, confirmLabel: "Retirar", variant: "warning" }))) return;
     await db.saveVehicle({
       ...vehicle,
       status: "in_service",
@@ -327,7 +332,7 @@ export default function Dashboard() {
 
   // Service return: mark as active, condone days on weekly rental
   const handleServiceReturn = async (vehicle: Vehicle) => {
-    if (!confirm(`¿Regresar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a su chofer?`)) return;
+    if (!(await showConfirm({ title: "Devolver a Chofer", message: `¿Regresar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a su chofer? Se aplicará condonación por los días en taller.`, confirmLabel: "Devolver", variant: "default" }))) return;
     const returnDate = new Date();
     const outDate = vehicle.service_out_date ? new Date(vehicle.service_out_date) : returnDate;
     const daysOut = Math.max(1, Math.round((returnDate.getTime() - outDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -397,7 +402,7 @@ export default function Dashboard() {
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
-    if (confirm(`¿Deseas marcar la alerta "${title}" como completada?`)) {
+    if (await showConfirm({ title: "Completar Alerta", message: `¿Deseas marcar la alerta "${title}" como completada?`, confirmLabel: "Completar", variant: "default" })) {
       await db.dismissAlert(id);
       loadAlerts();
     }

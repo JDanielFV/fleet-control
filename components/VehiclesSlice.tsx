@@ -22,6 +22,8 @@ import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import VehicleHistory from "@/components/VehicleHistory";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
@@ -45,6 +47,9 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [search, setSearch] = useState("");
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
 
+  const { toast } = useToast();
+  const { confirm: showConfirm } = useConfirm();
+
   const toggleVehicleDetails = (vehicleId: string) => {
     setExpandedVehicleDetails(prev => ({
       ...prev,
@@ -53,7 +58,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   };
 
   const handleDeleteVehicle = async (id: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.")) {
+    if (await showConfirm({ title: "Eliminar Vehículo", message: "¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.", confirmLabel: "Eliminar", variant: "danger" })) {
       const success = await db.deleteVehicle(id);
       if (success) {
         setVehicles((prev) => prev.filter((v) => v.id !== id));
@@ -148,7 +153,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   // Service out: mark vehicle as in_service, record the date
   const handleServiceOut = async (vehicle: Vehicle) => {
-    if (!confirm(`¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`)) return;
+    if (!(await showConfirm({ title: "Retirar a Servicio", message: `¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`, confirmLabel: "Retirar", variant: "warning" }))) return;
     await db.saveVehicle({
       ...vehicle,
       status: "in_service",
@@ -161,7 +166,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   // Service return: mark as active, calculate rental discount
   const handleServiceReturn = async (vehicle: Vehicle) => {
-    if (!confirm(`¿Regresar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a su chofer?`)) return;
+    if (!(await showConfirm({ title: "Devolver a Chofer", message: `¿Regresar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a su chofer? Se aplicará condonación por los días en taller.`, confirmLabel: "Devolver", variant: "default" }))) return;
     const returnDate = new Date();
     const outDate = vehicle.service_out_date ? new Date(vehicle.service_out_date) : returnDate;
     const daysOut = Math.max(1, Math.round((returnDate.getTime() - outDate.getTime()) / (1000 * 60 * 60 * 24)));

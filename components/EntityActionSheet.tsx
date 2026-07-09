@@ -6,6 +6,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { motion } from "framer-motion";
 import { Car, Ban, ClipboardList, CheckCircle2, X, User } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface EntityActionSheetProps {
   isOpen: boolean;
@@ -41,6 +43,9 @@ export const EntityActionSheet = ({
   const [view, setView] = useState<View>("main");
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { toast } = useToast();
+  const { confirm: showConfirm } = useConfirm();
 
   const [resolvedDriver, setResolvedDriver] = useState<Driver | null>(null);
   const [resolvedVehicle, setResolvedVehicle] = useState<Vehicle | null>(null);
@@ -149,7 +154,7 @@ export const EntityActionSheet = ({
 
   const handleMarkVerification = async () => {
     if (!resolvedVehicle) return;
-    if (!confirm("¿Marcar la verificación vehicular como completada?")) return;
+    if (!(await showConfirm({ title: "Verificación Completada", message: "¿Marcar la verificación vehicular como completada?", confirmLabel: "Completar", variant: "default" }))) return;
     setIsLoading(true);
     try {
       await db.dismissAlert(`alert-ver-${resolvedVehicle.id}`);
