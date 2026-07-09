@@ -36,7 +36,6 @@ export default function ScannerViewfinder<T extends string>({
     videoRef,
     canvasRef,
     capturePhoto,
-    stopCamera,
     cancelScan,
   } = scanner;
 
@@ -104,7 +103,7 @@ export default function ScannerViewfinder<T extends string>({
             <Button
               type="button"
               variant="destructive"
-              onClick={stopCamera}
+              onClick={cancelScan}
               className="rounded-full h-12 px-5 flex items-center justify-center gap-2 shadow-lg active:scale-90"
             >
               <StopCircle className="w-5 h-5" /> Cancelar
