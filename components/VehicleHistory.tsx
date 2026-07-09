@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { db, type Maintenance, type Assignment, type Driver, type RenewalLog, type Vehicle } from "@/lib/db";
 import { getDriverName } from "@/lib/lookups";
-import { Wrench, AlertTriangle, ArrowLeftRight, RefreshCcw, Shield } from "lucide-react";
+import { Wrench, AlertTriangle, ArrowLeftRight, RefreshCcw, Shield, DollarSign } from "lucide-react";
 
 interface VehicleHistoryProps {
   vehicle: Vehicle;
@@ -17,6 +17,7 @@ interface HistoryEvent {
   type: "mantenimiento" | "desgaste" | "asignacion" | "servicio" | "renovacion_circ" | "renovacion_seguro";
   label: string;
   description: string;
+  cost?: number;
 }
 
 export default function VehicleHistory({ vehicle, maintenances, assignments, drivers }: VehicleHistoryProps) {
@@ -30,12 +31,15 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
 
   // Maintenance events
   for (const m of maintenances.filter((m) => m.vehicle_id === vehicle.id)) {
-    const isWear = m.description.startsWith("[PIEZA DESGASTE]");
+    const isWear = m.description.startsWith("[REEMPLAZO PIEZA]") || m.description.startsWith("[PIEZA DESGASTE]");
     events.push({
       date: m.maintenance_date,
       type: isWear ? "desgaste" : "mantenimiento",
-      label: isWear ? "Reemplazo de Pieza de Desgaste" : "Mantenimiento",
-      description: isWear ? m.description.replace("[PIEZA DESGASTE] ", "") : m.description,
+      label: isWear ? "Reemplazo de Pieza" : "Mantenimiento",
+      description: isWear
+        ? m.description.replace(/^\[REEMPLAZO PIEZA\]\s*/, "").replace(/^\[PIEZA DESGASTE\]\s*/, "")
+        : m.description,
+      cost: m.cost,
     });
   }
 
@@ -52,7 +56,7 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
     });
   }
 
-  // Service pause events (in_service)
+  // Service pause events
   if (vehicle.status === "in_service" && vehicle.service_out_date) {
     events.push({
       date: vehicle.service_out_date,
@@ -78,27 +82,33 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
   if (events.length === 0) return null;
 
   const iconMap: Record<string, React.ReactNode> = {
-    mantenimiento: <Wrench className="w-3.5 h-3.5 text-blue-400" />,
-    desgaste: <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />,
-    asignacion: <ArrowLeftRight className="w-3.5 h-3.5 text-purple-400" />,
-    servicio: <Wrench className="w-3.5 h-3.5 text-amber-500" />,
-    renovacion_circ: <RefreshCcw className="w-3.5 h-3.5 text-primary" />,
-    renovacion_seguro: <Shield className="w-3.5 h-3.5 text-emerald-400" />,
+    mantenimiento: <Wrench className="w-4 h-4 text-blue-400" />,
+    desgaste: <AlertTriangle className="w-4 h-4 text-amber-400" />,
+    asignacion: <ArrowLeftRight className="w-4 h-4 text-purple-400" />,
+    servicio: <Wrench className="w-4 h-4 text-amber-500" />,
+    renovacion_circ: <RefreshCcw className="w-4 h-4 text-primary" />,
+    renovacion_seguro: <Shield className="w-4 h-4 text-emerald-400" />,
   };
 
   return (
     <div className="pt-4 border-t border-border/40">
       <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 mb-3">Historial del Auto</h4>
-      <div className="bg-muted/20 rounded-xl border border-border/60 p-3 max-h-48 overflow-y-auto space-y-1.5">
+      <div className="bg-muted/20 rounded-xl border border-border/60 p-4 max-h-64 overflow-y-auto space-y-2">
         {events.map((ev, i) => (
-          <div key={i} className="flex items-start gap-2.5 text-[10px] py-1 border-b border-border/30 last:border-0">
+          <div key={i} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
             <div className="mt-0.5 shrink-0">{iconMap[ev.type]}</div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">{ev.label}</span>
-                <span className="text-muted-foreground/60 ml-auto shrink-0">{ev.date}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-foreground text-sm">{ev.label}</span>
+                <span className="text-xs text-muted-foreground/60 ml-auto shrink-0">{ev.date}</span>
               </div>
-              <p className="text-muted-foreground leading-tight mt-0.5">{ev.description}</p>
+              <p className="text-xs text-muted-foreground leading-snug mt-1">{ev.description}</p>
+              {ev.cost != null && ev.cost > 0 && (
+                <div className="flex items-center gap-1 mt-1">
+                  <DollarSign className="w-3 h-3 text-amber-400" />
+                  <span className="text-xs font-bold text-amber-400">${ev.cost.toLocaleString()}</span>
+                </div>
+              )}
             </div>
           </div>
         ))}
