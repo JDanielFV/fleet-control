@@ -730,8 +730,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   <div id="section-circ" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
                     {circulationImg && (
-                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                        <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-cover" />
+                      <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-contain p-1" />
                         <button
                           type="button"
                           onClick={() => setCirculationImg("")}

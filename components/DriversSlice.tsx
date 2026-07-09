@@ -892,8 +892,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   <div id="section-doc" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear INE (Identificación)</h4>
                     {ineImg && (
-                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                        <Image src={ineImg} alt="INE" fill className="object-cover" />
+                      <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={ineImg} alt="INE" fill className="object-contain p-1" />
                         <button
                           type="button"
                           onClick={() => setIneImg("")}
@@ -942,8 +942,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanear Licencia de Conducir</h4>
                     {licenseImg && (
-                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                        <Image src={licenseImg} alt="Licencia" fill className="object-cover" />
+                      <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={licenseImg} alt="Licencia" fill className="object-contain p-1" />
                         <button
                           type="button"
                           onClick={() => setLicenseImg("")}
@@ -999,8 +999,8 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       )}
                     </div>
                     {addressProofImg && (
-                      <div className="relative w-full h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                        <Image src={addressProofImg} alt="Comprobante de Domicilio" fill className="object-cover" />
+                      <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
+                        <Image src={addressProofImg} alt="Comprobante de Domicilio" fill className="object-contain p-1" />
                         <button
                           type="button"
                           onClick={() => setAddressProofImg("")}
