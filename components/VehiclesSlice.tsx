@@ -76,15 +76,19 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   };
 
   const handleRenewDocument = (v: Vehicle, target: "CIRCULACION" | "SEGURO" | "VERIFICACION") => {
+    // For VERIFICACION, keep the manual dialog (no document to scan)
+    if (target === "VERIFICACION") {
+      setRenewingVehicle(v);
+      setRenewTarget(target);
+      setRenewExpirationDate(v.verification_expiration_date ?? "");
+      setRenewPolicyImg("");
+      setIsRenewOpen(true);
+      return;
+    }
+    // For CIRCULACION and SEGURO, open camera to scan the document
     setRenewingVehicle(v);
     setRenewTarget(target);
-    setRenewExpirationDate(
-      target === "CIRCULACION" ? (v.circulation_expiration_date ?? "") :
-      target === "SEGURO" ? (v.insurance_expiration_date ?? "") :
-      (v.verification_expiration_date ?? "")
-    );
-    setRenewPolicyImg(target === "SEGURO" ? v.insurance_policy_img : "");
-    setIsRenewOpen(true);
+    startCamera(target);
   };
 
   const submitRenewal = async () => {
@@ -433,30 +437,52 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         setOcrStep("extract");
 
         if (target === "CIRCULACION") {
-          setCirculationImg(imageSource);
-          if (parsed.brand) setBrand(parsed.brand);
-          if (parsed.vehicleName) setVehicleName(parsed.vehicleName);
-          if (parsed.model) setModel(parsed.model);
-          if (parsed.classType) setClassType(parsed.classType);
-          if (parsed.plateNumber) {
-            setPlateNumber(parsed.plateNumber);
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Placa: ${parsed.plateNumber}`]);
-          }
-          if (parsed.vin) {
-            setVin(parsed.vin);
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Serie/VIN: ${parsed.vin}`]);
-          }
-          // Gemini returns "expirationDate" for all document types
-          if (parsed.expirationDate) {
-            setCirculationExpirationDate(parsed.expirationDate);
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Vigencia Tarjeta de Circulación: ${parsed.expirationDate}`]);
+          // If in renew mode, fill renew dialog state
+          if (renewingVehicle) {
+            setRenewPolicyImg(imageSource);
+            if (parsed.expirationDate) {
+              setRenewExpirationDate(parsed.expirationDate);
+              setOcrLogs(prev => [...prev, `✓ [Gemini] Vigencia Tarjeta de Circulación: ${parsed.expirationDate}`]);
+            }
+          } else {
+            setCirculationImg(imageSource);
+            if (parsed.brand) setBrand(parsed.brand);
+            if (parsed.vehicleName) setVehicleName(parsed.vehicleName);
+            if (parsed.model) setModel(parsed.model);
+            if (parsed.classType) setClassType(parsed.classType);
+            if (parsed.plateNumber) {
+              setPlateNumber(parsed.plateNumber);
+              setOcrLogs(prev => [...prev, `✓ [Gemini] Placa: ${parsed.plateNumber}`]);
+            }
+            if (parsed.vin) {
+              setVin(parsed.vin);
+              setOcrLogs(prev => [...prev, `✓ [Gemini] Serie/VIN: ${parsed.vin}`]);
+            }
+            if (parsed.expirationDate) {
+              setCirculationExpirationDate(parsed.expirationDate);
+              setOcrLogs(prev => [...prev, `✓ [Gemini] Vigencia Tarjeta de Circulación: ${parsed.expirationDate}`]);
+            }
           }
         } else {
-          setInsurancePolicyImg(imageSource); // Store the actual Base64 URL image
-          if (parsed.expirationDate) {
-            setInsuranceExpirationDate(parsed.expirationDate);
-            setOcrLogs(prev => [...prev, `✓ [Gemini] Expiración Póliza de Seguro: ${parsed.expirationDate}`]);
+          // SEGURO — always store the image, fill renew state if in renew mode
+          if (renewingVehicle) {
+            setRenewPolicyImg(imageSource);
+            if (parsed.expirationDate) {
+              setRenewExpirationDate(parsed.expirationDate);
+              setOcrLogs(prev => [...prev, `✓ [Gemini] Expiración Póliza de Seguro: ${parsed.expirationDate}`]);
+            }
+          } else {
+            setInsurancePolicyImg(imageSource);
+            if (parsed.expirationDate) {
+              setInsuranceExpirationDate(parsed.expirationDate);
+              setOcrLogs(prev => [...prev, `✓ [Gemini] Expiración Póliza de Seguro: ${parsed.expirationDate}`]);
+            }
           }
+        }
+
+        // After OCR completes in renew mode, open the renew dialog with scanned data
+        if (renewingVehicle) {
+          setIsRenewOpen(true);
         }
 
         setOcrStep("done");
@@ -1343,6 +1369,20 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
           </>
         )}
       </div>
+
+      {/* Scanner Dialog for Renewals (Circulación / Seguro) */}
+      <Dialog open={isScanning && !!renewingVehicle && renewTarget !== "VERIFICACION"} onOpenChange={(o) => { if (!o) { stopCamera(); setRenewingVehicle(null); } }}>
+        <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl p-0 overflow-hidden">
+          <ScannerViewfinder
+            scanner={scanner}
+            labels={{
+              scan: "Escaneando documento...",
+              extract: "Extrayendo datos...",
+              logsHeader: "LOGS OCR RENOVACIÓN",
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Renewal Dialog — quick update of circulation card or insurance policy */}
       <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingVehicle(null); }}>
