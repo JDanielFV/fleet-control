@@ -32,7 +32,8 @@ export interface Vehicle {
   circulation_img?: string | null;
   vin: string;
   plate_number: string;
-  insurance_policy_img: string; // Base64 or URL
+  insurance_policy_img: string; // Base64 or URL (first page)
+  insurance_policy_pages: string; // JSON array of all pages
   insurance_policy_number: string; // Número de póliza
   insurance_expiration_date: string | null;
   verification_expiration_date: string | null; // Fecha de verificación vehicular

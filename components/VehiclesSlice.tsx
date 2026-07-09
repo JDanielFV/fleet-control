@@ -268,6 +268,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [vin, setVin] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
   const [insurancePolicyImg, setInsurancePolicyImg] = useState("");
+  const [insurancePolicyFiles, setInsurancePolicyFiles] = useState<string[]>([]);
   const [insuranceExpirationDate, setInsuranceExpirationDate] = useState("");
   const [circulationImg, setCirculationImg] = useState("");
   const [rentCost, setRentCost] = useState<number>(2500);
@@ -344,6 +345,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     const circUrl = circulationImg ? await uploadDocumentImage(circulationImg, "circulation") : null;
     const insUrl = insurancePolicyImg ? await uploadDocumentImage(insurancePolicyImg, "insurance") : null;
 
+    // Upload all insurance pages
+    const insPagesUrls: string[] = [];
+    for (const page of insurancePolicyFiles) {
+      const url = await uploadDocumentImage(page, "insurance");
+      insPagesUrls.push(url);
+    }
+
     await db.saveVehicle({
       id: editingVehicleId || undefined,
       brand,
@@ -356,6 +364,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       vin: formattedVin,
       plate_number: formattedPlate,
       insurance_policy_img: insUrl || insurancePolicyImg,
+      insurance_policy_pages: JSON.stringify(insPagesUrls.length > 0 ? insPagesUrls : (insurancePolicyImg ? [insurancePolicyImg] : [])),
       insurance_policy_number: insurancePolicyNumber,
       insurance_expiration_date: insuranceExpirationDate,
       verification_expiration_date: verificationExpirationDate,
@@ -437,7 +446,11 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
             setVin(parsed.vin);
             setOcrLogs(prev => [...prev, `✓ [Gemini] Serie/VIN: ${parsed.vin}`]);
           }
-          if (parsed.circulationExpirationDate) setCirculationExpirationDate(parsed.circulationExpirationDate);
+          // Gemini returns "expirationDate" for all document types
+          if (parsed.expirationDate) {
+            setCirculationExpirationDate(parsed.expirationDate);
+            setOcrLogs(prev => [...prev, `✓ [Gemini] Vigencia Tarjeta de Circulación: ${parsed.expirationDate}`]);
+          }
         } else {
           setInsurancePolicyImg(imageSource); // Store the actual Base64 URL image
           if (parsed.expirationDate) {
@@ -532,16 +545,37 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, target: "CIRCULACION" | "SEGURO") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsScanning(true);
     setScanTarget(target);
     setOcrStep("align");
-    const fileMsg = `[Archivo] Cargando: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+    const fileMsg = `[Archivo] Cargando: ${files.length} archivo(s)`;
     console.log(fileMsg);
     setOcrLogs([fileMsg]);
 
+    // For insurance, support multiple files / PDF
+    if (target === "SEGURO") {
+      const dataUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        dataUrls.push(dataUrl);
+      }
+      setInsurancePolicyFiles(dataUrls);
+      setInsurancePolicyImg(dataUrls[0]); // first page as main preview
+      // Run OCR on the first page
+      processOcrOnImageSource(dataUrls[0], target);
+      return;
+    }
+
+    // For circulation, single file
+    const file = files[0];
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
@@ -813,7 +847,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                       </Button>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,application/pdf"
+                        multiple
                         className="hidden"
                         ref={insFileRef}
                         onChange={(e) => handleFileChange(e, "SEGURO")}
@@ -905,16 +940,26 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro</h4>
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-muted-foreground text-xs">Foto de Póliza</Label>
-                        <div className="border border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                          {insurancePolicyImg ? (
-                            <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                              <CheckCircle2 className="w-4 h-4" /> Seguro Escaneado Correctamente
+                        <Label className="text-muted-foreground text-xs">Documentos de Póliza</Label>
+                        <div className="border border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => insFileRef.current?.click()}>
+                          {insurancePolicyFiles.length > 0 ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                                <CheckCircle2 className="w-4 h-4" /> {insurancePolicyFiles.length} página(s) cargada(s)
+                              </div>
+                              <div className="flex gap-1.5 flex-wrap justify-center">
+                                {insurancePolicyFiles.map((_, i) => (
+                                  <span key={i} className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-bold">
+                                    Pág. {i + 1}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           ) : (
                             <div className="text-muted-foreground text-xs flex flex-col items-center gap-1">
                               <Shield className="w-6 h-6 text-muted-foreground/80 mb-1" />
-                              <span>Póliza no cargada</span>
+                              <span>Subir PDF o imágenes (múltiples páginas)</span>
                             </div>
                           )}
                         </div>
