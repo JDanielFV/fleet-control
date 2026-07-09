@@ -1188,7 +1188,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                             toggleVehicleDetails(vehicle.id);
                           }
                         }}
-                        className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                        className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${filteredVehicles.indexOf(vehicle) % 2 === 0 ? "bg-card" : "bg-muted/5"}`}
                       >
                         <td className="py-2.5 px-2">
                           <span className="font-bold text-foreground">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</span>
@@ -1250,7 +1250,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         </td>
                       </tr>
                       {expandedVehicleDetails[vehicle.id] && (
-                        <tr className="border-b border-border/20 bg-muted/10">
+                        <motion.tr
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          className="border-b border-border/20 bg-muted/10 overflow-hidden"
+                        >
                           <td colSpan={5} className="p-4">
                             <div className="space-y-5">
                               {/* ─── SECTION 1: Vehicle Info + Actions ─── */}
@@ -1475,7 +1481,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                               <VehicleHistory vehicle={vehicle} maintenances={maintenances} assignments={assignments} drivers={drivers} />
                             </div>
                           </td>
-                        </tr>
+                        </motion.tr>
                       )}
                       </React.Fragment>
                     );

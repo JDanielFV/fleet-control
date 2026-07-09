@@ -699,6 +699,7 @@ export default function Dashboard() {
                                   ? "bg-amber-500/5 border-l-4 border-l-amber-500"
                                   : "border-l-4 border-l-transparent";
 
+                                const rowIndex = filteredDriversList.filter((d) => vehicles.some((v) => v.active_driver_id === d.id)).indexOf(driver);
                                 return (
                                   <tr
                                     key={driver.id}
@@ -711,7 +712,7 @@ export default function Dashboard() {
                                         openActionModal(assignedVehicle);
                                       }
                                     }}
-                                    className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${rowColorClass}`}
+                                    className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${rowColorClass} ${rowIndex % 2 === 0 ? "bg-card" : "bg-muted/5"}`}
                                   >
                                     <td className="py-3 px-2">
                                       <span className="font-bold text-foreground">{driver.first_name} {driver.paternal_last_name}</span>

@@ -1351,7 +1351,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                             toggleDriverDetails(driver.id);
                           }
                         }}
-                        className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                        className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${filteredDrivers.indexOf(driver) % 2 === 0 ? "bg-card" : "bg-muted/5"}`}
                       >
                         <td className="py-2.5 px-2">
                           <div className="relative w-8 h-8 rounded-full overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0">
@@ -1444,7 +1444,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         </td>
                       </tr>
                       {expandedDriverDetails[driver.id] && (
-                        <tr className="border-b border-border/20 bg-muted/10">
+                        <motion.tr
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          className="border-b border-border/20 bg-muted/10 overflow-hidden"
+                        >
                           <td colSpan={7} className="p-3">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 text-xs">
                               <div>
@@ -1770,7 +1776,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                               );
                             })()}
                           </td>
-                        </tr>
+                        </motion.tr>
                       )}
                       </React.Fragment>
                     );
