@@ -84,3 +84,57 @@ export function getVerificationSchedule(plate: string): VerificationSchedule {
       };
   }
 }
+
+/**
+ * Calculate the next verification expiration date based on the plate's schedule.
+ * Returns the last day of the next verification period (e.g. "2027-03-31").
+ */
+export function getNextVerificationDate(plate: string): string {
+  const schedule = getVerificationSchedule(plate);
+  const now = new Date();
+  const year = now.getFullYear();
+
+  // Parse semester end months
+  const sem1EndMonth = getEndMonth(schedule.semester1); // e.g. "Marzo" → 3
+  const sem2EndMonth = getEndMonth(schedule.semester2); // e.g. "Septiembre" → 9
+
+  const currentMonth = now.getMonth() + 1; // 1-indexed
+
+  // Determine which semester we're in and what's next
+  // If current month is before or in sem1 end month → next is sem2 of same year
+  // If current month is after sem1 end month → next is sem1 of next year
+  // If current month is after sem2 end month → next is sem1 of next year
+
+  let nextYear: number;
+  let nextEndMonth: number;
+
+  if (currentMonth <= sem1EndMonth) {
+    // We're in or before semester 1 → next is semester 2 of same year
+    nextYear = year;
+    nextEndMonth = sem2EndMonth;
+  } else if (currentMonth <= sem2EndMonth) {
+    // We're in or before semester 2 → next is semester 1 of next year
+    nextYear = year + 1;
+    nextEndMonth = sem1EndMonth;
+  } else {
+    // Past semester 2 → next is semester 1 of next year
+    nextYear = year + 1;
+    nextEndMonth = sem1EndMonth;
+  }
+
+  // Return the last day of the end month
+  const lastDay = new Date(nextYear, nextEndMonth, 0).getDate();
+  return `${nextYear}-${String(nextEndMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
+function getEndMonth(period: string): number {
+  const months: Record<string, number> = {
+    "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4,
+    "Mayo": 5, "Junio": 6, "Julio": 7, "Agosto": 8,
+    "Septiembre": 9, "Octubre": 10, "Noviembre": 11, "Diciembre": 12,
+  };
+  // period is like "Febrero - Marzo" → take the last month
+  const parts = period.split(" - ");
+  const lastMonthName = parts[parts.length - 1]?.trim() || "Enero";
+  return months[lastMonthName] || 1;
+}

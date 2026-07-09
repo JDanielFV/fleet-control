@@ -6,6 +6,7 @@ import { parseOcrText } from "@/lib/ocr";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
+import { getNextVerificationDate } from "@/lib/db/utils";
 import Tesseract from "tesseract.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,11 +140,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const submitVerification = async () => {
     if (!verifVehicle) return;
     const imgUrl = verifImg ? await uploadDocumentImage(verifImg, "verification") : null;
+    // Auto-calculate next verification date based on plate
+    const nextDate = getNextVerificationDate(verifVehicle.plate_number);
     await db.saveVehicle({
       ...verifVehicle,
-      verification_completed: verifCompleted,
+      verification_completed: true,
       verification_img: imgUrl || verifImg,
-      verification_expiration_date: verifDate,
+      verification_expiration_date: nextDate,
     });
     setVerifOpen(false);
     setVerifVehicle(null);
@@ -1663,7 +1666,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         </DialogContent>
       </Dialog>
 
-      {/* Verification Dialog — mark as completed + upload evidence photo */}
+      {/* Verification Dialog — upload evidence photo, auto-calculates next expiration */}
       <Dialog open={verifOpen} onOpenChange={(o) => { if (!o) setVerifVehicle(null); }}>
         <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
@@ -1690,23 +1693,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <label className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/40 cursor-pointer">
-              <span className="text-xs font-semibold text-foreground">Verificación completada</span>
-              <Switch checked={verifCompleted} onCheckedChange={setVerifCompleted} />
-            </label>
-
             <div>
-              <Label className="text-muted-foreground text-xs">Fecha de verificación</Label>
-              <Input
-                type="date"
-                value={verifDate}
-                onChange={(e) => setVerifDate(e.target.value)}
-                className="mt-1.5 border-input bg-background rounded-xl"
-              />
-            </div>
-
-            <div>
-              <Label className="text-muted-foreground text-xs">Foto de evidencia</Label>
+              <Label className="text-muted-foreground text-xs">Foto de evidencia (engomado/comprobante)</Label>
               <div
                 className="border border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors mt-1.5"
                 onClick={() => verifFileRef.current?.click()}
@@ -1718,7 +1706,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 ) : (
                   <div className="text-muted-foreground text-xs flex flex-col items-center gap-1">
                     <Camera className="w-5 h-5 text-muted-foreground/60 mb-1" />
-                    <span>Subir foto de comprobante</span>
+                    <span>Subir foto del comprobante</span>
                   </div>
                 )}
               </div>
@@ -1740,6 +1728,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               />
             </div>
 
+            {verifVehicle && (
+              <p className="text-xs text-muted-foreground bg-muted/20 rounded-lg p-3 leading-relaxed">
+                Al guardar se marcará la verificación como completada y se calculará
+                automáticamente la próxima fecha de vencimiento según el calendario
+                de verificación para placas con terminación <strong className="text-foreground">{verifVehicle.plate_number?.slice(-1) || "?"}</strong>.
+              </p>
+            )}
+
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
@@ -1750,9 +1746,10 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
               </Button>
               <Button
                 onClick={submitVerification}
-                className="flex-1 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600"
+                disabled={!verifImg}
+                className="flex-1 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 disabled:opacity-50"
               >
-                Guardar
+                Marcar como Verificada
               </Button>
             </div>
           </div>
