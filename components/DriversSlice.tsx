@@ -1293,15 +1293,15 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                   filteredDrivers.map((driver) => {
                     const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
                     return (
+                      <React.Fragment key={driver.id}>
                       <tr
-                        key={driver.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => onOpenActionSheet(driver, "driver")}
+                        onClick={() => toggleDriverDetails(driver.id)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            onOpenActionSheet(driver, "driver");
+                            toggleDriverDetails(driver.id);
                           }
                         }}
                         className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
@@ -1375,6 +1375,51 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                           </div>
                         </td>
                       </tr>
+                      {expandedDriverDetails[driver.id] && (
+                        <tr className="border-b border-border/20 bg-muted/10">
+                          <td colSpan={7} className="p-3">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Clave Elector</span>
+                                <span className="block text-foreground font-medium">{driver.ine_elector_key || "N/D"}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Domicilio INE</span>
+                                <span className="block text-foreground leading-snug">{driver.ine_address || "N/D"}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Licencia Vence</span>
+                                <span className="block text-foreground">{driver.license_expiration_date || (driver.license_is_permanent ? "Permanente" : "—")}</span>
+                              </div>
+                              {driver.ine_img && (
+                                <div>
+                                  <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">INE</span>
+                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5">
+                                    <Image src={driver.ine_img} alt="INE" fill className="object-cover" />
+                                  </div>
+                                </div>
+                              )}
+                              {driver.license_img && (
+                                <div>
+                                  <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
+                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5">
+                                    <Image src={driver.license_img} alt="Licencia" fill className="object-cover" />
+                                  </div>
+                                </div>
+                              )}
+                              {driver.address_proof_img && (
+                                <div>
+                                  <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Comprobante Domicilio</span>
+                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5">
+                                    <Image src={driver.address_proof_img} alt="Comprobante" fill className="object-cover" />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })
                 )}

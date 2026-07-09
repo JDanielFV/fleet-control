@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db, Vehicle, Driver } from "@/lib/db";
+import { db, Vehicle, Driver, getVerificationSchedule, Checklist, Maintenance } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
+import { formatDate, sortByDateDesc } from "@/lib/utils";
+import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
 import Tesseract from "tesseract.js";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,14 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
+
+  const toggleVehicleDetails = (vehicleId: string) => {
+    setExpandedVehicleDetails(prev => ({
+      ...prev,
+      [vehicleId]: !prev[vehicleId]
+    }));
+  };
 
   const handleDeleteVehicle = async (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.")) {
@@ -875,16 +885,50 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 ) : (
                   filteredVehicles.map((vehicle) => {
                     const vehicleId = vehicle.vin?.slice(-6).toUpperCase() || "—";
+                    const schedule = getVerificationSchedule(vehicle.plate_number);
+                    const vehicleChecklists = [] as Checklist[];
+                    const vehicleMaints = [] as Maintenance[];
+                    const lastMaint = null as Maintenance | null;
+                    const lastServiceDate = "Sin registros";
+                    const lastChecklist = null as Checklist | null;
+                    const mileage = "Sin registros";
+                    const { weeks: usageWeeks, monthlyAverage: monthlyUsageAverage } = computeUsageStats(vehicleChecklists);
+                    const latestWeek = usageWeeks.length > 0 ? usageWeeks[usageWeeks.length - 1] : null;
+                    const currentKm = lastChecklist ? lastChecklist.mileage : 0;
+                    const targetKm = vehicle.next_service_mileage || null;
+                    let nextServiceText = "No programado";
+                    let nextServiceEstimate = "N/D";
+                    let isServiceOverdue = false;
+                    if (targetKm) {
+                      nextServiceText = `${targetKm.toLocaleString()} km`;
+                      if (currentKm >= targetKm) {
+                        isServiceOverdue = true;
+                        nextServiceEstimate = `Excedido por ${(currentKm - targetKm).toLocaleString()} km`;
+                      } else {
+                        const remainingKm = targetKm - currentKm;
+                        const daysToService = Math.ceil(remainingKm / 80);
+                        const estDate = new Date();
+                        estDate.setDate(estDate.getDate() + daysToService);
+                        nextServiceEstimate = estDate.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+                      }
+                    }
+                    let verificationStatus = "Pendiente";
+                    if (typeof window !== "undefined") {
+                      const completed = JSON.parse(localStorage.getItem("fleet_completed_alerts") || "[]");
+                      if (completed.includes(`alert-ver-${vehicle.id}`)) verificationStatus = "Verificado (Al corriente)";
+                    }
+                    const rentStatusText = "Sin chofer";
+                    const rentStatusColor = "text-muted-foreground";
                     return (
+                      <React.Fragment key={vehicle.id}>
                       <tr
-                        key={vehicle.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => onOpenActionSheet(vehicle, "vehicle")}
+                        onClick={() => toggleVehicleDetails(vehicle.id)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            onOpenActionSheet(vehicle, "vehicle");
+                            toggleVehicleDetails(vehicle.id);
                           }
                         }}
                         className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
@@ -928,6 +972,95 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                           </div>
                         </td>
                       </tr>
+                      {expandedVehicleDetails[vehicle.id] && (
+                        <tr className="border-b border-border/20 bg-muted/10">
+                          <td colSpan={5} className="p-3">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span>
+                                <span className="block text-foreground font-medium">{vehicle.class_type || "Sedán"}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Color</span>
+                                <span className="block text-foreground font-medium">{vehicle.color || "Sin registrar"}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Engomado</span>
+                                <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                                  <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
+                                    backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
+                                                    schedule.color === "Rosa" ? "#ec4899" :
+                                                    schedule.color === "Rojo" ? "#ef4444" :
+                                                    schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
+                                  }} />
+                                  <span>{schedule.color}</span>
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Vence Circ.</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-foreground font-medium">{vehicle.circulation_expiration_date || "—"}</span>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
+                                    className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline"
+                                  >
+                                    <RefreshCcw className="w-3 h-3 inline" /> Renovar
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Vence Póliza</span>
+                                <div className="flex items-center gap-1.5">
+                                  <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
+                                  <span className="text-foreground font-medium">{vehicle.insurance_expiration_date || "—"}</span>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
+                                    className="text-[11px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 hover:underline"
+                                  >
+                                    <RefreshCcw className="w-3 h-3 inline" /> Renovar
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Últ. Servicio</span>
+                                <span className="block text-foreground font-medium">{lastServiceDate}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Kilometraje</span>
+                                <span className="block text-foreground font-medium">{mileage}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Próx. Servicio</span>
+                                <span className={`block font-semibold ${isServiceOverdue ? "text-amber-500 animate-pulse" : "text-foreground"}`}>{nextServiceText}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Est. Fecha</span>
+                                <span className={`flex items-center gap-1 ${isServiceOverdue ? "text-red-400 font-extrabold" : "text-foreground"}`}>
+                                  {isServiceOverdue && <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />}
+                                  <span>{nextServiceEstimate}</span>
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Verificación</span>
+                                <span className={`block font-semibold ${verificationStatus === "Verificado (Al corriente)" ? "text-emerald-400" : "text-amber-500"}`}>{verificationStatus}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Renta</span>
+                                <span className={`block ${rentStatusColor}`}>{rentStatusText}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Uso Semanal</span>
+                                <span className="block text-foreground font-medium">{latestWeek ? `${Math.round(latestWeek.kmPerDay).toLocaleString()} km/día` : "—"}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Media Mensual</span>
+                                <span className="block text-foreground font-medium">{monthlyUsageAverage !== null ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día` : "—"}</span>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })
                 )}
