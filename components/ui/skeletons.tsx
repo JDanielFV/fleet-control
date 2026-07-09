@@ -1,96 +1,91 @@
 import { Skeleton } from "./skeleton";
-import { Card } from "./card";
 
 /**
- * Skeleton that mirrors the iOS-style driver card used in DriversSlice:
- * a 14×14 avatar, a name line and a CURP line. Render a stack of these
- * while the drivers list is loading.
+ * Skeleton that mirrors the current driver table in DriversSlice:
+ * 7 columns: Foto, Nombre, CURP, Licencia, Vence, Auto, Acciones
  */
-export function DriverCardSkeleton() {
+export function DriverTableSkeleton() {
   return (
-    <Card className="border border-border bg-card/40 rounded-[20px] p-3.5 flex items-center gap-4">
-      <Skeleton className="w-14 h-14 rounded-[14px] shrink-0" />
-      <div className="flex-1 space-y-2 min-w-0">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
-      </div>
-    </Card>
+    <tr className="border-b border-border/20">
+      <td className="py-3 px-2"><Skeleton className="w-8 h-8 rounded-full" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-4 w-28" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-24" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-20" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-16" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-24" /></td>
+      <td className="py-3 px-2"><div className="flex justify-end gap-1"><Skeleton className="w-7 h-7 rounded-md" /><Skeleton className="w-7 h-7 rounded-md" /></div></td>
+    </tr>
   );
 }
 
-export function DriversListSkeleton({ count = 3 }: { count?: number }) {
+export function DriversListSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="space-y-3" aria-label="Cargando conductores">
-      {Array.from({ length: count }).map((_, i) => (
-        <DriverCardSkeleton key={i} />
-      ))}
+    <div className="w-full overflow-x-auto" aria-label="Cargando conductores">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+            <th className="text-left py-2.5 px-2">Foto</th>
+            <th className="text-left py-2.5 px-2">Nombre</th>
+            <th className="text-left py-2.5 px-2">CURP</th>
+            <th className="text-left py-2.5 px-2">Licencia</th>
+            <th className="text-left py-2.5 px-2">Vence</th>
+            <th className="text-left py-2.5 px-2">Auto</th>
+            <th className="text-right py-2.5 px-2">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: count }).map((_, i) => (
+            <DriverTableSkeleton key={i} />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 /**
- * Skeleton that mirrors the vehicle row in VehiclesSlice: a square icon
- * tile, a title line, two secondary lines and a right-aligned plate badge.
+ * Skeleton that mirrors the current vehicle table in VehiclesSlice:
+ * 5 columns: Auto, Placa, ID, Chofer, Acciones
  */
-export function VehicleCardSkeleton() {
+export function VehicleTableSkeleton() {
   return (
-    <Card className="border border-border bg-card/40 rounded-2xl p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
-          <div className="space-y-2 flex-1 min-w-0">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-3 w-1/3" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        </div>
-        <Skeleton className="h-7 w-20 rounded-lg shrink-0" />
-      </div>
-    </Card>
+    <tr className="border-b border-border/20">
+      <td className="py-3 px-2"><Skeleton className="h-4 w-32" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-16" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-12 font-mono" /></td>
+      <td className="py-3 px-2"><Skeleton className="h-3 w-24" /></td>
+      <td className="py-3 px-2"><div className="flex justify-end gap-1"><Skeleton className="w-7 h-7 rounded-md" /><Skeleton className="w-7 h-7 rounded-md" /></div></td>
+    </tr>
   );
 }
 
-export function VehiclesListSkeleton({ count = 3 }: { count?: number }) {
+export function VehiclesListSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="space-y-3" aria-label="Cargando vehículos">
-      {Array.from({ length: count }).map((_, i) => (
-        <VehicleCardSkeleton key={i} />
-      ))}
+    <div className="w-full overflow-x-auto" aria-label="Cargando vehículos">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+            <th className="text-left py-2.5 px-2">Auto</th>
+            <th className="text-left py-2.5 px-2">Placa</th>
+            <th className="text-left py-2.5 px-2">ID</th>
+            <th className="text-left py-2.5 px-2">Chofer</th>
+            <th className="text-right py-2.5 px-2">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: count }).map((_, i) => (
+            <VehicleTableSkeleton key={i} />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 /**
- * Skeleton that mirrors the rental/account row in FinancesSlice: a name,
- * a date and a status badge with the debt amount.
+ * Skeleton that mirrors the current checklist table in Dashboard:
+ * 9 columns: Chofer, Auto, Placa, ID Auto, Km Anterior, Km Nuevo, Renta, Pendiente, Stats
  */
-export function FinanceCardSkeleton() {
-  return (
-    <Card className="border border-border bg-card/40 rounded-2xl p-4 flex items-center justify-between gap-3">
-      <div className="space-y-2 flex-1 min-w-0">
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-3 w-1/3" />
-        <Skeleton className="h-3 w-1/2" />
-      </div>
-      <div className="space-y-1.5 text-right shrink-0">
-        <Skeleton className="h-5 w-16 rounded-md" />
-        <Skeleton className="h-4 w-20" />
-      </div>
-    </Card>
-  );
-}
-
-export function FinancesListSkeleton({ count = 3 }: { count?: number }) {
-  return (
-    <div className="space-y-3" aria-label="Cargando finanzas">
-      {Array.from({ length: count }).map((_, i) => (
-        <FinanceCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
-
-/** Skeleton for the Dashboard hero KPIs. */
 export function DashboardSkeleton() {
   return (
     <div className="space-y-5" aria-label="Cargando panel principal">
@@ -104,47 +99,38 @@ export function DashboardSkeleton() {
           <Skeleton className="w-10 h-10 rounded-full" />
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="md:col-span-2 border border-border bg-card rounded-2xl p-5 space-y-5">
-          <div className="flex justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-32" />
-              <Skeleton className="h-3 w-48" />
-            </div>
-            <Skeleton className="h-6 w-20 rounded-md" />
-          </div>
-          <div className="flex items-end gap-6">
-            <Skeleton className="h-12 w-24" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-2 w-full rounded-full" />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/40">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-3 w-12" />
-                <Skeleton className="h-6 w-16" />
-              </div>
+      <Skeleton className="h-12 w-full rounded-2xl" />
+      <div className="w-full overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
+              <th className="text-left py-2.5 px-2">Chofer</th>
+              <th className="text-left py-2.5 px-2">Auto</th>
+              <th className="text-left py-2.5 px-2">Placa</th>
+              <th className="text-left py-2.5 px-2">ID Auto</th>
+              <th className="text-right py-2.5 px-2">Km Ant.</th>
+              <th className="text-right py-2.5 px-2">Km Nuevo</th>
+              <th className="text-right py-2.5 px-2">Renta</th>
+              <th className="text-right py-2.5 px-2">Pendiente</th>
+              <th className="text-center py-2.5 px-2">Stats</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <tr key={i} className="border-b border-border/20">
+                <td className="py-3 px-2"><Skeleton className="h-4 w-28" /></td>
+                <td className="py-3 px-2"><Skeleton className="h-3 w-24" /></td>
+                <td className="py-3 px-2"><Skeleton className="h-3 w-16" /></td>
+                <td className="py-3 px-2"><Skeleton className="h-3 w-12 font-mono" /></td>
+                <td className="py-3 px-2 text-right"><Skeleton className="h-3 w-12 ml-auto" /></td>
+                <td className="py-3 px-2 text-right"><Skeleton className="h-3 w-12 ml-auto" /></td>
+                <td className="py-3 px-2 text-right"><Skeleton className="h-3 w-14 ml-auto" /></td>
+                <td className="py-3 px-2 text-right"><Skeleton className="h-3 w-14 ml-auto" /></td>
+                <td className="py-3 px-2 text-center"><Skeleton className="w-7 h-7 rounded-md mx-auto" /></td>
+              </tr>
             ))}
-          </div>
-        </Card>
-        <Card className="border border-border bg-card rounded-2xl p-5 space-y-3">
-          <div className="flex justify-between">
-            <Skeleton className="h-3 w-32" />
-            <Skeleton className="h-4 w-4 rounded-full" />
-          </div>
-          <Skeleton className="h-12 w-20" />
-          <div className="space-y-2">
-            <Skeleton className="h-1.5 w-full rounded-full" />
-            <Skeleton className="h-3 w-40" />
-          </div>
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 rounded-xl" />
-        ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
