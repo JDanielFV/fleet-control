@@ -324,7 +324,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         paternal_last_name: paternalLastName,
         maternal_last_name: maternalLastName,
         curp: licenseCurp,
-        dob: licenseDob || ineDob,
+        dob: ineDob,
         license_number: licenseNumber,
         license_issue_date: licenseIssueDate,
         license_expiration_date: licenseIsPermanent ? "" : licenseExpirationDate,
@@ -442,7 +442,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
           
           // Fallback to fill other fields ONLY if they are empty
           if (parsed.curp && !licenseCurp) setLicenseCurp(parsed.curp);
-          if (parsed.dob && !licenseDob) setLicenseDob(parsed.dob);
           if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
           if (parsed.paternalLastName && !paternalLastName) setPaternalLastName(parsed.paternalLastName);
           if (parsed.maternalLastName && !maternalLastName) setMaternalLastName(parsed.maternalLastName);
@@ -510,7 +509,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
           setLicenseExpirationDate(parsed.expirationDate);
         }
         if (parsed.curp && !licenseCurp) setLicenseCurp(parsed.curp);
-        if (parsed.dob && !licenseDob) setLicenseDob(parsed.dob);
       }
 
       setOcrStep("done");
@@ -752,7 +750,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   );
 
   // Real-time suggested CURP calculation based on UI values
-  const currentDob = ineDob || licenseDob;
+  const currentDob = ineDob;
   const suggestedCurp = (firstName && paternalLastName && currentDob)
     ? calculateCurp({
         firstName,
@@ -785,7 +783,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       maternalLastName,
       licenseCurp,
       licenseNumber,
-      licenseDob,
       licenseExpirationDate,
       ineCurp,
       ineDob,
@@ -799,14 +796,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     maternalLastName,
     licenseCurp,
     licenseNumber,
-    licenseDob,
     licenseExpirationDate,
     ineCurp,
     ineDob,
     ineElectorKey,
     ineAddress,
   ]);
-  const MANUAL_FIELDS_TOTAL = 11;
+  const MANUAL_FIELDS_TOTAL = 10;
 
   return (
     <div className="space-y-4">
@@ -1184,12 +1180,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         <div className="min-w-0">
                           <Label htmlFor="licCurp" className="text-muted-foreground text-xs">CURP Licencia</Label>
                           <Input id="licCurp" value={licenseCurp} onChange={(e) => setLicenseCurp(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="min-w-0">
-                          <Label htmlFor="licDob" className="text-muted-foreground text-xs">F. Nacimiento (Licencia)</Label>
-                          <Input type="date" id="licDob" value={licenseDob} onChange={(e) => setLicenseDob(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
                       </div>
 
