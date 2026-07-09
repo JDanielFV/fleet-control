@@ -9,6 +9,7 @@ import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
+import AssignmentDialog from "./AssignmentDialog";
 import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
   Bell,
   User,
   Car,
+  ArrowLeftRight,
   CheckCircle,
   AlertTriangle,
   Sun,
@@ -62,6 +64,7 @@ export default function Dashboard() {
   // dialog on mount. The slice calls onAutoOpenConsumed to clear the flag.
   const [autoOpenDriver, setAutoOpenDriver] = useState(false);
   const [autoOpenVehicle, setAutoOpenVehicle] = useState(false);
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   // Stats dialog state
   const [statsDialog, setStatsDialog] = useState<{
     driver: Driver;
@@ -442,6 +445,12 @@ export default function Dashboard() {
                           className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
                         >
                           <Car className="w-3.5 h-3.5" /> Auto
+                        </button>
+                        <button
+                          onClick={() => setAssignmentDialogOpen(true)}
+                          className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-emerald-500 text-white text-[11px] font-bold hover:bg-emerald-600 transition-all cursor-pointer active:scale-95 shadow-sm border-none"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5" /> Asignar
                         </button>
                       </div>
                     </div>
@@ -884,6 +893,15 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
       </AnimatePresence>
+
+      {/* Assignment Dialog */}
+      <AssignmentDialog
+        open={assignmentDialogOpen}
+        onClose={() => setAssignmentDialogOpen(false)}
+        onComplete={triggerRefresh}
+        drivers={drivers}
+        vehicles={vehicles}
+      />
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
       <nav
