@@ -20,6 +20,7 @@ import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -1261,19 +1262,13 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div className="min-w-0">
-                          <Label className="text-muted-foreground text-xs font-semibold">Estado de Nacimiento (Para cálculo CURP)</Label>
-                          <Select value={birthState} onValueChange={setBirthState}>
-                            <SelectTrigger className="w-full border-input bg-background rounded-xl">
-                              <SelectValue placeholder="Estado de nacimiento" />
-                            </SelectTrigger>
-                            <SelectContent className="border-border bg-popover text-popover-foreground max-h-48 overflow-y-auto">
-                              {MEXICAN_STATES.map((st) => (
-                                <SelectItem key={st.code} value={st.code}>
-                                  {st.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <SearchableSelect
+                            options={MEXICAN_STATES.map((st) => ({ value: st.code, label: st.name }))}
+                            value={birthState}
+                            onValueChange={setBirthState}
+                            placeholder="Estado de nacimiento"
+                            label="Estado de Nacimiento (Para cálculo CURP)"
+                          />
                         </div>
                         <div className="min-w-0">
                           <Label htmlFor="ineAddr" className="text-muted-foreground text-xs">Domicilio</Label>

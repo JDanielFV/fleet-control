@@ -502,7 +502,7 @@ export default function Dashboard() {
       {/* Main Container: Flexbox side-by-side layout for desktop */}
       <div className="flex-1 flex h-full overflow-hidden">
         {/* Middle column: Main content */}
-        <main className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
+        <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
