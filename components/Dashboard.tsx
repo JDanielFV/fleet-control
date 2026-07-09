@@ -515,7 +515,16 @@ export default function Dashboard() {
                                 return (
                                   <tr
                                     key={driver.id}
-                                    className="border-b border-border/20 hover:bg-muted/30 transition-colors"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => openChecklistSheet(assignedVehicle)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        openChecklistSheet(assignedVehicle);
+                                      }
+                                    }}
+                                    className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
                                   >
                                     <td className="py-3 px-2">
                                       <span className="font-bold text-foreground">{driver.first_name} {driver.paternal_last_name}</span>
