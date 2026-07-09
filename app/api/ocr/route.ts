@@ -53,6 +53,8 @@ Determina qué tipo de documento es:
 
 *IMPORTANTE SOBRE EL VIN/NIV:* El número de serie (VIN o NIV) de un vehículo mexicano consta estrictamente de exactamente 17 caracteres alfanuméricos y nunca contiene guiones. Los números con formato como "MT-C-XXXX" o números de 8-12 dígitos con guiones representan el Folio de la Tarjeta de Circulación, NO el VIN. Si no localizas una serie de 17 caracteres, deja el campo "vin" vacío.
 
+*IMPORTANTE SOBRE LA VIGENCIA:* En las tarjetas de circulación mexicanas, la fecha de vigencia puede aparecer como "Vigencia", "Fecha de Vigencia", "Válido hasta", "Expira", "Expiración" o "Vence". Busca cualquiera de estos términos. Si ves una fecha en la tarjeta de circulación, asígnela al campo "expirationDate".
+
 Responde únicamente con un objeto JSON válido con la siguiente estructura (llena únicamente los campos que logres leer claramente, el resto déjalos vacíos o en blanco):
 
 {
@@ -69,7 +71,7 @@ Responde únicamente con un objeto JSON válido con la siguiente estructura (lle
   "vehicleName": "submarca o modelo del auto (ej. Sentra)",
   "model": "año/modelo del auto (ej. 2022)",
   "classType": "clase o tipo de auto",
-  "expirationDate": "fecha de expiración de la licencia, póliza o tarjeta en formato AAAA-MM-DD",
+  "expirationDate": "fecha de vigencia/expiración de la licencia, póliza o tarjeta de circulación en formato AAAA-MM-DD",
   "vin": "número de serie / NIV de 17 caracteres",
   "plateNumber": "placa del auto"
 }

@@ -353,23 +353,45 @@ export function parseOcrText(text: string, type: "INE" | "LICENCIA" | "CIRCULACI
     }
   }
 
-  // Handle invalid dates
-  const dateMatches = fullContent.match(/\b\d{2}[\/\-]\d{2}[\/\-]\d{4}\b/g) || fullContent.match(/\b\d{4}[\/\-]\d{2}[\/\-]\d{2}\b/g);
-  if (dateMatches && dateMatches.length > 0) {
-    const rawDate = dateMatches[dateMatches.length - 1];
-    const parts = rawDate.split(/[\/\-]/);
-    if (parts[0].length === 4) {
-      result.expirationDate = rawDate.replace(/\//g, "-");
-    } else {
-      const day = parts[0];
-      let month = parts[1];
-      const year = parts[2];
-      
-      if (parseInt(month, 10) > 12) {
-        month = "11";
+  // Handle dates — for CIRCULACION, look for dates near "VIGENCIA", "VENCE", "EXPIRA" keywords
+  if (type === "CIRCULACION") {
+    const lines = text.split("\n").map(l => l.toUpperCase().trim());
+    for (const line of lines) {
+      if (line.includes("VIGENCIA") || line.includes("VENCE") || line.includes("VÁLIDO") || line.includes("EXPIRA")) {
+        const dateOnLine = line.match(/\b\d{2}[\/\-]\d{2}[\/\-]\d{4}\b/) || line.match(/\b\d{4}[\/\-]\d{2}[\/\-]\d{2}\b/);
+        if (dateOnLine) {
+          const rawDate = dateOnLine[0];
+          const parts = rawDate.split(/[\/\-]/);
+          if (parts[0].length === 4) {
+            result.expirationDate = rawDate.replace(/\//g, "-");
+          } else {
+            const day = parts[0];
+            let month = parts[1];
+            const year = parts[2];
+            if (parseInt(month, 10) > 12) month = "11";
+            result.expirationDate = `${year}-${month}-${day}`;
+          }
+          break;
+        }
       }
-      
-      result.expirationDate = `${year}-${month}-${day}`;
+    }
+  }
+
+  // Fallback: pick the last date in the document if no keyword match
+  if (!result.expirationDate) {
+    const dateMatches = fullContent.match(/\b\d{2}[\/\-]\d{2}[\/\-]\d{4}\b/g) || fullContent.match(/\b\d{4}[\/\-]\d{2}[\/\-]\d{2}\b/g);
+    if (dateMatches && dateMatches.length > 0) {
+      const rawDate = dateMatches[dateMatches.length - 1];
+      const parts = rawDate.split(/[\/\-]/);
+      if (parts[0].length === 4) {
+        result.expirationDate = rawDate.replace(/\//g, "-");
+      } else {
+        const day = parts[0];
+        let month = parts[1];
+        const year = parts[2];
+        if (parseInt(month, 10) > 12) month = "11";
+        result.expirationDate = `${year}-${month}-${day}`;
+      }
     }
   }
 
