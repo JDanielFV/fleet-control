@@ -1057,6 +1057,29 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                                 <span className="block text-foreground font-medium">{monthlyUsageAverage !== null ? `${Math.round(monthlyUsageAverage).toLocaleString()} km/día` : "—"}</span>
                               </div>
                             </div>
+                            {(vehicle.circulation_img || vehicle.insurance_policy_img) && (
+                              <div className="mt-3 pt-3 border-t border-border/60">
+                                <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80 block mb-2">Documentos</span>
+                                <div className="grid grid-cols-2 gap-3">
+                                  {vehicle.circulation_img && (
+                                    <div>
+                                      <div className="relative h-20 rounded-lg overflow-hidden border border-border bg-card">
+                                        <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover" />
+                                      </div>
+                                      <span className="text-2xs text-muted-foreground mt-1 block">Circ. vence: <strong className={vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>{vehicle.circulation_expiration_date || "—"}</strong></span>
+                                    </div>
+                                  )}
+                                  {vehicle.insurance_policy_img && (
+                                    <div>
+                                      <div className="relative h-20 rounded-lg overflow-hidden border border-border bg-card">
+                                        <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover" />
+                                      </div>
+                                      <span className="text-2xs text-muted-foreground mt-1 block">Seguro vence: <strong className={vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>{vehicle.insurance_expiration_date || "—"}</strong></span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )}
@@ -1066,53 +1089,6 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 )}
               </tbody>
             </table>
-
-            {/* Documentos Section — shows circulation card and insurance policy with their vigencias */}
-            {filteredVehicles.length > 0 && (
-              <div className="mt-6 space-y-3">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Documentos de Vehículos</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {filteredVehicles.map((vehicle) => {
-                    const hasCirc = vehicle.circulation_img || vehicle.circulation_expiration_date;
-                    const hasIns = vehicle.insurance_policy_img || vehicle.insurance_expiration_date;
-                    if (!hasCirc && !hasIns) return null;
-                    return (
-                      <div key={vehicle.id} className="bg-muted/30 border border-border/60 rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-foreground truncate">{vehicle.brand} {vehicle.vehicle_name} · {vehicle.plate_number}</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {vehicle.circulation_img && (
-                            <div className="relative h-16 rounded-lg overflow-hidden border border-border bg-card">
-                              <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover" />
-                            </div>
-                          )}
-                          {vehicle.insurance_policy_img && (
-                            <div className="relative h-16 rounded-lg overflow-hidden border border-border bg-card">
-                              <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-2xs">
-                          <div>
-                            <span className="text-muted-foreground font-semibold uppercase tracking-wider">Circ. vence</span>
-                            <span className={`block font-bold ${vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}`}>
-                              {vehicle.circulation_expiration_date || "—"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground font-semibold uppercase tracking-wider">Seguro vence</span>
-                            <span className={`block font-bold ${vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}`}>
-                              {vehicle.insurance_expiration_date || "—"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
