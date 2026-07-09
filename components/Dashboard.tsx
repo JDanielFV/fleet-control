@@ -10,6 +10,7 @@ import VehiclesSlice from "./VehiclesSlice";
 import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
 import AssignmentDialog from "./AssignmentDialog";
+import ChecklistActionModal from "./ChecklistActionModal";
 import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ export default function Dashboard() {
     vehicle?: Vehicle | null;
   } | null>(null);
   const [checklistSheet, setChecklistSheet] = useState<{ open: boolean, vehicle: Vehicle | null }>({ open: false, vehicle: null });
+  const [actionModal, setActionModal] = useState<{ open: boolean, vehicle: Vehicle | null }>({ open: false, vehicle: null });
   const [isBuzonOpen, setIsBuzonOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
@@ -283,6 +285,10 @@ export default function Dashboard() {
     setChecklistSheet({ open: true, vehicle });
   };
 
+  const openActionModal = (vehicle: Vehicle) => {
+    setActionModal({ open: true, vehicle });
+  };
+
   const handleVehicleAssignedFromSheet = (vehicle: Vehicle) => {
     openChecklistSheet(vehicle);
   };
@@ -303,6 +309,24 @@ export default function Dashboard() {
 
   const handleActionComplete = () => {
     triggerRefresh();
+  };
+
+  // Service out: mark vehicle as in_service
+  const handleServiceOut = async (vehicle: Vehicle) => {
+    if (!confirm(`¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`)) return;
+    await db.saveVehicle({
+      ...vehicle,
+      status: "in_service",
+      service_out_date: new Date().toISOString().split("T")[0],
+      service_return_date: null,
+    });
+    triggerRefresh();
+  };
+
+  // Wear part: open the wear part dialog via VehiclesSlice
+  const [wearPartVehicle, setWearPartVehicle] = useState<Vehicle | null>(null);
+  const handleWearPart = (vehicle: Vehicle) => {
+    setWearPartVehicle(vehicle);
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
@@ -524,11 +548,11 @@ export default function Dashboard() {
                                     key={driver.id}
                                     role="button"
                                     tabIndex={0}
-                                    onClick={() => openChecklistSheet(assignedVehicle)}
+                                    onClick={() => openActionModal(assignedVehicle)}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" || e.key === " ") {
                                         e.preventDefault();
-                                        openChecklistSheet(assignedVehicle);
+                                        openActionModal(assignedVehicle);
                                       }
                                     }}
                                     className="border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
@@ -585,7 +609,7 @@ export default function Dashboard() {
               {activeTab !== "dashboard" && (
                 <div className="flex-1 overflow-y-auto pr-1">
                   {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} weeklyRentals={weeklyRentals} onAssignDriver={(driverId) => { setAssignmentPreselect(driverId, null); setAssignmentDialogOpen(true); }} />}
-                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { setAssignmentPreselect(null, vehicleId); setAssignmentDialogOpen(true); }} />}
+                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { setAssignmentPreselect(null, vehicleId); setAssignmentDialogOpen(true); }} externalWearPartVehicle={wearPartVehicle} />}
                 </div>
               )}
             </motion.div>
@@ -830,75 +854,64 @@ export default function Dashboard() {
         </>
       )}
 
-      <AnimatePresence>
-        {checklistSheet.open && (
-          <ChecklistSheet
-            isOpen={true}
-            vehicle={checklistSheet.vehicle}
-            onClose={() => setChecklistSheet({ open: false, vehicle: null })}
-            onComplete={handleActionComplete}
-          />
-        )}
-
-        {/* Stats Dialog */}
-        <Dialog open={!!statsDialog} onOpenChange={(o) => { if (!o) setStatsDialog(null); }}>
-          <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
-            <DialogHeader>
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
-                  <BarChart3 className="w-5 h-5 text-primary" />
+      {/* Stats Dialog */}
+      <Dialog key="stats-dialog" open={!!statsDialog} onOpenChange={(o) => { if (!o) setStatsDialog(null); }}>
+        <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+                <BarChart3 className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="text-foreground font-black text-lg">
+                  Estadísticas de Uso
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground text-xs">
+                  {statsDialog?.driver
+                    ? `${statsDialog.driver.first_name} ${statsDialog.driver.paternal_last_name}`
+                    : ""}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {statsDialog?.usage.monthlyAverage != null ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
+                  <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Semanal</span>
+                  <p className="text-lg font-black text-foreground font-mono mt-1">
+                    {Math.round(statsDialog.usage.monthlyAverage * 7).toLocaleString()} km
+                  </p>
                 </div>
-                <div className="min-w-0">
-                  <DialogTitle className="text-foreground font-black text-lg">
-                    Estadísticas de Uso
-                  </DialogTitle>
-                  <DialogDescription className="text-muted-foreground text-xs">
-                    {statsDialog?.driver
-                      ? `${statsDialog.driver.first_name} ${statsDialog.driver.paternal_last_name}`
-                      : ""}
-                  </DialogDescription>
+                <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
+                  <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Mensual</span>
+                  <p className="text-lg font-black text-foreground font-mono mt-1">
+                    {Math.round(statsDialog.usage.monthlyAverage * 30).toLocaleString()} km
+                  </p>
                 </div>
               </div>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              {statsDialog?.usage.monthlyAverage != null ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
-                    <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Semanal</span>
-                    <p className="text-lg font-black text-foreground font-mono mt-1">
-                      {Math.round(statsDialog.usage.monthlyAverage * 7).toLocaleString()} km
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted/40 border border-border text-center">
-                    <span className="block text-[11px] uppercase font-bold text-muted-foreground">Promedio Mensual</span>
-                    <p className="text-lg font-black text-foreground font-mono mt-1">
-                      {Math.round(statsDialog.usage.monthlyAverage * 30).toLocaleString()} km
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-center py-4 text-muted-foreground text-xs">
-                  No hay suficientes datos de kilometraje para calcular promedios.
-                </p>
-              )}
+            ) : (
+              <p className="text-center py-4 text-muted-foreground text-xs">
+                No hay suficientes datos de kilometraje para calcular promedios.
+              </p>
+            )}
 
-              {statsDialog && statsDialog.usage.weeks.length > 0 && (
-                <div>
-                  <span className="block text-[11px] uppercase font-bold text-muted-foreground mb-2">Historial Semanal</span>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {[...statsDialog.usage.weeks].reverse().map((w, i) => (
-                      <div key={i} className="flex justify-between text-xs py-1.5 px-2 rounded-lg bg-muted/20 border border-border/30">
-                        <span className="text-muted-foreground font-mono">{w.weekStart}</span>
-                        <span className="font-bold text-foreground">{w.km.toLocaleString()} km</span>
-                      </div>
-                    ))}
-                  </div>
+            {statsDialog && statsDialog.usage.weeks.length > 0 && (
+              <div>
+                <span className="block text-[11px] uppercase font-bold text-muted-foreground mb-2">Historial Semanal</span>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {[...statsDialog.usage.weeks].reverse().map((w, i) => (
+                    <div key={i} className="flex justify-between text-xs py-1.5 px-2 rounded-lg bg-muted/20 border border-border/30">
+                      <span className="text-muted-foreground font-mono">{w.weekStart}</span>
+                      <span className="font-bold text-foreground">{w.km.toLocaleString()} km</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Assignment Dialog */}
       <AssignmentDialog
@@ -910,6 +923,34 @@ export default function Dashboard() {
         preselectDriver={assignmentPreselectDriver}
         preselectVehicle={assignmentPreselectVehicle}
       />
+
+      {/* Checklist Action Modal */}
+      <AnimatePresence>
+        {actionModal.open && (
+          <ChecklistActionModal
+            key="action-modal"
+            open={true}
+            vehicle={actionModal.vehicle}
+            onClose={() => setActionModal({ open: false, vehicle: null })}
+            onChecklist={openChecklistSheet}
+            onServiceOut={handleServiceOut}
+            onWearPart={handleWearPart}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Checklist Sheet */}
+      <AnimatePresence>
+        {checklistSheet.open && (
+          <ChecklistSheet
+            key="checklist-sheet"
+            isOpen={true}
+            vehicle={checklistSheet.vehicle}
+            onClose={() => setChecklistSheet({ open: false, vehicle: null })}
+            onComplete={handleActionComplete}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}
       <nav

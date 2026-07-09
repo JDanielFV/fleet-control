@@ -31,9 +31,11 @@ interface VehiclesSliceProps {
   /** Called after the dialog is closed (to clear the autoOpen flag). */
   onAutoOpenConsumed?: () => void;
   onAssignVehicle?: (vehicleId: string) => void;
+  /** External trigger to open the wear part dialog for a specific vehicle */
+  externalWearPartVehicle?: Vehicle | null;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle, externalWearPartVehicle: extWearPartVehicle }: VehiclesSliceProps) {
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -204,7 +206,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   // Report a wear part maintenance (separate from periodic service)
   const handleReportWearPart = async (vehicle: Vehicle) => {
-    setWearPartVehicle(vehicle);
+    setWearPartVehicleState(vehicle);
     setWearPartName("");
     setWearPartCost("");
     setWearPartDate(new Date().toISOString().split("T")[0]);
@@ -212,16 +214,16 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   };
 
   const submitWearPart = async () => {
-    if (!wearPartVehicle || !wearPartName.trim()) return;
+    if (!wearPartVehicleState || !wearPartName.trim()) return;
     await db.saveMaintenance({
-      vehicle_id: wearPartVehicle.id,
+      vehicle_id: wearPartVehicleState.id,
       cost: parseFloat(wearPartCost) || 0,
       description: `[PIEZA DESGASTE] ${wearPartName.trim()}`,
       maintenance_date: wearPartDate,
       next_maintenance_date: null,
     });
     setWearPartOpen(false);
-    setWearPartVehicle(null);
+    setWearPartVehicleState(null);
     loadData();
     onRefreshAlerts();
   };
@@ -247,6 +249,17 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       onAutoOpenConsumed?.();
     }
   }, [autoOpen]);
+
+  // External trigger for wear part dialog (from ChecklistActionModal)
+  useEffect(() => {
+    if (extWearPartVehicle) {
+      setWearPartVehicleState(extWearPartVehicle);
+      setWearPartName("");
+      setWearPartCost("");
+      setWearPartDate(new Date().toISOString().split("T")[0]);
+      setWearPartOpen(true);
+    }
+  }, [extWearPartVehicle]);
 
   // Section tracker for the Stepper. Click any step to scroll that
   // section into view; the active step updates as the user scrolls.
@@ -292,7 +305,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   // Wear part dialog state
   const [wearPartOpen, setWearPartOpen] = useState(false);
-  const [wearPartVehicle, setWearPartVehicle] = useState<Vehicle | null>(null);
+  const [wearPartVehicleState, setWearPartVehicleState] = useState<Vehicle | null>(null);
   const [wearPartName, setWearPartName] = useState("");
   const [wearPartCost, setWearPartCost] = useState("");
   const [wearPartDate, setWearPartDate] = useState(new Date().toISOString().split("T")[0]);
@@ -1552,7 +1565,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       </Dialog>
 
       {/* Wear Part Dialog */}
-      <Dialog open={wearPartOpen} onOpenChange={(o) => { setWearPartOpen(o); if (!o) setWearPartVehicle(null); }}>
+      <Dialog open={wearPartOpen} onOpenChange={(o) => { setWearPartOpen(o); if (!o) setWearPartVehicleState(null); }}>
         <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
             <div className="flex items-start gap-3">
@@ -1569,8 +1582,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                   </span>
                 </div>
                 <DialogDescription className="text-muted-foreground text-xs">
-                  {wearPartVehicle
-                    ? `${wearPartVehicle.brand} ${wearPartVehicle.vehicle_name} · ${wearPartVehicle.plate_number}`
+                  {wearPartVehicleState
+                    ? `${wearPartVehicleState.brand} ${wearPartVehicleState.vehicle_name} · ${wearPartVehicleState.plate_number}`
                     : "Cargando..."}
                 </DialogDescription>
               </div>
@@ -1613,7 +1626,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
-                onClick={() => { setWearPartOpen(false); setWearPartVehicle(null); }}
+                onClick={() => { setWearPartOpen(false); setWearPartVehicleState(null); }}
                 className="flex-1 rounded-xl border-border"
               >
                 Cancelar
