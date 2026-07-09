@@ -219,21 +219,16 @@ export const db = {
     }
 
     // Auto-generate Weekly Rental if it's an ASSIGN action.
-    // First-time drivers get a prorated first week (charges only the
-    // days remaining in the current week); subsequent weeks are full
-    // price via the manual "Nueva Renta" flow.
     if (type === "ASSIGN") {
       const weekStart = getMondayOf(new Date());
 
       const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
       const exists = rentals.some((r) => r.driver_id === driverId && r.week_start === weekStart);
+
       if (!exists) {
+        // ── First assignment this week: create prorated rental ──
         const vehicleObj = vehicles.find((v) => v.id === vehicleId);
         const rentCost = vehicleObj?.rent_cost || 2500;
-
-        // isFirstTime was the old signal that triggered rentCost*2; we
-        // now ignore it and prorate by current weekday instead. The
-        // argument is kept for backwards compatibility with callers.
         const { amount, days } = prorateRent(rentCost, new Date());
 
         const newRental: WeeklyRental = {
@@ -255,6 +250,38 @@ export const db = {
         if (supabase) {
           const { error: rErr } = await supabase.from("weekly_rentals").insert(newRental);
           if (rErr) addPendingId("weekly_rentals", newRental.id);
+        }
+      } else {
+        // ── Re-assignment mid-week: pre-create next week's rental with new auto's rate ──
+        const nextMonday = new Date();
+        nextMonday.setDate(nextMonday.getDate() + (8 - nextMonday.getDay()) % 7 || 7);
+        const nextWeekStart = getMondayOf(nextMonday);
+
+        const hasNextWeek = rentals.some((r) => r.driver_id === driverId && r.week_start === nextWeekStart);
+        if (!hasNextWeek) {
+          const vehicleObj = vehicles.find((v) => v.id === vehicleId);
+          const rentCost = vehicleObj?.rent_cost || 2500;
+
+          const nextRental: WeeklyRental = {
+            id: genId(),
+            driver_id: driverId,
+            week_start: nextWeekStart,
+            rent_amount: rentCost,
+            paid_amount: 0,
+            is_prorated: false,
+            prorated_days: undefined,
+            condoned_days: 0,
+            condoned_amount: 0,
+            status: "UNPAID",
+            payments_log: [],
+            created_at: new Date().toISOString(),
+          };
+          rentals.unshift(nextRental);
+          setLocalData("weekly_rentals", rentals);
+          if (supabase) {
+            const { error: rErr } = await supabase.from("weekly_rentals").insert(nextRental);
+            if (rErr) addPendingId("weekly_rentals", nextRental.id);
+          }
         }
       }
     }
