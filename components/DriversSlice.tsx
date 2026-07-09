@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
-import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown } from "lucide-react";
+import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -120,6 +120,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   const [renewNumber, setRenewNumber] = useState("");
   const [renewIssueDate, setRenewIssueDate] = useState("");
   const [renewExpirationDate, setRenewExpirationDate] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [renewIsPermanent, setRenewIsPermanent] = useState(false);
   const [driverPhotoImg, setDriverPhotoImg] = useState("");
   const [addressProofImg, setAddressProofImg] = useState("");
@@ -1390,24 +1391,27 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                               {driver.ine_img && (
                                 <div>
                                   <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">INE</span>
-                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5">
-                                    <Image src={driver.ine_img} alt="INE" fill className="object-cover" />
+                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5 cursor-pointer"
+                                    onClick={(e) => { e.stopPropagation(); setPreviewImage(driver.ine_img!); }}>
+                                    <Image src={driver.ine_img} alt="INE" fill className="object-cover hover:scale-105 transition-transform" />
                                   </div>
                                 </div>
                               )}
                               {driver.license_img && (
                                 <div>
                                   <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Licencia</span>
-                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5">
-                                    <Image src={driver.license_img} alt="Licencia" fill className="object-cover" />
+                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5 cursor-pointer"
+                                    onClick={(e) => { e.stopPropagation(); setPreviewImage(driver.license_img!); }}>
+                                    <Image src={driver.license_img} alt="Licencia" fill className="object-cover hover:scale-105 transition-transform" />
                                   </div>
                                 </div>
                               )}
                               {driver.address_proof_img && (
                                 <div>
                                   <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Comprobante Domicilio</span>
-                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5">
-                                    <Image src={driver.address_proof_img} alt="Comprobante" fill className="object-cover" />
+                                  <div className="relative h-12 w-20 rounded-lg overflow-hidden border border-border/70 mt-0.5 cursor-pointer"
+                                    onClick={(e) => { e.stopPropagation(); setPreviewImage(driver.address_proof_img!); }}>
+                                    <Image src={driver.address_proof_img} alt="Comprobante" fill className="object-cover hover:scale-105 transition-transform" />
                                   </div>
                                 </div>
                               )}
@@ -1505,6 +1509,24 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                 Guardar
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={(o) => { if (!o) setPreviewImage(null); }}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto border border-border bg-black/95 text-foreground rounded-2xl p-2">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {previewImage && (
+              <Image
+                src={previewImage}
+                alt="Documento"
+                width={1200}
+                height={1600}
+                className="object-contain max-w-full max-h-[85vh] rounded-lg"
+                style={{ width: 'auto', height: 'auto' }}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
