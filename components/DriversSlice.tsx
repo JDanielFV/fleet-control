@@ -1442,6 +1442,20 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
       </div>
 
       {/* License Renewal Dialog — quick update of license data without touching the rest of the file */}
+      {/* Show scanner when renewing (isScanning && !isOpen) */}
+      <Dialog open={isScanning && !!renewingDriver} onOpenChange={(o) => { if (!o) { stopCamera(); setRenewingDriver(null); } }}>
+        <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl p-0 overflow-hidden">
+          <ScannerViewfinder
+            scanner={scanner}
+            labels={{
+              scan: "Escaneando licencia...",
+              extract: "Extrayendo datos...",
+              logsHeader: "LOGS OCR RENOVACIÓN",
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isRenewOpen} onOpenChange={(o) => { setIsRenewOpen(o); if (!o) setRenewingDriver(null); }}>
         <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
