@@ -5,7 +5,7 @@ import { AssignmentSelector } from "./ui/AssignmentSelector";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { motion } from "framer-motion";
-import { Car, Ban, ClipboardList, Wrench, CheckCircle2, X, User } from "lucide-react";
+import { Car, Ban, ClipboardList, CheckCircle2, X, User } from "lucide-react";
 
 interface EntityActionSheetProps {
   isOpen: boolean;
@@ -14,7 +14,6 @@ interface EntityActionSheetProps {
   vehicle?: Vehicle | null;
   isInline?: boolean;
 
-  // Retrocompatibilidad con otros slices que pasen props viejos
   entity?: Driver | Vehicle | null;
   type?: "driver" | "vehicle";
   isAssigned?: boolean;
@@ -24,7 +23,7 @@ interface EntityActionSheetProps {
   onVehicleAssigned?: (vehicle: Vehicle) => void;
 }
 
-type View = "main" | "assign" | "remove" | "service";
+type View = "main" | "assign" | "remove";
 
 export const EntityActionSheet = ({
   isOpen,
@@ -43,29 +42,19 @@ export const EntityActionSheet = ({
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Entidades resueltas interna y asíncronamente para soportar ambos tipos de props
   const [resolvedDriver, setResolvedDriver] = useState<Driver | null>(null);
   const [resolvedVehicle, setResolvedVehicle] = useState<Vehicle | null>(null);
 
-  // Formulario de servicio
-  const [serviceCost, setServiceCost] = useState(0);
-  const [serviceDescription, setServiceDescription] = useState("");
-  const [serviceDate, setServiceDate] = useState("");
-  const [nextServiceDate, setNextServiceDate] = useState("");
-
-  // Resolver entidades cuando el modal se abre
   useEffect(() => {
     if (!isOpen) return;
 
     const resolveEntities = async () => {
-      // 1. Si se proveen los props directos de chofer/auto
       if (driver !== undefined || vehicle !== undefined) {
         setResolvedDriver(driver || null);
         setResolvedVehicle(vehicle || null);
         return;
       }
 
-      // 2. Si se proveen los props de legado (entity + type)
       if (entity) {
         if (type === "driver") {
           const d = entity as Driver;
@@ -86,26 +75,19 @@ export const EntityActionSheet = ({
     resolveEntities();
   }, [isOpen, driver, vehicle, entity, type]);
 
-  // Limpiar estados al cerrar
   useEffect(() => {
     if (!isOpen) {
       Promise.resolve().then(() => {
         setView("main");
         setReason("");
-        setServiceCost(0);
-        setServiceDescription("");
-        setServiceDate("");
-        setNextServiceDate("");
         setResolvedDriver(null);
         setResolvedVehicle(null);
       });
     }
   }, [isOpen]);
 
-  // Si no está abierto o no hay entidades resueltas, no renderizar nada
   if (!isOpen || (!resolvedDriver && !resolvedVehicle)) return null;
 
-  // Determinar si hay una asignación activa (chofer con vehículo)
   const hasActiveAssignment = !!resolvedDriver && !!resolvedVehicle;
 
   const handleAssign = () => setView("assign");
@@ -115,7 +97,6 @@ export const EntityActionSheet = ({
     setIsLoading(true);
     try {
       if (resolvedDriver) {
-        // Asignar vehículo al chofer actual
         await db.createAssignment(targetId, resolvedDriver.id, "ASSIGN", "Asignación rápida desde Action Sheet");
         onActionComplete?.();
         if (onVehicleAssigned) {
@@ -124,7 +105,6 @@ export const EntityActionSheet = ({
           if (vehicleObj) onVehicleAssigned(vehicleObj);
         }
       } else if (resolvedVehicle) {
-        // Asignar chofer al vehículo actual
         await db.createAssignment(resolvedVehicle.id, targetId, "ASSIGN", "Asignación rápida desde Action Sheet");
         onActionComplete?.();
         if (onVehicleAssigned) {
@@ -167,13 +147,6 @@ export const EntityActionSheet = ({
     }
   };
 
-  const handleOpenService = () => {
-    if (resolvedVehicle) {
-      setServiceDate(new Date().toISOString().slice(0, 10));
-      setView("service");
-    }
-  };
-
   const handleMarkVerification = async () => {
     if (!resolvedVehicle) return;
     if (!confirm("¿Marcar la verificación vehicular como completada?")) return;
@@ -188,31 +161,8 @@ export const EntityActionSheet = ({
     }
   };
 
-  const executeService = async () => {
-    if (!resolvedVehicle) return;
-    if (serviceCost <= 0 || !serviceDate || !nextServiceDate || !serviceDescription.trim()) return;
-
-    setIsLoading(true);
-    try {
-      await db.saveMaintenance({
-        vehicle_id: resolvedVehicle.id,
-        cost: Number(serviceCost),
-        description: serviceDescription.trim(),
-        maintenance_date: serviceDate,
-        next_maintenance_date: nextServiceDate,
-      });
-      setView("main");
-      onActionComplete?.();
-    } catch (err) {
-      alert("Error al registrar servicio: " + err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const renderSheetContents = () => (
     <>
-      {/* Top Control Bar with Close Button */}
       <div className="flex items-center justify-end px-6 pt-4 pb-2 shrink-0 border-b border-border/40">
         <div className="w-12 h-1.5 bg-muted rounded-full cursor-pointer md:hidden mr-auto" onClick={onClose} aria-hidden="true" />
         {onClose && (
@@ -227,18 +177,15 @@ export const EntityActionSheet = ({
         )}
       </div>
 
-      {/* Scrollable content area */}
       <div className="px-6 overflow-y-auto overflow-x-hidden flex-1 overscroll-contain pb-6">
         {view === "main" && (
           <div className="space-y-6 pt-4">
-            {/* Header Info Block */}
             <div>
               <h2 id="sheet-title" className="text-[20px] font-black text-foreground tracking-tight leading-tight mb-2">
                 Detalles de Operación
               </h2>
 
               <div className="space-y-3 mt-4">
-                {/* Driver Section */}
                 {resolvedDriver ? (
                   <div className="flex items-start gap-3 p-3 bg-secondary/40 dark:bg-muted/30 rounded-2xl border border-border/50">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -260,7 +207,6 @@ export const EntityActionSheet = ({
                   </div>
                 )}
 
-                {/* Vehicle Section */}
                 {resolvedVehicle ? (
                   <div className="flex items-start gap-3 p-3 bg-secondary/40 dark:bg-muted/30 rounded-2xl border border-border/50">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -284,11 +230,9 @@ export const EntityActionSheet = ({
               </div>
             </div>
 
-            {/* Actions Section */}
             <div className="space-y-3.5">
               <span className="block text-xs font-extrabold text-muted-foreground uppercase tracking-wider mb-2">Acciones</span>
 
-              {/* Assignment toggle */}
               {hasActiveAssignment ? (
                 <button
                   onClick={handleRemove}
@@ -307,7 +251,6 @@ export const EntityActionSheet = ({
                 </button>
               )}
 
-              {/* Vehicle-specific actions (available whenever a vehicle context is active) */}
               {resolvedVehicle && (
                 <>
                   <button
@@ -316,14 +259,6 @@ export const EntityActionSheet = ({
                   >
                     <ClipboardList className="w-5 h-5 text-primary shrink-0" />
                     <span>Registrar Checklist Semanal</span>
-                  </button>
-
-                  <button
-                    onClick={handleOpenService}
-                    className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-secondary hover:bg-secondary/80 text-foreground transition-all font-bold text-sm cursor-pointer border-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:outline-hidden"
-                  >
-                    <Wrench className="w-5 h-5 text-primary shrink-0" />
-                    <span>Registrar Mantenimiento o Taller</span>
                   </button>
 
                   <button
@@ -406,105 +341,6 @@ export const EntityActionSheet = ({
             </div>
           </div>
         )}
-
-        {view === "service" && resolvedVehicle && (
-          <div className="pt-4 space-y-4">
-            <div className="flex items-center justify-between border-b border-border/40 pb-3">
-              <h3 className="text-lg font-bold text-foreground">Registrar Servicio</h3>
-              <button
-                onClick={() => setView("main")}
-                className="text-primary font-bold hover:underline p-2 -mr-2 cursor-pointer text-sm"
-                aria-label="Volver al menú anterior"
-              >
-                ← Volver
-              </button>
-            </div>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Para el auto <strong className="text-foreground">{resolvedVehicle.brand} {resolvedVehicle.vehicle_name} ({resolvedVehicle.plate_number})</strong>.
-            </p>
-
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="serviceCost" className="text-foreground text-xs font-bold uppercase tracking-wider">
-                  Costo del Servicio ($)
-                </Label>
-                <Input
-                  id="serviceCost"
-                  type="number"
-                  value={serviceCost || ""}
-                  onChange={(e) => setServiceCost(Number(e.target.value))}
-                  placeholder="ej. 1800"
-                  className="border-2 border-border bg-background rounded-2xl w-full py-3 h-12 text-sm focus-visible:ring-4 focus-visible:ring-primary/50 focus-visible:border-primary"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="serviceDate" className="text-foreground text-xs font-bold uppercase tracking-wider">
-                  Fecha del Servicio
-                </Label>
-                <Input
-                  id="serviceDate"
-                  type="date"
-                  value={serviceDate}
-                  onChange={(e) => setServiceDate(e.target.value)}
-                  className="border-2 border-border bg-background rounded-2xl w-full py-3 h-12 text-sm focus-visible:ring-4 focus-visible:ring-primary/50 focus-visible:border-primary"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nextServiceDate" className="text-foreground text-xs font-bold uppercase tracking-wider">
-                  Próximo Servicio
-                  </Label>
-                <Input
-                  id="nextServiceDate"
-                  type="date"
-                  value={nextServiceDate}
-                  onChange={(e) => setNextServiceDate(e.target.value)}
-                  className="border-2 border-border bg-background rounded-2xl w-full py-3 h-12 text-sm focus-visible:ring-4 focus-visible:ring-primary/50 focus-visible:border-primary"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="serviceDescription" className="text-foreground text-xs font-bold uppercase tracking-wider">
-                  Descripción de Trabajos
-                </Label>
-                <Input
-                  id="serviceDescription"
-                  value={serviceDescription}
-                  onChange={(e) => setServiceDescription(e.target.value)}
-                  placeholder="ej. Cambio de aceite, filtros y bujías"
-                  className="border-2 border-border bg-background rounded-2xl w-full py-3 h-12 text-sm focus-visible:ring-4 focus-visible:ring-primary/50 focus-visible:border-primary"
-                  required
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setView("main")}
-                  className="flex-1 px-4 py-3.5 text-foreground bg-secondary hover:bg-secondary/80 font-bold text-sm rounded-2xl transition-colors cursor-pointer border-none"
-                >
-                  Cancelar
-                </button>
-                <button
-                  disabled={
-                    isLoading ||
-                    serviceCost <= 0 ||
-                    !serviceDate ||
-                    !nextServiceDate ||
-                    !serviceDescription.trim()
-                  }
-                  onClick={executeService}
-                  className="flex-1 px-4 py-3.5 bg-primary text-white font-bold text-sm rounded-2xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer border-none focus-visible:ring-4 focus-visible:ring-primary"
-                >
-                  Guardar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {isLoading && (
@@ -529,7 +365,6 @@ export const EntityActionSheet = ({
 
   return (
     <>
-      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -540,7 +375,6 @@ export const EntityActionSheet = ({
         aria-hidden="true"
       />
 
-      {/* Modal Container */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <motion.div
           role="dialog"

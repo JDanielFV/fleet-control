@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fleet Control - Any",
+  title: "Fleet Control",
   description: "Sistema Inteligente de Control de Flotas y Expedientes",
   appleWebApp: {
     capable: true,

@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
-export type TabId = "dashboard" | "drivers" | "vehicles" | "assignments" | "finances" | "maintenance";
+export type TabId = "dashboard" | "drivers" | "vehicles";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
@@ -569,7 +569,7 @@ export default function Dashboard() {
 
               {activeTab !== "dashboard" && (
                 <div className="flex-1 overflow-y-auto pr-1">
-                  {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} />}
+                  {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} weeklyRentals={weeklyRentals} />}
                   {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} />}
                 </div>
               )}

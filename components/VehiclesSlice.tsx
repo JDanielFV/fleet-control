@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db, Vehicle, Driver, getVerificationSchedule, Checklist, Maintenance, Assignment, RenewalLog } from "@/lib/db";
+import { db, Vehicle, Driver, getVerificationSchedule, Checklist, Maintenance, Assignment, RenewalLog, WeeklyRental } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
@@ -170,11 +170,31 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       service_return_date: returnDate.toISOString().split("T")[0],
     });
 
-    // If the vehicle has an assigned driver, apply a credit for the days out
+    // If the vehicle has an assigned driver, condone the days on the current weekly rental
     if (vehicle.active_driver_id) {
-      const dailyRate = vehicle.rent_cost / 7;
-      const creditAmount = Math.round(dailyRate * discountDays);
-      await db.addDriverCredit(vehicle.active_driver_id, creditAmount);
+      const rentals = await db.getWeeklyRentals();
+      const currentRental = rentals.find(
+        (r) => r.driver_id === vehicle.active_driver_id && r.status !== "PAID"
+      );
+      if (currentRental) {
+        const dailyRate = currentRental.rent_amount / 7;
+        const condonedAmount = Math.round(dailyRate * discountDays);
+        const updated: WeeklyRental = {
+          ...currentRental,
+          condoned_days: (currentRental.condoned_days || 0) + Math.ceil(discountDays),
+          condoned_amount: (currentRental.condoned_amount || 0) + condonedAmount,
+        };
+        // Recompute status
+        const effectiveRent = updated.rent_amount - updated.condoned_amount;
+        if (updated.paid_amount >= effectiveRent) {
+          updated.status = "PAID";
+        } else if (updated.paid_amount > 0) {
+          updated.status = "PARTIAL";
+        } else {
+          updated.status = "UNPAID";
+        }
+        await db.saveWeeklyRental(updated);
+      }
     }
 
     loadData();

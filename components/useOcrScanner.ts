@@ -6,8 +6,8 @@ export type OcrStep = "align" | "scan" | "extract" | "done";
 
 interface UseOcrScannerOptions<T extends string> {
   /**
-   * Targets whose captured frame should NOT be binarised (e.g. photo-only
-   * captures like a driver portrait or address proof). Defaults to none.
+   * Targets that should skip OCR processing and just store the raw photo
+   * (e.g. driver portrait or address proof). Defaults to none.
    */
   rawTargets?: T[];
   /** Per-target camera facing mode. Defaults to "environment". */
