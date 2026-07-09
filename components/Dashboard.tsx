@@ -65,6 +65,12 @@ export default function Dashboard() {
   const [autoOpenDriver, setAutoOpenDriver] = useState(false);
   const [autoOpenVehicle, setAutoOpenVehicle] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [assignmentPreselectDriver, setAssignmentPreselectDriver] = useState<string | null>(null);
+  const [assignmentPreselectVehicle, setAssignmentPreselectVehicle] = useState<string | null>(null);
+  const setAssignmentPreselect = (driverId: string | null, vehicleId: string | null) => {
+    setAssignmentPreselectDriver(driverId);
+    setAssignmentPreselectVehicle(vehicleId);
+  };
   // Stats dialog state
   const [statsDialog, setStatsDialog] = useState<{
     driver: Driver;
@@ -578,8 +584,8 @@ export default function Dashboard() {
 
               {activeTab !== "dashboard" && (
                 <div className="flex-1 overflow-y-auto pr-1">
-                  {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} weeklyRentals={weeklyRentals} />}
-                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} />}
+                  {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} weeklyRentals={weeklyRentals} onAssignDriver={(driverId) => { setAssignmentPreselect(driverId, null); setAssignmentDialogOpen(true); }} />}
+                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { setAssignmentPreselect(null, vehicleId); setAssignmentDialogOpen(true); }} />}
                 </div>
               )}
             </motion.div>
@@ -897,10 +903,12 @@ export default function Dashboard() {
       {/* Assignment Dialog */}
       <AssignmentDialog
         open={assignmentDialogOpen}
-        onClose={() => setAssignmentDialogOpen(false)}
+        onClose={() => { setAssignmentDialogOpen(false); setAssignmentPreselect(null, null); }}
         onComplete={triggerRefresh}
         drivers={drivers}
         vehicles={vehicles}
+        preselectDriver={assignmentPreselectDriver}
+        preselectVehicle={assignmentPreselectVehicle}
       />
 
       {/* Mobile Bottom Tab Bar for Direct Navigation */}

@@ -30,9 +30,10 @@ interface VehiclesSliceProps {
   autoOpen?: boolean;
   /** Called after the dialog is closed (to clear the autoOpen flag). */
   onAutoOpenConsumed?: () => void;
+  onAssignVehicle?: (vehicleId: string) => void;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle }: VehiclesSliceProps) {
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -1191,6 +1192,17 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                         </td>
                         <td className="py-2.5 px-2 text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            {!vehicle.active_driver_id && onAssignVehicle && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); onAssignVehicle(vehicle.id); }}
+                                className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 text-xs gap-1 h-7 px-2"
+                                title="Asignar a chofer"
+                              >
+                                <ArrowLeftRight className="w-3 h-3" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"

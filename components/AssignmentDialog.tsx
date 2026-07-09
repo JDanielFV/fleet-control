@@ -13,11 +13,13 @@ interface AssignmentDialogProps {
   onComplete: () => void;
   drivers: Driver[];
   vehicles: Vehicle[];
+  preselectDriver?: string | null;
+  preselectVehicle?: string | null;
 }
 
-export default function AssignmentDialog({ open, onClose, onComplete, drivers, vehicles }: AssignmentDialogProps) {
-  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+export default function AssignmentDialog({ open, onClose, onComplete, drivers, vehicles, preselectDriver, preselectVehicle }: AssignmentDialogProps) {
+  const [selectedDriver, setSelectedDriver] = useState<string | null>(preselectDriver || null);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(preselectVehicle || null);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 

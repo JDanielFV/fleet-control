@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
-import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X, DollarSign, XCircle, Calendar, Plus, Minus } from "lucide-react";
+import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X, DollarSign, XCircle, Calendar, Plus, Minus, ArrowLeftRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -31,9 +31,10 @@ interface DriversSliceProps {
   /** Called after the dialog is closed (to clear the autoOpen flag). */
   onAutoOpenConsumed?: () => void;
   weeklyRentals?: WeeklyRental[];
+  onAssignDriver?: (driverId: string) => void;
 }
 
-export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, weeklyRentals = [] }: DriversSliceProps) {
+export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, weeklyRentals = [], onAssignDriver }: DriversSliceProps) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
@@ -1369,6 +1370,17 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                         </td>
                         <td className="py-2.5 px-2 text-right">
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            {!assignedVehicle && onAssignDriver && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); onAssignDriver(driver.id); }}
+                                className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 text-xs gap-1 h-7 px-2"
+                                title="Asignar auto"
+                              >
+                                <ArrowLeftRight className="w-3 h-3" />
+                              </Button>
+                            )}
                             {!driver.license_is_permanent && (
                               <Button
                                 variant="ghost"
