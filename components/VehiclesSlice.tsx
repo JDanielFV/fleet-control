@@ -148,17 +148,24 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   // Report a wear part maintenance (separate from periodic service)
   const handleReportWearPart = async (vehicle: Vehicle) => {
-    const desc = prompt(`Reportar pieza de desgaste para ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}):\nEj: Frenos, Llantas, Batería, Embrague, etc.`);
-    if (!desc || !desc.trim()) return;
-    const costStr = prompt("Costo estimado de la reparación ($):");
-    const cost = costStr ? parseFloat(costStr) : 0;
+    setWearPartVehicle(vehicle);
+    setWearPartName("");
+    setWearPartCost("");
+    setWearPartDate(new Date().toISOString().split("T")[0]);
+    setWearPartOpen(true);
+  };
+
+  const submitWearPart = async () => {
+    if (!wearPartVehicle || !wearPartName.trim()) return;
     await db.saveMaintenance({
-      vehicle_id: vehicle.id,
-      cost: isNaN(cost) ? 0 : cost,
-      description: `[PIEZA DESGASTE] ${desc.trim()}`,
-      maintenance_date: new Date().toISOString().split("T")[0],
+      vehicle_id: wearPartVehicle.id,
+      cost: parseFloat(wearPartCost) || 0,
+      description: `[PIEZA DESGASTE] ${wearPartName.trim()}`,
+      maintenance_date: wearPartDate,
       next_maintenance_date: null,
     });
+    setWearPartOpen(false);
+    setWearPartVehicle(null);
     loadData();
     onRefreshAlerts();
   };
@@ -226,6 +233,13 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [renewTarget, setRenewTarget] = useState<"CIRCULACION" | "SEGURO" | "VERIFICACION" | null>(null);
   const [renewExpirationDate, setRenewExpirationDate] = useState("");
   const [renewPolicyImg, setRenewPolicyImg] = useState("");
+
+  // Wear part dialog state
+  const [wearPartOpen, setWearPartOpen] = useState(false);
+  const [wearPartVehicle, setWearPartVehicle] = useState<Vehicle | null>(null);
+  const [wearPartName, setWearPartName] = useState("");
+  const [wearPartCost, setWearPartCost] = useState("");
+  const [wearPartDate, setWearPartDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Refs for hidden inputs
   const circFileRef = useRef<HTMLInputElement>(null);
@@ -1356,6 +1370,85 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                 className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50"
               >
                 Guardar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Wear Part Dialog */}
+      <Dialog open={wearPartOpen} onOpenChange={(o) => { setWearPartOpen(o); if (!o) setWearPartVehicle(null); }}>
+        <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DialogTitle className="text-foreground font-black text-lg">
+                    Pieza de Desgaste
+                  </DialogTitle>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
+                    Reporte
+                  </span>
+                </div>
+                <DialogDescription className="text-muted-foreground text-xs">
+                  {wearPartVehicle
+                    ? `${wearPartVehicle.brand} ${wearPartVehicle.vehicle_name} · ${wearPartVehicle.plate_number}`
+                    : "Cargando..."}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-muted-foreground text-xs">Pieza *</Label>
+              <Input
+                type="text"
+                placeholder="Ej: Frenos, Llantas, Batería, Embrague"
+                value={wearPartName}
+                onChange={(e) => setWearPartName(e.target.value)}
+                className="mt-1.5 border-input bg-background rounded-xl"
+              />
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">Costo estimado ($)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={wearPartCost}
+                onChange={(e) => setWearPartCost(e.target.value)}
+                className="mt-1.5 border-input bg-background rounded-xl"
+              />
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">Fecha de reparación</Label>
+              <Input
+                type="date"
+                value={wearPartDate}
+                onChange={(e) => setWearPartDate(e.target.value)}
+                className="mt-1.5 border-input bg-background rounded-xl"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setWearPartOpen(false); setWearPartVehicle(null); }}
+                className="flex-1 rounded-xl border-border"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={submitWearPart}
+                disabled={!wearPartName.trim()}
+                className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50"
+              >
+                Reportar
               </Button>
             </div>
           </div>
