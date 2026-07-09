@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
-import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, Calendar } from "lucide-react";
+import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -1212,121 +1212,121 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                                 </div>
                               </div>
 
-                              {/* ─── SECTION 2: Tarjeta de Circulación ─── */}
+                              {/* ─── DOCUMENTS ROW: Circulación · Seguro · Verificación ─── */}
                               <div className="pt-4 border-t border-border/40">
-                                <div className="flex items-center justify-between mb-3">
-                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
-                                    <Shield className="w-3.5 h-3.5" /> Tarjeta de Circulación
-                                  </h4>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
-                                    className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
-                                  >
-                                    <RefreshCcw className="w-3 h-3" /> Renovar
-                                  </Button>
-                                </div>
-                                <div className="flex items-start gap-4">
-                                  {vehicle.circulation_img ? (
-                                    <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer"
-                                      onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.circulation_img!); }}>
-                                      <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover hover:scale-105 transition-transform" />
+                                <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 mb-3">Documentos</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                  {/* Tarjeta de Circulación */}
+                                  <div className="bg-muted/20 rounded-xl border border-border/60 p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Circulación</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }}
+                                        className="text-[10px] h-6 px-1.5 gap-0.5 text-muted-foreground hover:text-primary"
+                                      >
+                                        <RefreshCcw className="w-2.5 h-2.5" /> Renovar
+                                      </Button>
                                     </div>
-                                  ) : (
-                                    <div className="w-24 h-16 rounded-lg border border-dashed border-border/50 bg-muted/20 flex items-center justify-center shrink-0">
-                                      <Camera className="w-5 h-5 text-muted-foreground/40" />
-                                    </div>
-                                  )}
-                                  <div className="text-xs space-y-1">
-                                    <div>
-                                      <span className="text-muted-foreground/80">Vence: </span>
-                                      <strong className={vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
-                                        {vehicle.circulation_expiration_date || "—"}
-                                      </strong>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground/80">Placas: </span>
-                                      <strong className="text-foreground font-mono">{vehicle.plate_number}</strong>
+                                    <div className="flex items-start gap-2.5">
+                                      {vehicle.circulation_img ? (
+                                        <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer"
+                                          onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.circulation_img!); }}>
+                                          <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover hover:scale-105 transition-transform" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-14 h-10 rounded-lg border border-dashed border-border/50 bg-muted/30 flex items-center justify-center shrink-0">
+                                          <Camera className="w-4 h-4 text-muted-foreground/40" />
+                                        </div>
+                                      )}
+                                      <div className="text-[10px] space-y-0.5 min-w-0">
+                                        <div>
+                                          <span className="text-muted-foreground/70">Vence: </span>
+                                          <strong className={vehicle.circulation_expiration_date && new Date(vehicle.circulation_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
+                                            {vehicle.circulation_expiration_date || "—"}
+                                          </strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground/70">Placas: </span>
+                                          <strong className="text-foreground font-mono">{vehicle.plate_number}</strong>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </div>
 
-                              {/* ─── SECTION 3: Póliza de Seguro + Verificación ─── */}
-                              <div className="pt-4 border-t border-border/40">
-                                <div className="flex items-center justify-between mb-3">
-                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
-                                    <Shield className="w-3.5 h-3.5" /> Póliza de Seguro
-                                  </h4>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
-                                    className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
-                                  >
-                                    <RefreshCcw className="w-3 h-3" /> Renovar
-                                  </Button>
-                                </div>
-                                <div className="flex items-start gap-4">
-                                  {vehicle.insurance_policy_img ? (
-                                    <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer"
-                                      onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.insurance_policy_img); }}>
-                                      <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover hover:scale-105 transition-transform" />
+                                  {/* Póliza de Seguro */}
+                                  <div className="bg-muted/20 rounded-xl border border-border/60 p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Seguro</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }}
+                                        className="text-[10px] h-6 px-1.5 gap-0.5 text-muted-foreground hover:text-primary"
+                                      >
+                                        <RefreshCcw className="w-2.5 h-2.5" /> Renovar
+                                      </Button>
                                     </div>
-                                  ) : (
-                                    <div className="w-24 h-16 rounded-lg border border-dashed border-border/50 bg-muted/20 flex items-center justify-center shrink-0">
-                                      <Camera className="w-5 h-5 text-muted-foreground/40" />
-                                    </div>
-                                  )}
-                                  <div className="text-xs space-y-1">
-                                    <div>
-                                      <span className="text-muted-foreground/80">Póliza: </span>
-                                      <strong className="text-foreground font-mono">{vehicle.insurance_policy_number || "—"}</strong>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground/80">Vence: </span>
-                                      <strong className={vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
-                                        {vehicle.insurance_expiration_date || "—"}
-                                      </strong>
+                                    <div className="flex items-start gap-2.5">
+                                      {vehicle.insurance_policy_img ? (
+                                        <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer"
+                                          onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.insurance_policy_img); }}>
+                                          <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover hover:scale-105 transition-transform" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-14 h-10 rounded-lg border border-dashed border-border/50 bg-muted/30 flex items-center justify-center shrink-0">
+                                          <Camera className="w-4 h-4 text-muted-foreground/40" />
+                                        </div>
+                                      )}
+                                      <div className="text-[10px] space-y-0.5 min-w-0">
+                                        <div>
+                                          <span className="text-muted-foreground/70">Póliza: </span>
+                                          <strong className="text-foreground font-mono truncate block">{vehicle.insurance_policy_number || "—"}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground/70">Vence: </span>
+                                          <strong className={vehicle.insurance_expiration_date && new Date(vehicle.insurance_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
+                                            {vehicle.insurance_expiration_date || "—"}
+                                          </strong>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </div>
 
-                              {/* ─── Verificación Vehicular ─── */}
-                              <div className="pt-4 border-t border-border/40">
-                                <div className="flex items-center justify-between mb-3">
-                                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1.5">
-                                    <Calendar className="w-3.5 h-3.5" /> Verificación Vehicular
-                                  </h4>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "VERIFICACION"); }}
-                                    className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"
-                                  >
-                                    <RefreshCcw className="w-3 h-3" /> Renovar
-                                  </Button>
-                                </div>
-                                <div className="text-xs space-y-1">
-                                  <div>
-                                    <span className="text-muted-foreground/80">Vence: </span>
-                                    <strong className={vehicle.verification_expiration_date && new Date(vehicle.verification_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
-                                      {vehicle.verification_expiration_date || "—"}
-                                    </strong>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground/80">Engomado: </span>
-                                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                                      <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{
-                                        backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
-                                                        schedule.color === "Rosa" ? "#ec4899" :
-                                                        schedule.color === "Rojo" ? "#ef4444" :
-                                                        schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
-                                      }} />
-                                      <span>{schedule.color} · {schedule.months}</span>
-                                    </span>
+                                  {/* Verificación Vehicular */}
+                                  <div className="bg-muted/20 rounded-xl border border-border/60 p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Verificación</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "VERIFICACION"); }}
+                                        className="text-[10px] h-6 px-1.5 gap-0.5 text-muted-foreground hover:text-primary"
+                                      >
+                                        <RefreshCcw className="w-2.5 h-2.5" /> Renovar
+                                      </Button>
+                                    </div>
+                                    <div className="text-[10px] space-y-0.5">
+                                      <div>
+                                        <span className="text-muted-foreground/70">Vence: </span>
+                                        <strong className={vehicle.verification_expiration_date && new Date(vehicle.verification_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>
+                                          {vehicle.verification_expiration_date || "—"}
+                                        </strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground/70">Engomado: </span>
+                                        <span className="flex items-center gap-1 font-semibold text-foreground">
+                                          <span className="w-2 h-2 rounded-full border border-black/20 inline-block shrink-0" style={{
+                                            backgroundColor: schedule.color === "Amarillo" ? "#eab308" :
+                                                            schedule.color === "Rosa" ? "#ec4899" :
+                                                            schedule.color === "Rojo" ? "#ef4444" :
+                                                            schedule.color === "Verde" ? "#22c55e" : "#3b82f6"
+                                          }} />
+                                          <span>{schedule.color} · {schedule.months}</span>
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
