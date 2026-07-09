@@ -1204,34 +1204,43 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                           )}
                         </td>
                         <td className="py-2.5 px-2 text-right">
-                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <div
+                            className="flex items-center justify-end gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
+                            role="button"
+                            tabIndex={-1}
+                          >
                             {!vehicle.active_driver_id && onAssignVehicle && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onAssignVehicle(vehicle.id); }}
-                                className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 text-xs gap-1 h-7 px-2"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5"
                                 title="Asignar a chofer"
                               >
                                 <ArrowLeftRight className="w-3 h-3" />
-                              </Button>
+                              <span className="sr-only">Asignar a chofer</span>
+                            </Button>
                             )}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}
-                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-7 px-2"
+                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-9 px-2.5"
                             >
                               <Pencil className="w-3 h-3" />
-                            </Button>
+                            <span className="sr-only">Editar</span>
+                          </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}
-                              className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1 h-7 px-2"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5"
                             >
                               <Trash2 className="w-3 h-3" />
-                            </Button>
+                            <span className="sr-only">Eliminar</span>
+                          </Button>
                           </div>
                         </td>
                       </tr>

@@ -80,7 +80,7 @@ export const FuelSlider = React.forwardRef<HTMLInputElement, FuelSliderProps>(
               );
             })}
           </div>
-          <div className="flex justify-between mt-1 text-[8px] font-bold text-muted-foreground/70 select-none">
+          <div className="flex justify-between mt-1 text-[11px] font-bold text-muted-foreground/70 select-none">
             {FUEL_LEVELS.map((lvl) => (
               <span key={lvl} className="w-3 text-center">
                 {parseInt(lvl.split("/")[0], 10)}

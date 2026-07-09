@@ -1391,45 +1391,55 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                           )}
                         </td>
                         <td className="py-2.5 px-2 text-right">
-                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <div
+                            className="flex items-center justify-end gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
+                            role="button"
+                            tabIndex={-1}
+                          >
                             {!assignedVehicle && onAssignDriver && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); onAssignDriver(driver.id); }}
-                                className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 text-xs gap-1 h-7 px-2"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5"
                                 title="Asignar auto"
                               >
                                 <ArrowLeftRight className="w-3 h-3" />
-                              </Button>
+                              <span className="sr-only">Asignar auto</span>
+                            </Button>
                             )}
                             {!driver.license_is_permanent && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}
-                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1 h-7 px-2"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5"
                                 title="Renovar licencia"
                               >
                                 <RefreshCcw className="w-3 h-3" />
-                              </Button>
+                                                            <span className="sr-only">Renovar licencia</span>
+                                                          </Button>
                             )}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}
-                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-7 px-2"
+                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-9 px-2.5"
                             >
                               <Pencil className="w-3 h-3" />
-                            </Button>
+                            <span className="sr-only">Editar</span>
+                          </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}
-                              className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1 h-7 px-2"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5"
                             >
                               <Trash2 className="w-3 h-3" />
-                            </Button>
+                            <span className="sr-only">Eliminar</span>
+                          </Button>
                           </div>
                         </td>
                       </tr>

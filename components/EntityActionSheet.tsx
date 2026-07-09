@@ -164,7 +164,7 @@ export const EntityActionSheet = ({
   const renderSheetContents = () => (
     <>
       <div className="flex items-center justify-end px-6 pt-4 pb-2 shrink-0 border-b border-border/40">
-        <div className="w-12 h-1.5 bg-muted rounded-full cursor-pointer md:hidden mr-auto" onClick={onClose} aria-hidden="true" />
+        <div className="w-12 h-1.5 bg-muted rounded-full md:hidden mr-auto" aria-hidden="true" />
         {onClose && (
           <button
             onClick={onClose}

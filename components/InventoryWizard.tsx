@@ -192,13 +192,13 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
                             <img src={p.dataUrl} alt={PHOTO_ANGLES[i].label} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-[8px] text-muted-foreground/50 font-bold text-center leading-tight px-1">
+                              <span className="text-[11px] text-muted-foreground/50 font-bold text-center leading-tight px-1">
                                 {PHOTO_ANGLES[i].label}
                               </span>
                             </div>
                           )}
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-1 pb-0.5 pt-3">
-                            <span className="text-[8px] text-white/80 font-semibold">{PHOTO_ANGLES[i].label}</span>
+                            <span className="text-[11px] text-white/80 font-semibold">{PHOTO_ANGLES[i].label}</span>
                           </div>
                         </button>
                       ))}
@@ -362,7 +362,14 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
 
           {/* Photo preview modal */}
           {previewPhoto && (
-            <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setPreviewPhoto(null)}>
+            <div
+              className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+              onClick={() => setPreviewPhoto(null)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPreviewPhoto(null); } }}
+              role="button"
+              tabIndex={0}
+              aria-label="Cerrar vista previa"
+            >
               <img src={previewPhoto} alt="Vista previa" className="max-w-full max-h-full object-contain" />
               <button onClick={() => setPreviewPhoto(null)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
