@@ -1155,10 +1155,6 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                           <Label htmlFor="licDob" className="text-muted-foreground text-xs">F. Nacimiento (Licencia)</Label>
                           <Input type="date" id="licDob" value={licenseDob} onChange={(e) => setLicenseDob(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                         </div>
-                        <div className="min-w-0">
-                          <Label htmlFor="licIssue" className="text-muted-foreground text-xs">F. Expedición</Label>
-                          <Input type="date" id="licIssue" value={licenseIssueDate} onChange={(e) => setLicenseIssueDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
-                        </div>
                       </div>
 
                       <div className="flex items-center justify-between pt-1">
