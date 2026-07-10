@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { db, Alert, Driver, Vehicle, Assignment, Checklist, WeeklyRental, getVerificationSchedule } from "@/lib/db";
+import type { User as UserType } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import UsersSlice from "./UsersSlice";
+import LoginScreen from "./LoginScreen";
 import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
 import AssignmentDialog from "./AssignmentDialog";
@@ -46,6 +48,8 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 export type TabId = "dashboard" | "drivers" | "vehicles" | "users";
 
 export default function Dashboard() {
+  const [session, setSession] = useState<UserType | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -101,6 +105,33 @@ export default function Dashboard() {
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
+
+  // Restore session from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("fleet_session");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setSession({
+          id: parsed.userId,
+          display_name: parsed.displayName,
+          email: null,
+          role: parsed.role,
+          webauthn_credentials: [],
+          metadata: {},
+          is_active: true,
+          last_login_at: parsed.loginAt,
+          created_at: "",
+          updated_at: "",
+        });
+      } catch {}
+    }
+    setIsSessionLoading(false);
+  }, []);
+
+  const handleLogin = (user: UserType) => {
+    setSession(user);
+  };
 
   // Display current time in the greeting area.
   const greeting = useMemo(() => {
@@ -477,6 +508,18 @@ export default function Dashboard() {
       },
     }),
   };
+
+  if (isSessionLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen w-screen bg-background text-foreground">
+        <div className="text-muted-foreground">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   return (
     <div className="relative flex flex-col md:flex-row h-screen w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
