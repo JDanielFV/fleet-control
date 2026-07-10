@@ -45,6 +45,8 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
@@ -364,32 +366,40 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [verificationExpirationDate, setVerificationExpirationDate] = useState("");
 
   const loadData = async () => {
-    const [list, dList, maints, assigns] = await Promise.all([
+    const [list, dList, maints, assigns, cls, rents] = await Promise.all([
       db.getVehicles(),
       db.getDrivers(),
       db.getMaintenances(),
       db.getAssignments(),
+      db.getChecklists(),
+      db.getWeeklyRentals(),
     ]);
     setVehicles(list);
     setDrivers(dList);
     setMaintenances(maints);
     setAssignments(assigns);
+    setChecklists(cls);
+    setWeeklyRentals(rents);
   };
 
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, dList, maints, assigns] = await Promise.all([
+      const [list, dList, maints, assigns, cls, rents] = await Promise.all([
         db.getVehicles(),
         db.getDrivers(),
         db.getMaintenances(),
         db.getAssignments(),
+        db.getChecklists(),
+        db.getWeeklyRentals(),
       ]);
       if (isStale) return;
       setVehicles(list);
       setDrivers(dList);
       setMaintenances(maints);
       setAssignments(assigns);
+      setChecklists(cls);
+      setWeeklyRentals(rents);
       setIsLoading(false);
     })();
     return () => {
@@ -401,17 +411,21 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, dList, maints, assigns] = await Promise.all([
+      const [list, dList, maints, assigns, cls, rents] = await Promise.all([
         db.getVehicles(),
         db.getDrivers(),
         db.getMaintenances(),
         db.getAssignments(),
+        db.getChecklists(),
+        db.getWeeklyRentals(),
       ]);
       if (isStale) return;
       setVehicles(list);
       setDrivers(dList);
       setMaintenances(maints);
       setAssignments(assigns);
+      setChecklists(cls);
+      setWeeklyRentals(rents);
       setIsLoading(false);
     })();
     return () => {
@@ -1482,7 +1496,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
                               </div>
 
                               {/* ─── VEHICLE HISTORY ─── */}
-                              <VehicleHistory vehicle={vehicle} maintenances={maintenances} assignments={assignments} drivers={drivers} />
+                              <VehicleHistory vehicle={vehicle} maintenances={maintenances} assignments={assignments} drivers={drivers} checklists={checklists} weeklyRentals={weeklyRentals} />
                             </div>
                           </td>
                         </motion.tr>
