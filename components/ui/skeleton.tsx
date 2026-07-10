@@ -17,9 +17,9 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
       role="status"
       aria-label="Cargando"
       className={cn(
-        "relative overflow-hidden rounded-md bg-muted/70 dark:bg-muted/40",
+        "relative overflow-hidden rounded-md bg-muted/70 ",
         // Inner shimmer overlay — uses CSS to keep paint cheap during rerenders.
-        "after:absolute after:inset-0 after:-translate-x-full after:animate-[shimmer_1.6s_infinite] after:bg-gradient-to-r after:from-transparent after:via-white/30 after:to-transparent dark:after:via-white/[0.07]",
+        "after:absolute after:inset-0 after:-translate-x-full after:animate-[shimmer_1.6s_infinite] after:bg-gradient-to-r after:from-transparent after:via-white/30 after:to-transparent ",
         className
       )}
       {...props}

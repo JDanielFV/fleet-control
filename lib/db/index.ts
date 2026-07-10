@@ -9,6 +9,7 @@ import type {
   RenewalLog,
   Alert,
   VehicleInventory,
+  User,
 } from "./types";
 export type * from "./types";
 export { getVerificationSchedule, genId, normalizeEmptyDates } from "./utils";
@@ -966,5 +967,48 @@ export const db = {
     }
     setLocalData("vehicle_inventories", inventories);
     return full;
+  },
+
+  // --- Users ---
+  async getUsers(): Promise<User[]> {
+    if (supabase) {
+      const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false });
+      if (!error) return data as User[];
+    }
+    return getLocalData("users", []);
+  },
+
+  async saveUser(user: Omit<User, "id" | "created_at" | "updated_at"> & { id?: string }): Promise<User> {
+    const now = new Date().toISOString();
+    const fullUser: User = {
+      ...user,
+      id: user.id || genId(),
+      created_at: now,
+      updated_at: now,
+    };
+    if (supabase) {
+      const { data, error } = await supabase.from("users").upsert(fullUser).select().single();
+      if (!error && data) return data as User;
+      if (error) console.error("Supabase saveUser error:", error.message);
+    }
+    const users: User[] = getLocalData<User>("users", []);
+    const existingIndex = users.findIndex((u) => u.id === fullUser.id);
+    if (existingIndex >= 0) {
+      users[existingIndex] = { ...users[existingIndex], ...fullUser, updated_at: now };
+    } else {
+      users.unshift(fullUser);
+    }
+    setLocalData("users", users);
+    return fullUser;
+  },
+
+  async deleteUser(id: string): Promise<boolean> {
+    if (supabase) {
+      const { error } = await supabase.from("users").delete().eq("id", id);
+      return !error;
+    }
+    const users: User[] = getLocalData<User>("users", []);
+    setLocalData("users", users.filter((u) => u.id !== id));
+    return true;
   },
 };

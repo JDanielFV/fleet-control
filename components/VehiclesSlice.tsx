@@ -1104,7 +1104,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
       />
 
     {/* iOS styled Search Bar */}
-    <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-full h-11 px-4 flex items-center gap-2 w-full shadow-inner mb-4 mt-2">
+    <div className="bg-[#ECECEC]  rounded-full h-11 px-4 flex items-center gap-2 w-full shadow-inner mb-4 mt-2">
       <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
       <input
         type="text"

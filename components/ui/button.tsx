@@ -26,7 +26,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               variant === "secondary",
             "hover:bg-secondary hover:text-foreground text-foreground":
               variant === "ghost",
-            "text-primary underline-offset-4 hover:underline dark:text-primary":
+            "text-primary underline-offset-4 hover:underline ":
               variant === "link",
           },
           {

@@ -70,7 +70,7 @@ export default function ChecklistActionModal({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                 onClick={() => { onServiceReturn(vehicle); onClose(); }}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-all cursor-pointer text-left active:scale-[0.98]"
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600  transition-all cursor-pointer text-left active:scale-[0.98]"
               >
                 <div className="p-2.5 rounded-xl bg-emerald-500/20 shrink-0"><Wrench className="w-5 h-5" /></div>
                 <div className="min-w-0 flex-1">
@@ -84,7 +84,7 @@ export default function ChecklistActionModal({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                 onClick={() => { onServiceOut(vehicle); onClose(); }}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-600 dark:text-amber-400 transition-all cursor-pointer text-left active:scale-[0.98]"
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-600  transition-all cursor-pointer text-left active:scale-[0.98]"
               >
                 <div className="p-2.5 rounded-xl bg-amber-500/20 shrink-0"><Wrench className="w-5 h-5" /></div>
                 <div className="min-w-0 flex-1">
@@ -99,7 +99,7 @@ export default function ChecklistActionModal({
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => { onWearPart(vehicle); onClose(); }}
-              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600 dark:text-red-400 transition-all cursor-pointer text-left active:scale-[0.98]"
+              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-600  transition-all cursor-pointer text-left active:scale-[0.98]"
             >
               <div className="p-2.5 rounded-xl bg-red-500/20 shrink-0"><AlertTriangle className="w-5 h-5" /></div>
               <div className="min-w-0 flex-1">
@@ -113,7 +113,7 @@ export default function ChecklistActionModal({
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => { onInventory(vehicle); onClose(); }}
-              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-600 dark:text-blue-400 transition-all cursor-pointer text-left active:scale-[0.98]"
+              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-600  transition-all cursor-pointer text-left active:scale-[0.98]"
             >
               <div className="p-2.5 rounded-xl bg-blue-500/20 shrink-0"><Package className="w-5 h-5" /></div>
               <div className="min-w-0 flex-1">

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "accountant-expert": {
+      "source": "personamanagmentlayer/pcl",
+      "sourceType": "github",
+      "skillPath": "stdlib/professional/accountant-expert/SKILL.md",
+      "computedHash": "991b1f3c9999879aba589a42b75fdf2dae226f5b407befa1207fbc00e1133f6c"
+    }
+  }
+}

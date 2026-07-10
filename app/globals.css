@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 :root {
   /* Light Mode Values */
   --background: #fbfbfd;
@@ -23,29 +21,6 @@
   --border: #d8d8de;
   --input: #d8d8de;
   --ring: #0071e3;
-}
-
-.dark {
-  /* Dark Mode Values - True black with refined greys */
-  --background: #000000;
-  --foreground: #f5f5f7;
-  --card: #0a0a0c;
-  --card-foreground: #f5f5f7;
-  --popover: #0a0a0c;
-  --popover-foreground: #f5f5f7;
-  --primary: #0a84ff;
-  --primary-foreground: #ffffff;
-  --secondary: #1c1c1e;
-  --secondary-foreground: #98989d;
-  --muted: #1c1c1e;
-  --muted-foreground: #98989d;
-  --accent: #0a84ff;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --border: #1f1f22;
-  --input: #1f1f22;
-  --ring: #0a84ff;
 }
 
 @theme inline {
@@ -98,7 +73,6 @@ html, body {
   text-rendering: optimizeLegibility;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Respect reduced motion preferences */
@@ -111,7 +85,7 @@ html, body {
   }
 }
 
-/* Aurora background gradient — soft color wash that complements both themes */
+/* Aurora background gradient — soft color wash */
 body::before {
   content: "";
   position: fixed;
@@ -122,14 +96,6 @@ body::before {
     radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0, 113, 227, 0.04), transparent 50%),
     radial-gradient(ellipse 60% 50% at 80% 100%, rgba(52, 199, 89, 0.03), transparent 50%),
     radial-gradient(ellipse 50% 40% at 50% 50%, rgba(175, 82, 222, 0.02), transparent 50%);
-  transition: opacity 0.4s ease;
-}
-
-.dark body::before {
-  background:
-    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(10, 132, 255, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(48, 209, 88, 0.06), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(94, 92, 230, 0.08), transparent 50%);
 }
 
 /* Custom Scrollbar — Vercel thin */
@@ -190,28 +156,13 @@ input[type="date"]::-webkit-datetime-edit {
     0 4px 16px -4px rgba(0, 0, 0, 0.06);
 }
 
-.dark .glass {
-  background: rgba(10, 10, 12, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
-    0 4px 24px -4px rgba(0, 0, 0, 0.4);
-}
-
 .glass-header {
   background: rgba(251, 251, 253, 0.78);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.5) inset;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
   padding-top: calc(env(safe-area-inset-top) + 0.875rem) !important;
-}
-
-.dark .glass-header {
-  background: rgba(0, 0, 0, 0.72);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 .glass-nav {
@@ -220,16 +171,9 @@ input[type="date"]::-webkit-datetime-edit {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 -1px 0 0 rgba(255, 255, 255, 0.5) inset;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-}
-
-.dark .glass-nav {
-  background: rgba(0, 0, 0, 0.72);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 -1px 0 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 /* ============================================
@@ -290,31 +234,15 @@ input[type="date"]::-webkit-datetime-edit {
     0 4px 12px -2px rgba(0, 0, 0, 0.08);
 }
 
-.dark .elevation-2 {
-  box-shadow:
-    0 1px 2px 0 rgba(0, 0, 0, 0.4),
-    0 4px 16px -2px rgba(0, 0, 0, 0.5);
-}
-
 .shadow-primary-glow {
   box-shadow:
     0 0 0 1px rgba(0, 113, 227, 0.1),
     0 8px 24px -4px rgba(0, 113, 227, 0.3);
 }
 
-.dark .shadow-primary-glow {
-  box-shadow:
-    0 0 0 1px rgba(10, 132, 255, 0.2),
-    0 8px 32px -4px rgba(10, 132, 255, 0.4);
-}
-
 /* Primary gradient pill — Apple system style */
 .gradient-pill {
   background: linear-gradient(135deg, #0071e3 0%, #0a84ff 50%, #5856d6 100%);
-}
-
-.dark .gradient-pill {
-  background: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 50%, #bf5af2 100%);
 }
 
 /* Skeleton shimmer (background sweep) — used by `.shimmer` class */
@@ -462,6 +390,3 @@ input[type="date"]::-webkit-datetime-edit {
 .fuel-slider:focus-visible {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
 }
-
-/* Removed duplicate `@keyframes shimmer` (was overriding the version above).
-   The Skeleton component now references `skeletonSweep` instead. */

@@ -7,6 +7,7 @@ import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
+import UsersSlice from "./UsersSlice";
 import { EntityActionSheet } from "./EntityActionSheet";
 import { ChecklistSheet } from "./ChecklistSheet";
 import AssignmentDialog from "./AssignmentDialog";
@@ -29,6 +30,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Shield,
   ShieldAlert,
   Gauge,
   Search,
@@ -41,13 +43,12 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
-export type TabId = "dashboard" | "drivers" | "vehicles";
+export type TabId = "dashboard" | "drivers" | "vehicles" | "users";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [stats, setStats] = useState({ vehicles: 0, drivers: 0, assigned: 0 });
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -206,18 +207,6 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize theme
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const initialTheme = storedTheme || "dark";
-    setTheme(initialTheme);
-    if (initialTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, []);
-
   const getVehicleDesc = (id: string) => {
     const v = vListFind(id);
     return v ? `${v.brand} ${v.vehicle_name}` : "Vehículo";
@@ -285,18 +274,18 @@ export default function Dashboard() {
 
   // Expiration Status styling helper
   const getDateStatus = (dateStr: string | null) => {
-    if (!dateStr) return { label: "N/D", colorClass: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" };
+    if (!dateStr) return { label: "N/D", colorClass: "bg-slate-100 text-slate-600  " };
     const today = new Date();
     const date = new Date(dateStr);
     const diffTime = date.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays <= 0) {
-      return { label: `Vencido (${formatDate(dateStr)})`, colorClass: "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20" };
+      return { label: `Vencido (${formatDate(dateStr)})`, colorClass: "bg-red-500/10 text-red-600  border border-red-500/20" };
     } else if (diffDays <= 30) {
-      return { label: `Vence en ${diffDays}d (${formatDate(dateStr)})`, colorClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" };
+      return { label: `Vence en ${diffDays}d (${formatDate(dateStr)})`, colorClass: "bg-amber-500/10 text-amber-600  border border-amber-500/20" };
     } else {
-      return { label: `Vence: ${formatDate(dateStr)}`, colorClass: "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20" };
+      return { label: `Vence: ${formatDate(dateStr)}`, colorClass: "bg-green-500/10 text-green-600  border border-green-500/20" };
     }
   };
 
@@ -459,27 +448,18 @@ export default function Dashboard() {
     }
   };
 
-  const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    localStorage.setItem("theme", nextTheme);
-    if (nextTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  };
-
   const desktopNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
+    { id: "users", label: "Usuarios", icon: Shield },
   ];
 
   const mobileNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
+    { id: "users", label: "Usuarios", icon: Shield },
   ];
 
   const tileVariants: Variants = {
@@ -505,8 +485,6 @@ export default function Dashboard() {
         items={desktopNavItems}
         activeTab={activeTab}
         onChange={handleTabChange}
-        theme={theme}
-        onToggleTheme={toggleTheme}
         alertCount={alerts.length}
         onAlertsClick={() => setIsBuzonOpen(true)}
       />
@@ -555,13 +533,6 @@ export default function Dashboard() {
                           <Download className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={toggleTheme}
-                          className="md:hidden p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
-                          aria-label="Cambiar tema"
-                        >
-                          {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
-                        </button>
-                        <button
                           onClick={() => setIsBuzonOpen(true)}
                           className="md:hidden relative p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0"
                           aria-label={`Abrir buzón de alertas. ${alerts.length} alertas activas`}
@@ -577,7 +548,7 @@ export default function Dashboard() {
                     </motion.div>
 
                     {/* GLOBAL SEARCH FOR HOME / LIST VIEW — combined with quick-add buttons */}
-                    <div className="bg-[#ECECEC] dark:bg-muted/70 rounded-2xl h-12 px-4 flex items-center gap-2 w-full shrink-0 shadow-inner border border-border/40 focus-within:ring-4 focus-within:ring-primary/20 transition-all">
+                    <div className="bg-[#ECECEC]  rounded-2xl h-12 px-4 flex items-center gap-2 w-full shrink-0 shadow-inner border border-border/40 focus-within:ring-4 focus-within:ring-primary/20 transition-all">
                       <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                       <input
                         type="text"
@@ -767,6 +738,7 @@ export default function Dashboard() {
                 <div className="flex-1 overflow-y-auto pr-1">
                   {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} weeklyRentals={weeklyRentals} onAssignDriver={(driverId) => { setAssignmentPreselect(driverId, null); setAssignmentDialogOpen(true); }} />}
                   {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { setAssignmentPreselect(null, vehicleId); setAssignmentDialogOpen(true); }} externalWearPartVehicle={wearPartVehicle} />}
+                  {activeTab === "users" && <UsersSlice />}
                 </div>
               )}
             </motion.div>
@@ -822,7 +794,7 @@ export default function Dashboard() {
                         return (
                           <div
                             key={alert.id}
-                            className={`p-4 rounded-2xl bg-secondary/30 dark:bg-muted/10 border border-border/60 hover:border-border transition-all flex gap-3.5 ${
+                            className={`p-4 rounded-2xl bg-secondary/30  border border-border/60 hover:border-border transition-all flex gap-3.5 ${
                               isCritical ? "border-l-4 border-l-red-500" : "border-l-4 border-l-amber-500"
                             }`}
                           >
@@ -835,7 +807,7 @@ export default function Dashboard() {
                                   {alert.title}
                                 </h4>
                                 <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm shrink-0 ${
-                                  isCritical ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  isCritical ? "bg-red-500/15 text-red-600 " : "bg-amber-500/15 text-amber-600 "
                                 }`}>
                                   {isCritical ? "Crítica" : "Media"}
                                 </span>
@@ -969,7 +941,7 @@ export default function Dashboard() {
                         return (
                           <div
                             key={alert.id}
-                            className={`p-4 rounded-2xl bg-secondary/30 dark:bg-muted/10 border border-border/60 hover:border-border transition-all flex gap-3.5 ${
+                            className={`p-4 rounded-2xl bg-secondary/30  border border-border/60 hover:border-border transition-all flex gap-3.5 ${
                               isCritical ? "border-l-4 border-l-red-500" : "border-l-4 border-l-amber-500"
                             }`}
                           >
@@ -982,7 +954,7 @@ export default function Dashboard() {
                                   {alert.title}
                                 </h4>
                                 <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm shrink-0 ${
-                                  isCritical ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  isCritical ? "bg-red-500/15 text-red-600 " : "bg-amber-500/15 text-amber-600 "
                                 }`}>
                                   {isCritical ? "Crítica" : "Media"}
                                 </span>

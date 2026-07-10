@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell, Sun, Moon } from "lucide-react";
+import { Bell } from "lucide-react";
 import type { TabId } from "./Dashboard";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +15,6 @@ interface SidebarProps {
   items: NavItem[];
   activeTab: TabId;
   onChange: (tab: TabId) => void;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
   alertCount: number;
   onAlertsClick: () => void;
 }
@@ -25,8 +23,6 @@ export default function Sidebar({
   items,
   activeTab,
   onChange,
-  theme,
-  onToggleTheme,
   alertCount,
   onAlertsClick,
 }: SidebarProps) {
@@ -72,7 +68,7 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* Footer: alerts + theme */}
+      {/* Footer: alerts only */}
       <div className="w-full px-2 py-3 border-t border-border/60 flex flex-col items-center gap-2">
         <button
           onClick={onAlertsClick}
@@ -86,20 +82,6 @@ export default function Sidebar({
               {alertCount}
             </span>
           )}
-        </button>
-        <button
-          onClick={onToggleTheme}
-          className="w-full flex flex-col items-center gap-1 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground transition-all active:scale-95 cursor-pointer"
-          aria-label="Cambiar tema"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-5 h-5 text-amber-400" />
-          ) : (
-            <Moon className="w-5 h-5 text-slate-500" />
-          )}
-          <span className="text-[10px] font-semibold leading-tight">
-            {theme === "dark" ? "Claro" : "Oscuro"}
-          </span>
         </button>
       </div>
     </aside>

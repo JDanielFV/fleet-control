@@ -197,7 +197,7 @@ export const EntityActionSheet = ({
 
               <div className="space-y-3 mt-4">
                 {resolvedDriver ? (
-                  <div className="flex items-start gap-3 p-3 bg-secondary/40 dark:bg-muted/30 rounded-2xl border border-border/50">
+                  <div className="flex items-start gap-3 p-3 bg-secondary/40  rounded-2xl border border-border/50">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <User className="w-5 h-5" />
                     </div>
@@ -212,13 +212,13 @@ export const EntityActionSheet = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-2xl border border-yellow-500/20 text-xs font-semibold">
+                  <div className="p-3 bg-yellow-500/10 text-yellow-600  rounded-2xl border border-yellow-500/20 text-xs font-semibold">
                     Sin chofer asignado a esta operación
                   </div>
                 )}
 
                 {resolvedVehicle ? (
-                  <div className="flex items-start gap-3 p-3 bg-secondary/40 dark:bg-muted/30 rounded-2xl border border-border/50">
+                  <div className="flex items-start gap-3 p-3 bg-secondary/40  rounded-2xl border border-border/50">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <Car className="w-5 h-5" />
                     </div>
@@ -233,7 +233,7 @@ export const EntityActionSheet = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-2xl border border-yellow-500/20 text-xs font-semibold">
+                  <div className="p-3 bg-yellow-500/10 text-yellow-600  rounded-2xl border border-yellow-500/20 text-xs font-semibold">
                     Sin vehículo asignado actualmente
                   </div>
                 )}
@@ -246,7 +246,7 @@ export const EntityActionSheet = ({
               {hasActiveAssignment ? (
                 <button
                   onClick={handleRemove}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors font-bold text-sm cursor-pointer focus-visible:ring-4 focus-visible:ring-red-500/50 focus-visible:outline-hidden"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-600  transition-colors font-bold text-sm cursor-pointer focus-visible:ring-4 focus-visible:ring-red-500/50 focus-visible:outline-hidden"
                 >
                   <Ban className="w-5 h-5 shrink-0" />
                   <span>Retirar Vehículo</span>

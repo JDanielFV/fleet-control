@@ -113,6 +113,19 @@ export interface DriverCredit {
   updated_at: string;
 }
 
+export interface User {
+  id: string;
+  display_name: string;
+  email: string | null;
+  role: "admin" | "operator";
+  webauthn_credentials: Record<string, unknown>[];
+  metadata: Record<string, unknown>;
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Maintenance {
   id: string;
   vehicle_id: string;
