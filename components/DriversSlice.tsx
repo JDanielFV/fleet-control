@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
-import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X, DollarSign, XCircle, Calendar, Plus, Minus, ArrowLeftRight } from "lucide-react";
+import { User, AlertTriangle, Search, Camera, FolderOpen, CheckCircle2, Sparkles, Trash2, Car, Pencil, RefreshCcw, Mic, ChevronDown, X, DollarSign, XCircle, Calendar, Plus, Minus, ArrowLeftRight, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -47,6 +47,80 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
 
   const { toast } = useToast();
   const { confirm: showConfirm } = useConfirm();
+
+  const exportDriverPdf = (driver: Driver) => {
+    const assignedV = vehicles.find((v) => v.active_driver_id === driver.id);
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const doc = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Chofer - ${driver.first_name} ${driver.paternal_last_name}</title>
+  <style>
+    @page { margin: 1.5cm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #111; padding: 20px; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+    h2 { font-size: 14px; margin: 16px 0 8px; border-bottom: 2px solid #0071e3; padding-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    td, th { padding: 5px 8px; text-align: left; border: 1px solid #ddd; font-size: 11px; }
+    th { background: #f5f5f7; font-weight: 600; width: 30%; }
+    .docs { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .docs img { max-width: 200px; max-height: 150px; border: 1px solid #ddd; border-radius: 6px; }
+    .doc-item { text-align: center; }
+    .doc-item span { display: block; font-size: 10px; color: #666; margin-top: 4px; }
+    .footer { margin-top: 30px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name || ""}</h1>
+  <p class="subtitle">CURP: ${driver.curp}${assignedV ? ` · Auto: ${assignedV.brand} ${assignedV.vehicle_name} (${assignedV.plate_number})` : ""}</p>
+
+  <h2>Datos Personales</h2>
+  <table>
+    <tr><th>Nombre</th><td>${driver.first_name} ${driver.paternal_last_name} ${driver.maternal_last_name || ""}</td></tr>
+    <tr><th>CURP</th><td>${driver.curp}</td></tr>
+    <tr><th>Fecha de Nacimiento</th><td>${driver.dob || "—"}</td></tr>
+    <tr><th>Clave de Elector</th><td>${driver.ine_elector_key || "—"}</td></tr>
+    <tr><th>Sexo</th><td>${driver.ine_sex || "—"}</td></tr>
+    <tr><th>Domicilio</th><td>${driver.ine_address || "—"}</td></tr>
+  </table>
+
+  <h2>Licencia</h2>
+  <table>
+    <tr><th>Número</th><td>${driver.license_number || "—"}</td></tr>
+    <tr><th>Vigencia</th><td>${driver.license_expiration_date || (driver.license_is_permanent ? "Permanente" : "—")}</td></tr>
+    <tr><th>Expedición</th><td>${driver.license_issue_date || "—"}</td></tr>
+  </table>
+
+  ${assignedV ? `
+  <h2>Vehículo Asignado</h2>
+  <table>
+    <tr><th>Marca / Modelo</th><td>${assignedV.brand} ${assignedV.vehicle_name} ${assignedV.model || ""}</td></tr>
+    <tr><th>Placas</th><td>${assignedV.plate_number}</td></tr>
+    <tr><th>VIN</th><td>${assignedV.vin || "—"}</td></tr>
+    <tr><th>Renta Semanal</th><td>$${assignedV.rent_cost.toLocaleString()}</td></tr>
+  </table>
+  ` : ""}
+
+  <h2>Documentos</h2>
+  <div class="docs">
+    ${driver.driver_photo_img ? `<div class="doc-item"><img src="${driver.driver_photo_img}" alt="Foto" /><span>Foto del Chofer</span></div>` : ""}
+    ${driver.ine_img ? `<div class="doc-item"><img src="${driver.ine_img}" alt="INE" /><span>INE</span></div>` : ""}
+    ${driver.license_img ? `<div class="doc-item"><img src="${driver.license_img}" alt="Licencia" /><span>Licencia</span></div>` : ""}
+    ${driver.address_proof_img ? `<div class="doc-item"><img src="${driver.address_proof_img}" alt="Comprobante" /><span>Comprobante de Domicilio</span></div>` : ""}
+  </div>
+
+  <p class="footer">Fleet Control · Exportado el ${new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}</p>
+  <script>window.onload = () => { window.print(); };</script>
+</body>
+</html>`;
+    win.document.write(doc);
+    win.document.close();
+  };
 
   const handleDeleteDriver = async (id: string) => {
     const confirmed = await requirePasskeyConfirmation("¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.");
@@ -1434,6 +1508,16 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
                                                             <span className="sr-only">Renovar licencia</span>
                                                           </Button>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); exportDriverPdf(driver); }}
+                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1 h-9 px-2.5"
+                              title="Exportar datos del chofer"
+                            >
+                              <Download className="w-3 h-3" />
+                            <span className="sr-only">Exportar</span>
+                          </Button>
                             <Button
                               variant="ghost"
                               size="sm"
