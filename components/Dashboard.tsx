@@ -780,7 +780,7 @@ export default function Dashboard() {
               {activeTab !== "dashboard" && (
                 <div className="flex-1 overflow-y-auto pr-1">
                   {activeTab === "drivers" && <DriversSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenDriver} onAutoOpenConsumed={() => setAutoOpenDriver(false)} weeklyRentals={weeklyRentals} onAssignDriver={(driverId) => { setAssignmentPreselect(driverId, null); setAssignmentDialogOpen(true); }} />}
-                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { setAssignmentPreselect(null, vehicleId); setAssignmentDialogOpen(true); }} externalWearPartVehicle={wearPartVehicle} />}
+                  {activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={triggerRefresh} searchQuery={globalSearch} onOpenActionSheet={openActionSheet} autoOpen={autoOpenVehicle} onAutoOpenConsumed={() => setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { setAssignmentPreselect(null, vehicleId); setAssignmentDialogOpen(true); }} externalWearPartVehicle={wearPartVehicle} refreshTrigger={refreshTrigger} />}
                   {activeTab === "users" && <UsersSlice />}
                 </div>
               )}

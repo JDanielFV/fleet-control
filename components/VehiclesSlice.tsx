@@ -25,20 +25,21 @@ import { uploadDocumentImage } from "@/lib/db/storage";
 import VehicleHistory from "@/components/VehicleHistory";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
   searchQuery?: string;
-  onOpenActionSheet: (entity: Driver | Vehicle, type: "driver" | "vehicle") => void;
-  /** When true, the registration dialog opens automatically on mount. */
+  onOpenActionSheet: (entity: Vehicle | Driver, type: "driver" | "vehicle") => void;
   autoOpen?: boolean;
-  /** Called after the dialog is closed (to clear the autoOpen flag). */
   onAutoOpenConsumed?: () => void;
   onAssignVehicle?: (vehicleId: string) => void;
   /** External trigger to open the wear part dialog for a specific vehicle */
   externalWearPartVehicle?: Vehicle | null;
+  /** Increment to force data reload (e.g. after external wear part save) */
+  refreshTrigger?: number;
 }
 
-export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle, externalWearPartVehicle: extWearPartVehicle }: VehiclesSliceProps) {
+export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle, externalWearPartVehicle: extWearPartVehicle, refreshTrigger }: VehiclesSliceProps) {
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -416,7 +417,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     return () => {
       isStale = true;
     };
-  }, [onRefreshAlerts]);
+  }, [refreshTrigger]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
