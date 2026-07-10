@@ -18,6 +18,7 @@ export interface Driver {
   license_img?: string | null;
   driver_photo_img?: string | null;
   address_proof_img?: string | null;
+  deleted_at?: string | null;
   created_at: string;
 }
 
@@ -45,6 +46,7 @@ export interface Vehicle {
   active_driver_id: string | null;
   rent_cost: number;
   next_service_mileage?: number | null;
+  deleted_at?: string | null;
   created_at: string;
 }
 
@@ -117,6 +119,7 @@ export interface User {
   id: string;
   display_name: string;
   email: string | null;
+  password_hash?: string | null;
   role: "admin" | "operator";
   webauthn_credentials: Record<string, unknown>[];
   metadata: Record<string, unknown>;
@@ -124,6 +127,23 @@ export interface User {
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface RegistrationToken {
+  id: string;
+  token: string;
+  created_by: string | null;
+  used_at: string | null;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface Session {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: "admin" | "operator";
+  expiresAt: string; // ISO date of today 23:59
 }
 
 export interface Maintenance {

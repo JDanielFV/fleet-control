@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { db, User } from "@/lib/db";
+import { getSession, clearSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User as UserIcon, Shield, Trash2, Pencil, Plus } from "lucide-react";
+import { User as UserIcon, Shield, Trash2, Pencil, Plus, KeyRound, Copy, CheckCircle2, LogOut } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
 
 export default function UsersSlice() {
@@ -18,6 +19,10 @@ export default function UsersSlice() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "operator">("operator");
+  const [tokenUrl, setTokenUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const session = getSession();
+  const isAdmin = session?.role === "admin";
 
   const loadUsers = async () => {
     const list = await db.getUsers();
@@ -72,53 +77,111 @@ export default function UsersSlice() {
     }
   };
 
+  const generateToken = async () => {
+    const t = await db.createRegistrationToken(session?.userId || null);
+    setTokenUrl(`${window.location.origin}/?token=${t.token}`);
+  };
+
+  const copyToken = () => {
+    navigator.clipboard.writeText(tokenUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    window.location.href = "/";
+  };
+
   return (
     <div className="space-y-4">
       <SliceHeader
         title="Usuarios"
         action={
-          <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
-                <Plus className="w-4 h-4 mr-1.5" /> Registrar usuario
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-foreground font-black text-lg">
-                  {editingUserId ? "Editar Usuario" : "Registrar Usuario"}
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground text-xs">
-                  {editingUserId ? "Modifica los datos del usuario." : "Agrega un nuevo operador o administrador al sistema."}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSave} className="space-y-4 pt-2">
-                <div>
-                  <Label className="text-muted-foreground text-xs">Nombre completo</Label>
-                  <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="ej. Juan Vázquez" className="border-input bg-background rounded-xl mt-1" />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Correo electrónico</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ej. juan@ejemplo.com" className="border-input bg-background rounded-xl mt-1" />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Rol</Label>
-                  <Select value={role} onValueChange={(v: "admin" | "operator") => setRole(v)}>
-                    <SelectTrigger className="w-full border-input bg-background rounded-xl mt-1">
-                      <SelectValue placeholder="Selecciona un rol" />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-popover-foreground">
-                      <SelectItem value="operator">Operador</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
-                  {editingUserId ? "Guardar cambios" : "Registrar usuario"}
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Dialog open={!!tokenUrl} onOpenChange={(o) => { if (!o) setTokenUrl(""); }}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateToken}
+                    className="rounded-full border-primary/30 text-primary hover:bg-primary/10 text-xs font-bold px-4 h-11"
+                  >
+                    <KeyRound className="w-4 h-4 mr-1.5" /> Generar token
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-foreground font-black text-lg flex items-center gap-2">
+                      <KeyRound className="w-5 h-5 text-primary" /> Token de registro
+                    </DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-xs">
+                      Comparte este enlace con el nuevo usuario. El token expira en 24 horas y es de un solo uso.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 pt-2">
+                    <div className="bg-muted border border-border rounded-xl p-3">
+                      <code className="text-[11px] font-mono break-all text-foreground">{tokenUrl}</code>
+                    </div>
+                    <Button type="button" onClick={copyToken} className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer h-11">
+                      {copied ? <><CheckCircle2 className="w-4 h-4 mr-1.5" /> Copiado</> : <><Copy className="w-4 h-4 mr-1.5" /> Copiar enlace</>}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
+                  <Plus className="w-4 h-4 mr-1.5" /> Registrar usuario
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground font-black text-lg">
+                    {editingUserId ? "Editar Usuario" : "Registrar Usuario"}
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground text-xs">
+                    {editingUserId ? "Modifica los datos del usuario." : "Agrega un nuevo operador o administrador al sistema."}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSave} className="space-y-4 pt-2">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Nombre completo</Label>
+                    <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="ej. Juan Vázquez" className="border-input bg-background rounded-xl mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Correo electrónico</Label>
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ej. juan@ejemplo.com" className="border-input bg-background rounded-xl mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Rol</Label>
+                    <Select value={role} onValueChange={(v: "admin" | "operator") => setRole(v)}>
+                      <SelectTrigger className="w-full border-input bg-background rounded-xl mt-1">
+                        <SelectValue placeholder="Selecciona un rol" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover text-popover-foreground">
+                        <SelectItem value="operator">Operador</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
+                    {editingUserId ? "Guardar cambios" : "Registrar usuario"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-red-500 text-xs font-bold h-11 px-3"
+            >
+              <LogOut className="w-4 h-4 mr-1" /> Salir
+            </Button>
+          </div>
         }
       />
 

@@ -19,6 +19,7 @@ import SliceHeader from "@/components/SliceHeader";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { uploadDocumentImage } from "@/lib/db/storage";
+import { requirePasskeyConfirmation } from "@/lib/webauthn";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/utils";
@@ -42,17 +43,18 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { toast } = useToast();
   const { confirm: showConfirm } = useConfirm();
 
   const handleDeleteDriver = async (id: string) => {
-    if (await showConfirm({ title: "Eliminar Chofer", message: "¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.", confirmLabel: "Eliminar", variant: "danger" })) {
-      const success = await db.deleteDriver(id);
-      if (success) {
-        setDrivers((prev) => prev.filter((d) => d.id !== id));
-        onRefreshAlerts();
-      }
+    const confirmed = await requirePasskeyConfirmation("¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.");
+    if (!confirmed) return;
+    const success = await db.deleteDriver(id);
+    if (success) {
+      setDrivers((prev) => prev.filter((d) => d.id !== id));
+      onRefreshAlerts();
     }
   };
 
@@ -281,7 +283,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   };
 
   const loadDrivers = async () => {
-    const list = await db.getDrivers();
+    const list = showArchived ? await db.getArchivedDrivers() : await db.getDrivers();
     const vList = await db.getVehicles();
     setDrivers(list);
     setVehicles(vList);
@@ -290,7 +292,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, vList] = await Promise.all([db.getDrivers(), db.getVehicles()]);
+      const [list, vList] = await Promise.all([showArchived ? db.getArchivedDrivers() : db.getDrivers(), db.getVehicles()]);
       if (isStale) return;
       setDrivers(list);
       setVehicles(vList);
@@ -299,7 +301,7 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
     return () => {
       isStale = true;
     };
-  }, []);
+  }, [showArchived]);
 
   // Reload when parent signals a refresh (license renewals, etc.).
   useEffect(() => {
@@ -1307,7 +1309,17 @@ export default function DriversSlice({ onRefreshAlerts, searchQuery, onOpenActio
         onChange={(e) => setSearch(e.target.value)}
         className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
       />
-      <Mic className="w-4 h-4 text-muted-foreground/60 shrink-0 cursor-pointer" />
+      <button
+        type="button"
+        onClick={() => setShowArchived(!showArchived)}
+        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer shrink-0 ${
+          showArchived
+            ? "bg-primary text-white"
+            : "bg-muted text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {showArchived ? "Activos" : "Archivo"}
+      </button>
     </div>
 
 

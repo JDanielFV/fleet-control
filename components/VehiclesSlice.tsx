@@ -22,6 +22,7 @@ import { VehiclesListSkeleton } from "@/components/ui/skeletons";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { uploadDocumentImage } from "@/lib/db/storage";
+import { requirePasskeyConfirmation } from "@/lib/webauthn";
 import VehicleHistory from "@/components/VehicleHistory";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -49,6 +50,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
@@ -62,12 +64,12 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
   };
 
   const handleDeleteVehicle = async (id: string) => {
-    if (await showConfirm({ title: "Eliminar Vehículo", message: "¿Estás seguro de que deseas eliminar este vehículo? Esta acción borrará su historial activo.", confirmLabel: "Eliminar", variant: "danger" })) {
-      const success = await db.deleteVehicle(id);
-      if (success) {
-        setVehicles((prev) => prev.filter((v) => v.id !== id));
-        onRefreshAlerts();
-      }
+    const confirmed = await requirePasskeyConfirmation("¿Estás seguro de que deseas eliminar este vehículo? Se archivará y no afectará a los registros activos.");
+    if (!confirmed) return;
+    const success = await db.deleteVehicle(id);
+    if (success) {
+      setVehicles((prev) => prev.filter((v) => v.id !== id));
+      onRefreshAlerts();
     }
   };
 
@@ -367,7 +369,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
 
   const loadData = async () => {
     const [list, dList, maints, assigns, cls, rents] = await Promise.all([
-      db.getVehicles(),
+      showArchived ? db.getArchivedVehicles() : db.getVehicles(),
       db.getDrivers(),
       db.getMaintenances(),
       db.getAssignments(),
@@ -386,7 +388,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     let isStale = false;
     (async () => {
       const [list, dList, maints, assigns, cls, rents] = await Promise.all([
-        db.getVehicles(),
+        showArchived ? db.getArchivedVehicles() : db.getVehicles(),
         db.getDrivers(),
         db.getMaintenances(),
         db.getAssignments(),
@@ -405,7 +407,7 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
     return () => {
       isStale = true;
     };
-  }, []);
+  }, [showArchived]);
 
   // Reload when parent signals a refresh.
   useEffect(() => {
@@ -1129,6 +1131,17 @@ export default function VehiclesSlice({ onRefreshAlerts, searchQuery, onOpenActi
         className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden"
       />
       <Mic className="w-4 h-4 text-muted-foreground/60 shrink-0 cursor-pointer" />
+      <button
+        type="button"
+        onClick={() => setShowArchived(!showArchived)}
+        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer shrink-0 ${
+          showArchived
+            ? "bg-primary text-white"
+            : "bg-muted text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {showArchived ? "Activos" : "Archivo"}
+      </button>
     </div>
 
       {/* Verification Schedule Visual Grid — removed */}

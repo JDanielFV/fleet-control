@@ -10,6 +10,7 @@ import type {
   Alert,
   VehicleInventory,
   User,
+  RegistrationToken,
 } from "./types";
 export type * from "./types";
 export { getVerificationSchedule, genId, normalizeEmptyDates } from "./utils";
@@ -53,10 +54,26 @@ export const db = {
   // --- Drivers ---
   async getDrivers(): Promise<Driver[]> {
     if (supabase) {
-      const { data, error } = await supabase.from("drivers").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("drivers")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
       if (!error) return mergePendingLocal("drivers", data, seedDrivers);
     }
-    return getLocalData("drivers", seedDrivers);
+    return getLocalData("drivers", seedDrivers).filter((d) => !d.deleted_at);
+  },
+
+  async getArchivedDrivers(): Promise<Driver[]> {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("drivers")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      if (!error) return data as Driver[];
+    }
+    return getLocalData("drivers", seedDrivers).filter((d) => d.deleted_at);
   },
 
   async saveDriver(driver: Omit<Driver, "id" | "created_at"> & { id?: string; created_at?: string }): Promise<Driver> {
@@ -103,17 +120,21 @@ export const db = {
       setLocalData("vehicles", vehicles);
     }
 
-    // 2. Delete driver from local storage
+    // 2. Soft delete: set deleted_at instead of removing
+    const now = new Date().toISOString();
     const drivers = getLocalData("drivers", seedDrivers);
-    const filtered = drivers.filter((d) => d.id !== id);
-    setLocalData("drivers", filtered);
+    const driver = drivers.find((d) => d.id === id);
+    if (driver) {
+      driver.deleted_at = now;
+      setLocalData("drivers", drivers);
+    }
 
-    // 3. Delete from Supabase if active
+    // 3. Update Supabase if active
     if (supabase) {
       if (updatedAny) {
         await supabase.from("vehicles").update({ active_driver_id: null }).eq("active_driver_id", id);
       }
-      const { error } = await supabase.from("drivers").delete().eq("id", id);
+      const { error } = await supabase.from("drivers").update({ deleted_at: now }).eq("id", id);
       return !error;
     }
     return true;
@@ -122,10 +143,26 @@ export const db = {
   // --- Vehicles ---
   async getVehicles(): Promise<Vehicle[]> {
     if (supabase) {
-      const { data, error } = await supabase.from("vehicles").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
       if (!error) return mergePendingLocal("vehicles", data, seedVehicles);
     }
-    return getLocalData("vehicles", seedVehicles);
+    return getLocalData("vehicles", seedVehicles).filter((v) => !v.deleted_at);
+  },
+
+  async getArchivedVehicles(): Promise<Vehicle[]> {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      if (!error) return data as Vehicle[];
+    }
+    return getLocalData("vehicles", seedVehicles).filter((v) => v.deleted_at);
   },
 
   async saveVehicle(vehicle: Omit<Vehicle, "id" | "created_at"> & { id?: string; created_at?: string }): Promise<Vehicle> {
@@ -978,6 +1015,23 @@ export const db = {
     return getLocalData("users", []);
   },
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    if (supabase) {
+      const { data, error } = await supabase.from("users").select("*").eq("email", email).maybeSingle();
+      if (!error && data) return data as User;
+    }
+    const users: User[] = getLocalData<User>("users", []);
+    return users.find((u) => u.email?.toLowerCase() === email.toLowerCase()) || null;
+  },
+
+  async getUserCount(): Promise<number> {
+    if (supabase) {
+      const { count, error } = await supabase.from("users").select("*", { count: "exact", head: true });
+      if (!error) return count || 0;
+    }
+    return getLocalData<User>("users", []).length;
+  },
+
   async saveUser(user: Omit<User, "id" | "created_at" | "updated_at"> & { id?: string }): Promise<User> {
     const now = new Date().toISOString();
     const fullUser: User = {
@@ -1010,5 +1064,54 @@ export const db = {
     const users: User[] = getLocalData<User>("users", []);
     setLocalData("users", users.filter((u) => u.id !== id));
     return true;
+  },
+
+  // --- Registration Tokens ---
+  async createRegistrationToken(createdBy: string | null): Promise<RegistrationToken> {
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    const full: RegistrationToken = {
+      id: genId(),
+      token,
+      created_by: createdBy,
+      used_at: null,
+      expires_at: new Date(Date.now() + 86400000).toISOString(), // 24h
+      created_at: new Date().toISOString(),
+    };
+    if (supabase) {
+      const { data, error } = await supabase.from("registration_tokens").insert(full).select().single();
+      if (!error && data) return data as RegistrationToken;
+      if (error) console.error("Supabase createRegistrationToken error:", error.message);
+    }
+    const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
+    tokens.unshift(full);
+    setLocalData("registration_tokens", tokens);
+    return full;
+  },
+
+  async getRegistrationToken(token: string): Promise<RegistrationToken | null> {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("registration_tokens")
+        .select("*")
+        .eq("token", token)
+        .maybeSingle();
+      if (!error && data) return data as RegistrationToken;
+    }
+    const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
+    return tokens.find((t) => t.token === token) || null;
+  },
+
+  async useRegistrationToken(tokenId: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (supabase) {
+      await supabase.from("registration_tokens").update({ used_at: now }).eq("id", tokenId);
+      return;
+    }
+    const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
+    const t = tokens.find((t) => t.id === tokenId);
+    if (t) t.used_at = now;
+    setLocalData("registration_tokens", tokens);
   },
 };

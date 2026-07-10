@@ -1,5 +1,31 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getSession } from "@/lib/auth";
+import LoginPage from "@/components/LoginPage";
 import Dashboard from "@/components/Dashboard";
 
 export default function Home() {
+  const [session, setSession] = useState<ReturnType<typeof getSession>>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const s = getSession();
+    setSession(s);
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen w-screen bg-background">
+        <div className="animate-pulse text-muted-foreground text-sm">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginPage />;
+  }
+
   return <Dashboard />;
 }
