@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { User as UserIcon, Shield, Trash2, Pencil, Plus, KeyRound, Copy, CheckCircle2, LogOut, Fingerprint } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
-import PasskeyRegistrationDialog from "@/components/PasskeyRegistrationDialog";
+import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
 import UserForm from "@/features/auth/components/UserForm";
 
 export default function UsersSlice() {

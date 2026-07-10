@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSession } from "@/lib/auth";
-import LoginPage from "@/components/LoginPage";
+import LoginPage from "@/features/auth/components/LoginPage";
 import Dashboard from "@/components/Dashboard";
 
 export default function Home() {
