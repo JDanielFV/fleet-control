@@ -5,6 +5,7 @@ import { db, User } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Shield, Fingerprint, User as UserIcon, Plus } from "lucide-react";
 import { motion } from "framer-motion";
+import UserForm from "@/features/auth/components/UserForm";
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
@@ -195,25 +196,25 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Cargando...</div>
         ) : users.length === 0 ? (
-          /* First run — no users registered */
-          <div className="text-center space-y-4">
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-              <p className="text-sm font-semibold text-amber-600">
-                No hay usuarios registrados
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Registra el primer administrador para comenzar.
-              </p>
+          /* First run — no users registered: show the form inline */
+          <div className="space-y-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-center">
+              <p className="text-sm font-semibold text-amber-600">No hay usuarios registrados</p>
+              <p className="text-xs text-muted-foreground mt-1">Registra el primer administrador para comenzar.</p>
             </div>
-            <Button
-              onClick={() => {
-                // Navigate to users tab — we'll handle this by setting a flag
-                localStorage.setItem("fleet_first_run", "true");
-                // Create a temporary admin session to allow registration
+            <UserForm
+              onSuccess={(saved) => {
+                // Auto-login after first user creation
+                localStorage.setItem("fleet_session", JSON.stringify({
+                  userId: saved.id,
+                  displayName: saved.display_name,
+                  role: "admin",
+                  loginAt: new Date().toISOString(),
+                }));
                 onLogin({
-                  id: "setup",
-                  display_name: "Setup",
-                  email: null,
+                  id: saved.id,
+                  display_name: saved.display_name,
+                  email: saved.email,
                   role: "admin",
                   webauthn_credentials: [],
                   metadata: {},
@@ -223,10 +224,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   updated_at: new Date().toISOString(),
                 } as User);
               }}
-              className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer h-12"
-            >
-              <Plus className="w-4 h-4 mr-2" /> Registrar administrador
-            </Button>
+              openPasskeyAfterSave={false}
+            />
           </div>
         ) : (
           <div className="space-y-4">

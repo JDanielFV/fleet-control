@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { User as UserIcon, Shield, Trash2, Pencil, Plus, KeyRound, Copy, CheckCircle2, LogOut, Fingerprint } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
 import PasskeyRegistrationDialog from "@/components/PasskeyRegistrationDialog";
+import UserForm from "@/features/auth/components/UserForm";
 
 export default function UsersSlice() {
   const [users, setUsers] = useState<User[]>([]);
@@ -156,31 +157,22 @@ export default function UsersSlice() {
                     {editingUserId ? "Modifica los datos del usuario." : "Agrega un nuevo operador o administrador al sistema."}
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSave} className="space-y-4 pt-2">
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Nombre completo</Label>
-                    <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="ej. Juan Vázquez" className="border-input bg-background rounded-xl mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Correo electrónico</Label>
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ej. juan@ejemplo.com" className="border-input bg-background rounded-xl mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Rol</Label>
-                    <Select value={role} onValueChange={(v: "admin" | "operator") => setRole(v)}>
-                      <SelectTrigger className="w-full border-input bg-background rounded-xl mt-1">
-                        <SelectValue placeholder="Selecciona un rol" />
-                      </SelectTrigger>
-                      <SelectContent className="border-border bg-popover text-popover-foreground">
-                        <SelectItem value="operator">Operador</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer">
-                    {editingUserId ? "Guardar cambios" : "Registrar usuario"}
-                  </Button>
-                </form>
+                <UserForm
+                  initialValues={editingUserId ? { id: editingUserId, display_name: displayName, email, role } : undefined}
+                  onSuccess={(saved) => {
+                    resetForm();
+                    setIsOpen(false);
+                    loadUsers();
+                    if (!editingUserId) {
+                      setPasskeyDialog({
+                        userId: saved.id,
+                        userName: saved.email || saved.id,
+                        displayName: saved.display_name,
+                      });
+                    }
+                  }}
+                  onCancel={() => { setIsOpen(false); resetForm(); }}
+                />
               </DialogContent>
             </Dialog>
             <Button
