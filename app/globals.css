@@ -49,7 +49,7 @@
 
 /* Ensure mobile viewport layout uses full screen including safe areas */
 html, body {
-  font-size: 22px;
+  font-size: 16px;
   overflow: hidden;
   position: fixed;
   top: 0;
@@ -73,6 +73,13 @@ html, body {
   text-rendering: optimizeLegibility;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Larger base font on desktop */
+@media (min-width: 768px) {
+  html, body {
+    font-size: 22px;
+  }
 }
 
 /* Respect reduced motion preferences */
