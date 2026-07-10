@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User as UserIcon, Shield, Trash2, Pencil, Plus, KeyRound, Copy, CheckCircle2, LogOut } from "lucide-react";
+import { User as UserIcon, Shield, Trash2, Pencil, Plus, KeyRound, Copy, CheckCircle2, LogOut, Fingerprint } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
+import PasskeyRegistrationDialog from "@/components/PasskeyRegistrationDialog";
 
 export default function UsersSlice() {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,6 +22,7 @@ export default function UsersSlice() {
   const [role, setRole] = useState<"admin" | "operator">("operator");
   const [tokenUrl, setTokenUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [passkeyDialog, setPasskeyDialog] = useState<{ userId: string; userName: string; displayName: string } | null>(null);
   const session = getSession();
   const isAdmin = session?.role === "admin";
 
@@ -55,7 +57,7 @@ export default function UsersSlice() {
       alert("El nombre es obligatorio.");
       return;
     }
-    await db.saveUser({
+    const saved = await db.saveUser({
       id: editingUserId || undefined,
       display_name: displayName,
       email: email || null,
@@ -68,6 +70,14 @@ export default function UsersSlice() {
     resetForm();
     setIsOpen(false);
     loadUsers();
+    // Open passkey registration dialog for the new user
+    if (!editingUserId) {
+      setPasskeyDialog({
+        userId: saved.id,
+        userName: saved.email || saved.id,
+        displayName: saved.display_name,
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -249,6 +259,16 @@ export default function UsersSlice() {
           </table>
         )}
       </div>
+
+      {/* Passkey Registration Dialog */}
+      <PasskeyRegistrationDialog
+        open={!!passkeyDialog}
+        onClose={() => setPasskeyDialog(null)}
+        userId={passkeyDialog?.userId || ""}
+        userName={passkeyDialog?.userName || ""}
+        userDisplayName={passkeyDialog?.displayName || ""}
+        onSuccess={() => {}}
+      />
     </div>
   );
 }
