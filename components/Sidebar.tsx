@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Bell } from "lucide-react";
-import type { TabId } from "./Dashboard";
+import type { TabId } from "@/features/dashboard/hooks/useDashboard";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
