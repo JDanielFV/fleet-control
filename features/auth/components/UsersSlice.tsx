@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { User as UserIcon, Shield, Trash2, KeyRound, Copy, CheckCircle2, LogOut } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
 import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 
 export default function UsersSlice() {
   const [users, setUsers] = useState<User[]>([]);
@@ -17,6 +19,8 @@ export default function UsersSlice() {
   const [passkeyDialog, setPasskeyDialog] = useState<{ userId: string; userName: string; displayName: string } | null>(null);
   const session = getSession();
   const isAdmin = session?.role === "admin";
+  const { confirm: showConfirm } = useConfirm();
+  const { toast } = useToast();
 
   const loadUsers = async () => {
     const list = await db.getUsers();
@@ -29,10 +33,11 @@ export default function UsersSlice() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (confirm("¿Eliminar este usuario?")) {
-      await db.deleteUser(id);
-      loadUsers();
-    }
+    const confirmed = await showConfirm({ title: "Eliminar Usuario", message: "¿Eliminar este usuario?", confirmLabel: "Eliminar", variant: "danger" });
+    if (!confirmed) return;
+    await db.deleteUser(id);
+    loadUsers();
+    toast("Usuario eliminado", "success");
   };
 
   const generateToken = async () => {

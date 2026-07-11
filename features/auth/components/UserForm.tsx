@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 
 interface UserFormProps {
   initialValues?: {
@@ -40,13 +41,14 @@ export default function UserForm({
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "operator">(initialValues?.role || (showPassword ? "admin" : "operator"));
   const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!displayName) return;
     if (showPassword && (!email || !password)) return;
     if (showPassword && password.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres.");
+      toast("La contraseña debe tener al menos 6 caracteres.", "error");
       return;
     }
     setIsSaving(true);
@@ -72,7 +74,7 @@ export default function UserForm({
         });
       }
     } catch (err) {
-      alert("Error al guardar usuario: " + err);
+      toast("Error al guardar usuario: " + err, "error");
     } finally {
       setIsSaving(false);
     }

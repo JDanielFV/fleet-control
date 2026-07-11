@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Fingerprint, User as UserIcon, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import UserForm from "@/features/auth/components/UserForm";
+import { useToast } from "@/components/ui/toast";
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
@@ -18,6 +19,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     loadUsers();
@@ -136,7 +138,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       const result = await verifyRes.json();
       if (result.verified) {
-        alert("✅ Passkey registrada exitosamente. Ahora puedes iniciar sesión.");
+        toast("Passkey registrada exitosamente", "success");
         // Auto-login
         localStorage.setItem("fleet_session", JSON.stringify({
           userId: selectedUser.id,
