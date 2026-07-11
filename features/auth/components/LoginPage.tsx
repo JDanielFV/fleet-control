@@ -6,14 +6,16 @@ import { saveSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Shield, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import UserForm from "@/features/auth/components/UserForm";
+import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
 
-type AuthMode = "loading" | "login" | "register" | "token_ready";
+type AuthMode = "loading" | "login" | "register" | "token_ready" | "passkey_setup";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("loading");
   const [token, setToken] = useState<string>("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [newUser, setNewUser] = useState<{ id: string; display_name: string; email: string | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -45,7 +47,18 @@ export default function LoginPage() {
       const rt = await db.getRegistrationToken(token);
       if (rt) await db.useRegistrationToken(rt.id);
     }
+    // Save session so the user is logged in
     saveSession(saved.id, saved.email!, saved.display_name, saved.role);
+    // Store user info and show passkey registration dialog
+    setNewUser({ id: saved.id, display_name: saved.display_name, email: saved.email });
+    setMode("passkey_setup");
+  };
+
+  const handlePasskeySuccess = () => {
+    window.location.href = "/";
+  };
+
+  const handlePasskeySkip = () => {
     window.location.href = "/";
   };
 
@@ -119,6 +132,18 @@ export default function LoginPage() {
           </div>
         )}
       </div>
+
+      {/* Passkey registration after account creation */}
+      {newUser && (
+        <PasskeyRegistrationDialog
+          open={mode === "passkey_setup"}
+          onClose={handlePasskeySkip}
+          userId={newUser.id}
+          userName={newUser.email || newUser.id}
+          userDisplayName={newUser.display_name}
+          onSuccess={handlePasskeySuccess}
+        />
+      )}
     </div>
   );
 }
