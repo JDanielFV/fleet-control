@@ -4,23 +4,14 @@ import React, { useState, useEffect } from "react";
 import { db, User } from "@/lib/db";
 import { getSession, clearSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User as UserIcon, Shield, Trash2, Pencil, Plus, KeyRound, Copy, CheckCircle2, LogOut, Fingerprint } from "lucide-react";
+import { User as UserIcon, Shield, Trash2, KeyRound, Copy, CheckCircle2, LogOut } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
 import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
-import UserForm from "@/features/auth/components/UserForm";
 
 export default function UsersSlice() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"admin" | "operator">("operator");
   const [tokenUrl, setTokenUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [passkeyDialog, setPasskeyDialog] = useState<{ userId: string; userName: string; displayName: string } | null>(null);
@@ -36,50 +27,6 @@ export default function UsersSlice() {
   useEffect(() => {
     loadUsers();
   }, []);
-
-  const resetForm = () => {
-    setDisplayName("");
-    setEmail("");
-    setRole("operator");
-    setEditingUserId(null);
-  };
-
-  const handleEdit = (u: User) => {
-    setEditingUserId(u.id);
-    setDisplayName(u.display_name);
-    setEmail(u.email ?? "");
-    setRole(u.role);
-    setIsOpen(true);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!displayName) {
-      alert("El nombre es obligatorio.");
-      return;
-    }
-    const saved = await db.saveUser({
-      id: editingUserId || undefined,
-      display_name: displayName,
-      email: email || null,
-      role,
-      webauthn_credentials: [],
-      metadata: {},
-      is_active: true,
-      last_login_at: null,
-    });
-    resetForm();
-    setIsOpen(false);
-    loadUsers();
-    // Open passkey registration dialog for the new user
-    if (!editingUserId) {
-      setPasskeyDialog({
-        userId: saved.id,
-        userName: saved.email || saved.id,
-        displayName: saved.display_name,
-      });
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (confirm("¿Eliminar este usuario?")) {
@@ -115,11 +62,10 @@ export default function UsersSlice() {
                 <DialogTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
                     onClick={generateToken}
-                    className="rounded-full border-primary/30 text-primary hover:bg-primary/10 text-xs font-bold px-4 h-11"
+                    className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs"
                   >
-                    <KeyRound className="w-4 h-4 mr-1.5" /> Generar token
+                    <KeyRound className="w-4 h-4 mr-1.5" /> Registrar usuario
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
@@ -128,7 +74,7 @@ export default function UsersSlice() {
                       <KeyRound className="w-5 h-5 text-primary" /> Token de registro
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground text-xs">
-                      Comparte este enlace con el nuevo usuario. El token expira en 24 horas y es de un solo uso.
+                      Comparte este enlace con el nuevo usuario para que cree su cuenta. El token expira en 24 horas y es de un solo uso.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3 pt-2">
@@ -142,39 +88,6 @@ export default function UsersSlice() {
                 </DialogContent>
               </Dialog>
             )}
-            <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild>
-                <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
-                  <Plus className="w-4 h-4 mr-1.5" /> Registrar usuario
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-sm md:max-w-md border border-border bg-background text-foreground rounded-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-foreground font-black text-lg">
-                    {editingUserId ? "Editar Usuario" : "Registrar Usuario"}
-                  </DialogTitle>
-                  <DialogDescription className="text-muted-foreground text-xs">
-                    {editingUserId ? "Modifica los datos del usuario." : "Agrega un nuevo operador o administrador al sistema."}
-                  </DialogDescription>
-                </DialogHeader>
-                <UserForm
-                  initialValues={editingUserId ? { id: editingUserId, display_name: displayName, email, role } : undefined}
-                  onSuccess={(saved) => {
-                    resetForm();
-                    setIsOpen(false);
-                    loadUsers();
-                    if (!editingUserId) {
-                      setPasskeyDialog({
-                        userId: saved.id,
-                        userName: saved.email || saved.id,
-                        displayName: saved.display_name,
-                      });
-                    }
-                  }}
-                  onCancel={() => { setIsOpen(false); resetForm(); }}
-                />
-              </DialogContent>
-            </Dialog>
             <Button
               type="button"
               variant="ghost"
@@ -236,9 +149,6 @@ export default function UsersSlice() {
                     </td>
                     <td className="py-2.5 px-2 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(user)} className="text-muted-foreground hover:text-primary text-xs gap-1 h-7 px-2">
-                          <Pencil className="w-3 h-3" />
-                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs gap-1 h-7 px-2">
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -252,7 +162,6 @@ export default function UsersSlice() {
         )}
       </div>
 
-      {/* Passkey Registration Dialog */}
       <PasskeyRegistrationDialog
         open={!!passkeyDialog}
         onClose={() => setPasskeyDialog(null)}
