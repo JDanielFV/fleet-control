@@ -10,13 +10,6 @@ const expectedOrigin = process.env.VERCEL_URL
   ? `https://${new URL(`https://${process.env.VERCEL_URL}`).hostname}`
   : "http://localhost:3000";
 
-function getChallengeStore() {
-  if (!(globalThis as any).__webauthnChallenges) {
-    (globalThis as any).__webauthnChallenges = new Map();
-  }
-  return (globalThis as any).__webauthnChallenges;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -53,8 +46,23 @@ export async function POST(req: NextRequest) {
         userVerification: "required",
       });
 
-      getChallengeStore().set(userId, { challenge: options.challenge, type: "login" });
-      return NextResponse.json(options);
+      // Store challenge in cookie
+      const response = NextResponse.json(options);
+      response.cookies.set("wa_login_challenge", options.challenge, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 120,
+      });
+      response.cookies.set("wa_login_userId", userId, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 120,
+      });
+      return response;
     }
 
     if (step === "verify") {
@@ -62,9 +70,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "userId and credential are required" }, { status: 400 });
       }
 
-      const stored = getChallengeStore().get(userId);
-      if (!stored || stored.type !== "login") {
-        return NextResponse.json({ error: "No login challenge found. Try again." }, { status: 400 });
+      const storedChallenge = req.cookies.get("wa_login_challenge")?.value;
+      const storedUserId = req.cookies.get("wa_login_userId")?.value;
+
+      if (!storedChallenge || storedUserId !== userId) {
+        return NextResponse.json({ error: "No login challenge found. Please refresh and try again." }, { status: 400 });
       }
 
       // Fetch the stored credential
@@ -87,7 +97,7 @@ export async function POST(req: NextRequest) {
 
       const verification = await verifyAuthenticationResponse({
         response: credential,
-        expectedChallenge: stored.challenge,
+        expectedChallenge: storedChallenge,
         expectedOrigin,
         expectedRPID: rpId,
         credential: {
@@ -98,11 +108,14 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      getChallengeStore().delete(userId);
-
       if (!verification.verified) {
         return NextResponse.json({ verified: false, error: "Authentication failed" }, { status: 400 });
       }
+
+      // Clear cookies
+      const response = NextResponse.json({ verified: true, userId });
+      response.cookies.set("wa_login_challenge", "", { maxAge: 0, path: "/" });
+      response.cookies.set("wa_login_userId", "", { maxAge: 0, path: "/" });
 
       // Update counter
       if (supabaseUrl && supabaseKey) {

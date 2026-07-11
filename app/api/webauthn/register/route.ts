@@ -11,13 +11,6 @@ const expectedOrigin = process.env.VERCEL_URL
   ? `https://${new URL(`https://${process.env.VERCEL_URL}`).hostname}`
   : "http://localhost:3000";
 
-function getChallengeStore() {
-  if (!(globalThis as any).__webauthnChallenges) {
-    (globalThis as any).__webauthnChallenges = new Map();
-  }
-  return (globalThis as any).__webauthnChallenges;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -57,8 +50,23 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      getChallengeStore().set(userId, { challenge: options.challenge, type: "registration" });
-      return NextResponse.json(options);
+      // Store challenge in a cookie so it survives serverless cold starts
+      const response = NextResponse.json(options);
+      response.cookies.set("wa_reg_challenge", options.challenge, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 120, // 2 minutes
+      });
+      response.cookies.set("wa_reg_userId", userId, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 120,
+      });
+      return response;
     }
 
     if (step === "verify") {
@@ -66,19 +74,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "userId and credential are required" }, { status: 400 });
       }
 
-      const stored = getChallengeStore().get(userId);
-      if (!stored || stored.type !== "registration") {
-        return NextResponse.json({ error: "No registration challenge found. Try again." }, { status: 400 });
+      // Read challenge from cookie
+      const storedChallenge = req.cookies.get("wa_reg_challenge")?.value;
+      const storedUserId = req.cookies.get("wa_reg_userId")?.value;
+
+      if (!storedChallenge || storedUserId !== userId) {
+        return NextResponse.json({ error: "No registration challenge found. Please refresh and try again." }, { status: 400 });
       }
 
       const verification = await verifyRegistrationResponse({
         response: body.credential,
-        expectedChallenge: stored.challenge,
+        expectedChallenge: storedChallenge,
         expectedOrigin,
         expectedRPID: rpId,
       });
-
-      getChallengeStore().delete(userId);
 
       if (!verification.verified || !verification.registrationInfo) {
         return NextResponse.json({ verified: false, error: "Verification failed" }, { status: 400 });
@@ -106,7 +115,11 @@ export async function POST(req: NextRequest) {
         }).eq("id", userId);
       }
 
-      return NextResponse.json({ verified: true, credential: newCred });
+      // Clear cookies
+      const response = NextResponse.json({ verified: true, credential: newCred });
+      response.cookies.set("wa_reg_challenge", "", { maxAge: 0, path: "/" });
+      response.cookies.set("wa_reg_userId", "", { maxAge: 0, path: "/" });
+      return response;
     }
 
     return NextResponse.json({ error: "Invalid step" }, { status: 400 });
