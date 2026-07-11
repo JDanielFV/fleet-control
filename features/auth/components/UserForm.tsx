@@ -38,7 +38,7 @@ export default function UserForm({
   const [displayName, setDisplayName] = useState(initialValues?.display_name || "");
   const [email, setEmail] = useState(initialValues?.email || "");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "operator">(initialValues?.role || "operator");
+  const [role, setRole] = useState<"admin" | "operator">(initialValues?.role || (showPassword ? "admin" : "operator"));
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
