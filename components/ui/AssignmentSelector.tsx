@@ -22,6 +22,7 @@ export const AssignmentSelector = ({ selecting, onSelect, onCancel }: Assignment
         setItems(data);
       } catch (err) {
         console.error(`Error loading available ${selecting}s:`, err);
+        setItems([]);
       } finally {
         setIsLoading(false);
       }
