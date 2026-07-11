@@ -59,7 +59,7 @@ export default function LoginPage() {
   };
 
   const handlePasskeySkip = () => {
-    window.location.href = "/";
+    // Don't skip — passkey is required
   };
 
   return (
@@ -142,6 +142,7 @@ export default function LoginPage() {
           userName={newUser.email || newUser.id}
           userDisplayName={newUser.display_name}
           onSuccess={handlePasskeySuccess}
+          required
         />
       )}
     </div>

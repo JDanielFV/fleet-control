@@ -12,6 +12,8 @@ interface PasskeyRegistrationDialogProps {
   userName: string;
   userDisplayName: string;
   onSuccess: () => void;
+  /** When true, the dialog cannot be dismissed — user must register a passkey */
+  required?: boolean;
 }
 
 function arrayBufferToBase64url(buffer: ArrayBuffer): string {
@@ -24,7 +26,7 @@ function arrayBufferToBase64url(buffer: ArrayBuffer): string {
 }
 
 export default function PasskeyRegistrationDialog({
-  open, onClose, userId, userName, userDisplayName, onSuccess,
+  open, onClose, userId, userName, userDisplayName, onSuccess, required = false,
 }: PasskeyRegistrationDialogProps) {
   const [step, setStep] = useState<"idle" | "registering" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -106,7 +108,7 @@ export default function PasskeyRegistrationDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 z-[90] backdrop-blur-sm"
-            onClick={() => { if (step !== "registering") onClose(); }}
+            onClick={() => { if (step !== "registering" && !required) onClose(); }}
           />
           <div className="fixed inset-0 z-[91] flex items-center justify-center p-4 pointer-events-none">
             <motion.div
@@ -142,7 +144,7 @@ export default function PasskeyRegistrationDialog({
                      `Registra una passkey para ${userDisplayName}. Usarás tu huella, rostro o PIN para iniciar sesión.`}
                   </p>
                 </div>
-                {step !== "registering" && (
+                {step !== "registering" && !required && (
                   <button onClick={onClose} className="p-1 -mr-1 -mt-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
                     <X className="w-4 h-4" />
                   </button>
@@ -161,9 +163,11 @@ export default function PasskeyRegistrationDialog({
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl border-border">
-                      Omitir
-                    </Button>
+                    {!required && (
+                      <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl border-border">
+                        Omitir
+                      </Button>
+                    )}
                     <Button onClick={handleRegister} className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary/90">
                       <Fingerprint className="w-4 h-4 mr-1.5" /> Registrar
                     </Button>
