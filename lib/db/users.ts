@@ -38,11 +38,56 @@ export async function saveUser(
     created_at: now,
     updated_at: now,
   };
+
   if (supabase) {
-    const { data, error } = await supabase.from("users").upsert(fullUser).select().single();
-    if (!error && data) return data as User;
-    if (error) console.error("Supabase saveUser error:", error.message);
+    // Check if user exists by email first
+    if (fullUser.email) {
+      const { data: existing } = await supabase
+        .from("users")
+        .select("id, email")
+        .eq("email", fullUser.email)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing user
+        const { data, error } = await supabase
+          .from("users")
+          .update({ ...fullUser, id: existing.id, updated_at: now })
+          .eq("id", existing.id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data as User;
+        }
+        console.error("Supabase saveUser update error:", error?.message);
+      } else {
+        // Insert new user
+        const { data, error } = await supabase
+          .from("users")
+          .insert(fullUser)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data as User;
+        }
+        console.error("Supabase saveUser insert error:", error?.message);
+      }
+    } else {
+      // No email — try insert by id
+      const { data, error } = await supabase
+        .from("users")
+        .insert(fullUser)
+        .select()
+        .single();
+
+      if (!error && data) return data as User;
+      console.error("Supabase saveUser error:", error?.message);
+    }
   }
+
+  // Fallback to local storage
   const users: User[] = getLocalData<User>("users", []);
   const existingIndex = users.findIndex((u) => u.id === fullUser.id);
   if (existingIndex >= 0) {

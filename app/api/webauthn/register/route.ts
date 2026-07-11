@@ -51,17 +51,18 @@ export async function POST(req: NextRequest) {
       });
 
       // Store challenge in a cookie so it survives serverless cold starts
+      const isSecure = !!process.env.VERCEL_URL;
       const response = NextResponse.json(options);
       response.cookies.set("wa_reg_challenge", options.challenge, {
         httpOnly: true,
-        secure: true,
+        secure: isSecure,
         sameSite: "lax",
         path: "/",
         maxAge: 120, // 2 minutes
       });
       response.cookies.set("wa_reg_userId", userId, {
         httpOnly: true,
-        secure: true,
+        secure: isSecure,
         sameSite: "lax",
         path: "/",
         maxAge: 120,

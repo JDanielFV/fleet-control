@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { db, User } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Shield, Fingerprint, User as UserIcon, Plus } from "lucide-react";
@@ -33,7 +34,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     setError("");
 
     try {
-      // Step 1: Get login options
+      // Step 1: Get login options from server
       const optionsRes = await fetch("/api/webauthn/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -48,31 +49,17 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       const options = await optionsRes.json();
 
-      // Step 2: Get credential from authenticator
-      const credential = await navigator.credentials.get({
-        publicKey: options,
-      }) as PublicKeyCredential;
+      // Step 2: Use SimpleWebAuthn browser helper
+      const credential = await startAuthentication({ optionsJSON: options });
 
-      const response = credential.response as AuthenticatorAssertionResponse;
-
-      // Step 3: Verify
+      // Step 3: Send credential to server for verification
       const verifyRes = await fetch("/api/webauthn/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           step: "verify",
           userId: selectedUser.id,
-          credential: {
-            id: credential.id,
-            rawId: arrayBufferToBase64url(credential.rawId),
-            response: {
-              clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
-              authenticatorData: arrayBufferToBase64url(response.authenticatorData),
-              signature: arrayBufferToBase64url(response.signature),
-              userHandle: response.userHandle ? arrayBufferToBase64url(response.userHandle) : null,
-            },
-            type: "public-key",
-          },
+          credential,
         }),
       });
 
@@ -94,6 +81,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         onLogin(selectedUser);
       }
     } catch (err: any) {
+      console.error("Login error:", err);
       setError(err.message || "Error al autenticar");
     }
   };
@@ -104,7 +92,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsRegistering(true);
 
     try {
-      // Step 1: Get registration options
+      // Step 1: Get registration options from server
       const optionsRes = await fetch("/api/webauthn/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,29 +113,17 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       const options = await optionsRes.json();
 
-      // Step 2: Create credential
-      const credential = await navigator.credentials.create({
-        publicKey: options,
-      }) as PublicKeyCredential;
+      // Step 2: Use SimpleWebAuthn browser helper
+      const credential = await startRegistration({ optionsJSON: options });
 
-      const response = credential.response as AuthenticatorAttestationResponse;
-
-      // Step 3: Verify
+      // Step 3: Send credential to server for verification
       const verifyRes = await fetch("/api/webauthn/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           step: "verify",
           userId: selectedUser.id,
-          credential: {
-            id: credential.id,
-            rawId: arrayBufferToBase64url(credential.rawId),
-            response: {
-              clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
-              attestationObject: arrayBufferToBase64url(response.attestationObject),
-            },
-            type: "public-key",
-          },
+          credential,
         }),
       });
 
@@ -171,6 +147,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         onLogin(selectedUser);
       }
     } catch (err: any) {
+      console.error("Register passkey error:", err);
       setError(err.message || "Error al registrar passkey");
     }
     setIsRegistering(false);
@@ -198,92 +175,87 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         ) : users.length === 0 ? (
           /* First run — no users registered: show the form inline */
           <div className="space-y-4">
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-center">
-              <p className="text-sm font-semibold text-amber-600">No hay usuarios registrados</p>
-              <p className="text-xs text-muted-foreground mt-1">Registra el primer administrador para comenzar.</p>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
+              <p className="text-xs text-amber-600 font-semibold text-center">
+                No hay usuarios registrados. Crea el primer usuario para comenzar.
+              </p>
             </div>
             <UserForm
+              showPassword
+              submitLabel="Crear cuenta"
               onSuccess={(saved) => {
-                // Auto-login after first user creation
                 localStorage.setItem("fleet_session", JSON.stringify({
                   userId: saved.id,
                   displayName: saved.display_name,
-                  role: "admin",
+                  role: saved.role,
                   loginAt: new Date().toISOString(),
                 }));
                 onLogin({
                   id: saved.id,
                   display_name: saved.display_name,
                   email: saved.email,
-                  role: "admin",
+                  role: saved.role,
                   webauthn_credentials: [],
                   metadata: {},
                   is_active: true,
                   last_login_at: null,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
-                } as User);
+                });
               }}
-              openPasskeyAfterSave={false}
             />
           </div>
         ) : (
           <div className="space-y-4">
-            {/* User selector */}
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-center">
+              Selecciona tu usuario
+            </p>
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Selecciona tu usuario
-              </label>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {users.filter(u => u.is_active).map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => setSelectedUser(user)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left cursor-pointer ${
-                      selectedUser?.id === user.id
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border/60 bg-secondary/30 hover:bg-secondary/60 text-foreground"
-                    }`}
-                  >
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <UserIcon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-bold text-sm block truncate">{user.display_name}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {user.role === "admin" ? "Administrador" : "Operador"}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {users.map((user) => (
+                <button
+                  key={user.id}
+                  onClick={() => setSelectedUser(user)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer text-left ${
+                    selectedUser?.id === user.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/40 hover:bg-muted/20"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-foreground truncate">{user.display_name}</div>
+                    <div className="text-[11px] text-muted-foreground">{user.role === "admin" ? "Administrador" : "Operador"}</div>
+                  </div>
+                  {selectedUser?.id === user.id && (
+                    <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                  )}
+                </button>
+              ))}
             </div>
 
             {selectedUser && (
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <Button
                   onClick={handleLoginWithPasskey}
-                  className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer h-12 text-sm"
-                  disabled={isRegistering}
+                  className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary/90 h-12"
                 >
-                  <Fingerprint className="w-5 h-5 mr-2" />
-                  Iniciar con passkey
+                  <Fingerprint className="w-5 h-5 mr-2" /> Iniciar sesión
                 </Button>
-
                 <Button
-                  onClick={handleRegisterPasskey}
                   variant="outline"
-                  className="w-full rounded-xl border-border text-foreground hover:bg-secondary/60 transition-all cursor-pointer h-11 text-sm"
+                  onClick={handleRegisterPasskey}
                   disabled={isRegistering}
+                  className="w-full rounded-xl border-border h-10 text-xs"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {isRegistering ? "Registrando..." : "Registrar nueva passkey"}
+                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Registrar nueva passkey
                 </Button>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-500 font-semibold">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-500 font-semibold text-center">
                 {error}
               </div>
             )}
@@ -292,13 +264,4 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       </motion.div>
     </div>
   );
-}
-
-function arrayBufferToBase64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }

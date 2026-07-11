@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { startRegistration } from "@simplewebauthn/browser";
 import { motion, AnimatePresence } from "framer-motion";
 import { Fingerprint, Shield, CheckCircle2, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,15 +17,6 @@ interface PasskeyRegistrationDialogProps {
   required?: boolean;
 }
 
-function arrayBufferToBase64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 export default function PasskeyRegistrationDialog({
   open, onClose, userId, userName, userDisplayName, onSuccess, required = false,
 }: PasskeyRegistrationDialogProps) {
@@ -36,6 +28,7 @@ export default function PasskeyRegistrationDialog({
     setErrorMsg("");
 
     try {
+      // Step 1: Get registration options from server
       const optionsRes = await fetch("/api/webauthn/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,27 +47,17 @@ export default function PasskeyRegistrationDialog({
 
       const options = await optionsRes.json();
 
-      const credential = await navigator.credentials.create({
-        publicKey: options,
-      }) as PublicKeyCredential;
+      // Step 2: Use SimpleWebAuthn browser helper — handles all encoding
+      const credential = await startRegistration({ optionsJSON: options });
 
-      const response = credential.response as AuthenticatorAttestationResponse;
-
+      // Step 3: Send credential back to server for verification
       const verifyRes = await fetch("/api/webauthn/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           step: "verify",
           userId,
-          credential: {
-            id: credential.id,
-            rawId: arrayBufferToBase64url(credential.rawId),
-            response: {
-              clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
-              attestationObject: arrayBufferToBase64url(response.attestationObject),
-            },
-            type: "public-key",
-          },
+          credential,
         }),
       });
 
@@ -94,6 +77,7 @@ export default function PasskeyRegistrationDialog({
         throw new Error("No se pudo verificar la passkey");
       }
     } catch (err: any) {
+      console.error("Passkey registration error:", err);
       setErrorMsg(err.message || "Error al registrar passkey");
       setStep("error");
     }

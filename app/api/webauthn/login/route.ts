@@ -47,17 +47,18 @@ export async function POST(req: NextRequest) {
       });
 
       // Store challenge in cookie
+      const isSecure = !!process.env.VERCEL_URL;
       const response = NextResponse.json(options);
       response.cookies.set("wa_login_challenge", options.challenge, {
         httpOnly: true,
-        secure: true,
+        secure: isSecure,
         sameSite: "lax",
         path: "/",
         maxAge: 120,
       });
       response.cookies.set("wa_login_userId", userId, {
         httpOnly: true,
-        secure: true,
+        secure: isSecure,
         sameSite: "lax",
         path: "/",
         maxAge: 120,

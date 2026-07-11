@@ -15,11 +15,21 @@ export async function createRegistrationToken(createdBy: string | null): Promise
     expires_at: new Date(Date.now() + 86400000).toISOString(),
     created_at: new Date().toISOString(),
   };
+
   if (supabase) {
+    // If created_by is null (first user, no admin yet), skip Supabase and use localStorage
+    if (!createdBy) {
+      const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
+      tokens.unshift(full);
+      setLocalData("registration_tokens", tokens);
+      return full;
+    }
+
     const { data, error } = await supabase.from("registration_tokens").insert(full).select().single();
     if (!error && data) return data as RegistrationToken;
     if (error) console.error("Supabase createRegistrationToken error:", error.message);
   }
+
   const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
   tokens.unshift(full);
   setLocalData("registration_tokens", tokens);

@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/db";
-import { saveSession } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
+import { getSession, saveSession } from "@/lib/auth";
 import { Shield, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import UserForm from "@/features/auth/components/UserForm";
 import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
+import LoginScreen from "@/features/auth/components/LoginScreen";
 
 type AuthMode = "loading" | "login" | "register" | "token_ready" | "passkey_setup";
 
@@ -16,9 +16,21 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [newUser, setNewUser] = useState<{ id: string; display_name: string; email: string | null } | null>(null);
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Only run once on mount
+    if (initialized.current) return;
+    initialized.current = true;
+
     (async () => {
+      // If already logged in, go straight to dashboard
+      const existingSession = getSession();
+      if (existingSession) {
+        window.location.href = "/";
+        return;
+      }
+
       const count = await db.getUserCount();
       const urlParams = new URLSearchParams(window.location.search);
       const urlToken = urlParams.get("token");
@@ -47,7 +59,7 @@ export default function LoginPage() {
       const rt = await db.getRegistrationToken(token);
       if (rt) await db.useRegistrationToken(rt.id);
     }
-    // Save session so the user is logged in
+    // Save session so the user is logged in after passkey setup
     saveSession(saved.id, saved.email!, saved.display_name, saved.role);
     // Store user info and show passkey registration dialog
     setNewUser({ id: saved.id, display_name: saved.display_name, email: saved.email });
@@ -61,6 +73,11 @@ export default function LoginPage() {
   const handlePasskeySkip = () => {
     // Don't skip — passkey is required
   };
+
+  // Show LoginScreen when there are existing users
+  if (mode === "login") {
+    return <LoginScreen onLogin={() => { window.location.href = "/"; }} />;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen w-screen bg-background text-foreground p-4">
@@ -133,7 +150,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      {/* Passkey registration after account creation */}
+      {/* Passkey registration after account creation — rendered outside the main container so it overlays everything */}
       {newUser && (
         <PasskeyRegistrationDialog
           open={mode === "passkey_setup"}
