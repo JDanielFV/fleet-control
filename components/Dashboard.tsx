@@ -20,6 +20,7 @@ import InventoryWizard from "./InventoryWizard";
 import Sidebar from "./Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { Bell, User, Car, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, Shield, ShieldAlert, Gauge, Search, X, CheckCircle2, BarChart3, Download, DollarSign } from "lucide-react";
