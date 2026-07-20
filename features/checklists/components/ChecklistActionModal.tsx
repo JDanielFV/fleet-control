@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ClipboardList, Wrench, AlertTriangle, Package, X } from "lucide-react";
+import { ClipboardList, Wrench, AlertTriangle, Package, DollarSign, X } from "lucide-react";
 import type { Vehicle } from "@/lib/db";
 
 interface ChecklistActionModalProps {
@@ -13,10 +13,11 @@ interface ChecklistActionModalProps {
   onServiceReturn: (vehicle: Vehicle) => void;
   onWearPart: (vehicle: Vehicle) => void;
   onInventory: (vehicle: Vehicle) => void;
+  onPayment: (vehicle: Vehicle) => void;
 }
 
 export default function ChecklistActionModal({
-  open, vehicle, onClose, onChecklist, onServiceOut, onServiceReturn, onWearPart, onInventory,
+  open, vehicle, onClose, onChecklist, onServiceOut, onServiceReturn, onWearPart, onInventory, onPayment,
 }: ChecklistActionModalProps) {
   if (!open || !vehicle) return null;
 
@@ -112,6 +113,20 @@ export default function ChecklistActionModal({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              onClick={() => { onPayment(vehicle); onClose(); }}
+              className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-600 dark:text-green-400 transition-all cursor-pointer text-left active:scale-[0.98]"
+            >
+              <div className="p-2.5 rounded-xl bg-green-500/20 shrink-0"><DollarSign className="w-5 h-5" /></div>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-extrabold">Cobrar Renta</span>
+                <span className="block text-[11px] text-muted-foreground mt-0.5">Registrar pago de renta semanal</span>
+              </div>
+            </motion.button>
+
+            <motion.button
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => { onInventory(vehicle); onClose(); }}
               className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-600  transition-all cursor-pointer text-left active:scale-[0.98]"
             >

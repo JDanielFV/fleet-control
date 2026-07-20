@@ -55,6 +55,37 @@ export function useDashboard() {
   const [inventoryVehicle, setInventoryVehicle] = useState<Vehicle | null>(null);
   const [inventoryExisting, setInventoryExisting] = useState<{ photos: { angle: string; url: string }[]; items: { name: string; quantity: number }[] } | null>(null);
 
+  // Payment dialog
+  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; vehicle: Vehicle | null; driverId: string | null; rental: WeeklyRental | null; amount: number }>({
+    open: false, vehicle: null, driverId: null, rental: null, amount: 0,
+  });
+
+  const handlePayment = async (vehicle: Vehicle) => {
+    const driverId = vehicle.active_driver_id;
+    if (!driverId) { toast("El vehículo no tiene chofer asignado", "error"); return; }
+    const rentals = await db.getWeeklyRentals();
+    const currentRental = rentals.find((r) => r.driver_id === driverId && r.status !== "PAID");
+    if (!currentRental) { toast("No hay renta activa para este chofer", "error"); return; }
+    setPaymentDialog({ open: true, vehicle, driverId, rental: currentRental, amount: 0 });
+  };
+
+  const submitPayment = async () => {
+    const pd = paymentDialog;
+    if (!pd.rental || pd.amount <= 0) return;
+    const updated: WeeklyRental = {
+      ...pd.rental,
+      paid_amount: pd.rental.paid_amount + pd.amount,
+    };
+    const effectiveRent = pd.rental.rent_amount - (pd.rental.condoned_amount || 0);
+    if (updated.paid_amount >= effectiveRent) updated.status = "PAID";
+    else if (updated.paid_amount > 0) updated.status = "PARTIAL";
+    else updated.status = "UNPAID";
+    await db.saveWeeklyRental(updated);
+    setPaymentDialog((prev: typeof paymentDialog) => ({ ...prev, open: false }));
+    toast(`Pago de $${pd.amount.toLocaleString()} registrado`, "success");
+    triggerRefresh();
+  };
+
   const { toast } = useToast();
   const { confirm: showConfirm } = useConfirm();
 
@@ -359,6 +390,7 @@ export function useDashboard() {
     statsDialog, setStatsDialog, openStatsDialog,
     wearPartVehicle, setWearPartVehicle, wearPartDialogOpen, setWearPartDialogOpen,
     inventoryOpen, setInventoryOpen, inventoryVehicle, setInventoryVehicle, inventoryExisting, setInventoryExisting,
+    paymentDialog, setPaymentDialog,
 
     // Derived
     activeEntity, isEntityAssigned,
@@ -368,6 +400,7 @@ export function useDashboard() {
     openActionSheet, openChecklistSheet, openActionModal, handleVehicleAssignedFromSheet,
     handleActionComplete, handleServiceOut, handleServiceReturn, handleWearPart,
     handleInventory, handleSaveInventory, handleDismissAlert,
+    handlePayment, submitPayment,
     exportChecklistCsv, getVerificationWindow, getDateStatus,
     getVehicleDesc, getDriverDesc,
     loadAlerts, loadData,

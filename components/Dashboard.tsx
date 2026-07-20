@@ -22,7 +22,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
-import { Bell, User, Car, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, Shield, ShieldAlert, Gauge, Search, X, CheckCircle2, BarChart3, Download } from "lucide-react";
+import { Bell, User, Car, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, Shield, ShieldAlert, Gauge, Search, X, CheckCircle2, BarChart3, Download, DollarSign } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -374,7 +374,7 @@ export default function Dashboard() {
           <ChecklistActionModal key="action-modal" open={true} vehicle={ctx.actionModal.vehicle}
             onClose={() => ctx.setActionModal({ open: false, vehicle: null })}
             onChecklist={ctx.openChecklistSheet} onServiceOut={ctx.handleServiceOut} onServiceReturn={ctx.handleServiceReturn}
-            onWearPart={ctx.handleWearPart} onInventory={ctx.handleInventory} />
+            onWearPart={ctx.handleWearPart} onInventory={ctx.handleInventory} onPayment={ctx.handlePayment} />
         )}
       </AnimatePresence>
 
@@ -398,6 +398,77 @@ export default function Dashboard() {
             onSave={ctx.handleSaveInventory} initialPhotos={ctx.inventoryExisting?.photos.map((p) => ({ angle: p.angle, dataUrl: p.url }))} initialItems={ctx.inventoryExisting?.items} />
         )}
       </AnimatePresence>
+
+      {/* Payment Dialog */}
+      <Dialog open={ctx.paymentDialog.open} onOpenChange={(o) => { if (!o) ctx.setPaymentDialog((prev: any) => ({ ...prev, open: false })); }}>
+        <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20 shrink-0">
+                <DollarSign className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-foreground font-black text-lg">Cobrar Renta</DialogTitle>
+                <DialogDescription className="text-muted-foreground text-xs">
+                  {ctx.paymentDialog.vehicle
+                    ? `${ctx.paymentDialog.vehicle.brand} ${ctx.paymentDialog.vehicle.vehicle_name} · ${ctx.paymentDialog.vehicle.plate_number}`
+                    : ""}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {ctx.paymentDialog.rental && (
+              <div className="bg-muted/20 rounded-xl p-3 space-y-1 border border-border/60">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Renta semanal</span>
+                  <span className="font-bold text-foreground">${ctx.paymentDialog.rental.rent_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Pagado hasta ahora</span>
+                  <span className="font-bold text-foreground">${ctx.paymentDialog.rental.paid_amount.toLocaleString()}</span>
+                </div>
+                {ctx.paymentDialog.rental.condoned_amount > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Condonado</span>
+                    <span className="font-bold text-amber-400">${ctx.paymentDialog.rental.condoned_amount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs pt-1 border-t border-border/40">
+                  <span className="text-muted-foreground">Saldo pendiente</span>
+                  <span className="font-bold text-red-400">
+                    ${Math.max(0, ctx.paymentDialog.rental.rent_amount - ctx.paymentDialog.rental.paid_amount - (ctx.paymentDialog.rental.condoned_amount || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+            <div>
+              <Label className="text-muted-foreground text-xs">Monto a cobrar</Label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={ctx.paymentDialog.amount || ""}
+                onChange={(e) => ctx.setPaymentDialog((prev: any) => ({ ...prev, amount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                className="mt-1.5 border-input bg-background rounded-xl"
+                placeholder="0"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={() => ctx.setPaymentDialog((prev: any) => ({ ...prev, open: false }))} className="flex-1 rounded-xl border-border">
+                Cancelar
+              </Button>
+              <Button
+                onClick={ctx.submitPayment}
+                disabled={!ctx.paymentDialog.amount || ctx.paymentDialog.amount <= 0}
+                className="flex-1 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 disabled:opacity-50"
+              >
+                Cobrar ${(ctx.paymentDialog.amount || 0).toLocaleString()}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile Bottom Nav */}
       <nav className="relative md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40">
