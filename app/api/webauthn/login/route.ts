@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateAuthenticationOptions, verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { createClient } from "@supabase/supabase-js";
 
-const rpId = process.env.VERCEL_URL
-  ? new URL(`https://${process.env.VERCEL_URL}`).hostname
-  : "localhost";
-
-const expectedOrigin = process.env.VERCEL_URL
-  ? `https://${new URL(`https://${process.env.VERCEL_URL}`).hostname}`
-  : "http://localhost:3000";
+const rpId = process.env.NEXT_PUBLIC_RP_ID || "localhost";
+const expectedOrigin = process.env.NEXT_PUBLIC_RP_ORIGIN || "http://localhost:3000";
 
 export async function POST(req: NextRequest) {
   try {
