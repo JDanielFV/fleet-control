@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { db, User } from "@/lib/db";
 import { getSession, clearSession } from "@/lib/auth";
+import { systemAdminId } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User as UserIcon, Shield, Trash2, KeyRound, Copy, CheckCircle2, LogOut } from "lucide-react";
+import { User as UserIcon, Trash2, KeyRound, Copy, CheckCircle2, LogOut, ShieldCheck } from "lucide-react";
 import SliceHeader from "@/components/SliceHeader";
 import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -17,20 +18,22 @@ export default function UsersSlice() {
   const [tokenUrl, setTokenUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [passkeyDialog, setPasskeyDialog] = useState<{ userId: string; userName: string; displayName: string } | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const session = getSession();
   const isAdmin = session?.role === "admin";
   const { confirm: showConfirm } = useConfirm();
   const { toast } = useToast();
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     const list = await db.getUsers();
     setUsers(list);
+    setIsSystemAdmin(!!session?.userId && systemAdminId(list) === session.userId);
     setIsLoading(false);
-  };
+  }, [session?.userId]);
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    Promise.resolve().then(() => { void loadUsers(); });
+  }, [loadUsers]);
 
   const handleDelete = async (id: string) => {
     const confirmed = await showConfirm({ title: "Eliminar Usuario", message: "¿Eliminar este usuario?", confirmLabel: "Eliminar", variant: "danger" });
@@ -62,6 +65,14 @@ export default function UsersSlice() {
         title="Usuarios"
         action={
           <div className="flex items-center gap-2">
+            {isSystemAdmin && (
+              <a
+                href="/admin"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background text-foreground text-sm font-bold px-4 h-11 hover:bg-secondary transition-all cursor-pointer active:scale-95"
+              >
+                <ShieldCheck className="w-4 h-4 text-primary" /> Panel
+              </a>
+            )}
             {isAdmin && (
               <Dialog open={!!tokenUrl} onOpenChange={(o) => { if (!o) setTokenUrl(""); }}>
                 <DialogTrigger asChild>
@@ -114,7 +125,6 @@ export default function UsersSlice() {
               <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
                 <th className="text-left py-2.5 px-2 whitespace-nowrap">Nombre</th>
                 <th className="text-left py-2.5 px-2 whitespace-nowrap">Correo</th>
-                <th className="text-left py-2.5 px-2 whitespace-nowrap">Rol</th>
                 <th className="text-left py-2.5 px-2 whitespace-nowrap">Estado</th>
                 <th className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
               </tr>
@@ -138,15 +148,6 @@ export default function UsersSlice() {
                       </div>
                     </td>
                     <td className="py-2.5 px-2 text-muted-foreground">{user.email || "—"}</td>
-                    <td className="py-2.5 px-2">
-                      {user.role === "admin" ? (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-primary">
-                          <Shield className="w-3 h-3" /> Admin
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Operador</span>
-                      )}
-                    </td>
                     <td className="py-2.5 px-2">
                       <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md ${user.is_active ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-500"}`}>
                         {user.is_active ? "Activo" : "Inactivo"}
