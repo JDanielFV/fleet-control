@@ -1,16 +1,20 @@
 import { supabase } from "./index";
-import type { Assignment, Driver, Vehicle } from "./types";
+import type { Assignment, Driver, Vehicle, WeeklyRental } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedAssignments, seedVehicles, seedWeeklyRentals } from "./seed";
 import { genId } from "./utils";
 import { getMondayOf, prorateRent } from "../utils";
+import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 
 export async function getAssignments(): Promise<Assignment[]> {
+  const ownerId = getOwnerId();
   if (supabase) {
-    const { data, error } = await supabase.from("assignments").select("*").order("created_at", { ascending: false });
-    if (!error) return mergePendingLocal("assignments", data, seedAssignments);
+    let query = supabase.from("assignments").select("*");
+    if (ownerId) query = query.eq("owner_id", ownerId);
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (!error) return mergePendingLocal("assignments", data, seedAssignments, ownerId);
   }
-  return getLocalData("assignments", seedAssignments);
+  return ownerScoped(getLocalData("assignments", seedAssignments));
 }
 
 export async function createAssignment(
@@ -19,8 +23,10 @@ export async function createAssignment(
   type: "ASSIGN" | "RELEASE",
   reason: string
 ): Promise<Assignment> {
+  const ownerId = getOwnerId();
   const newAssignment: Assignment = {
     id: genId(),
+    owner_id: ownerId ?? undefined,
     vehicle_id: vehicleId,
     driver_id: driverId,
     action_type: type,
@@ -28,19 +34,21 @@ export async function createAssignment(
     created_at: new Date().toISOString(),
   };
 
-  // Update active_driver_id on vehicle
-  const vehicles = getLocalData("vehicles", seedVehicles);
-  const vIndex = vehicles.findIndex((v) => v.id === vehicleId);
+  // Update active_driver_id on vehicle (owner-scoped read/write)
+  const allVehicles = getLocalData<Vehicle>("vehicles", seedVehicles);
+  const vehicles = ownerScoped(allVehicles);
+  const vIndex = allVehicles.findIndex((v) => v.id === vehicleId);
   if (vIndex >= 0) {
-    vehicles[vIndex].active_driver_id = type === "ASSIGN" ? driverId : null;
-    setLocalData("vehicles", vehicles);
+    allVehicles[vIndex].active_driver_id = type === "ASSIGN" ? driverId : null;
+    setLocalData("vehicles", allVehicles);
   }
 
   // Auto-generate Weekly Rental if it's an ASSIGN action.
   if (type === "ASSIGN") {
     const weekStart = getMondayOf(new Date());
 
-    const rentals = getLocalData("weekly_rentals", seedWeeklyRentals);
+    const allRentals = getLocalData<WeeklyRental>("weekly_rentals", seedWeeklyRentals);
+    const rentals = ownerScoped(allRentals);
     const exists = rentals.some((r) => r.driver_id === driverId && r.week_start === weekStart);
 
     if (!exists) {
@@ -50,6 +58,7 @@ export async function createAssignment(
 
       const newRental = {
         id: genId(),
+        owner_id: ownerId ?? undefined,
         driver_id: driverId,
         week_start: weekStart,
         rent_amount: amount,
@@ -62,8 +71,8 @@ export async function createAssignment(
         payments_log: [],
         created_at: new Date().toISOString(),
       };
-      rentals.unshift(newRental);
-      setLocalData("weekly_rentals", rentals);
+      allRentals.unshift(newRental);
+      setLocalData("weekly_rentals", allRentals);
       if (supabase) {
         const { error: rErr } = await supabase.from("weekly_rentals").insert(newRental);
         if (rErr) addPendingId("weekly_rentals", newRental.id);
@@ -81,6 +90,7 @@ export async function createAssignment(
 
         const nextRental = {
           id: genId(),
+          owner_id: ownerId ?? undefined,
           driver_id: driverId,
           week_start: nextWeekStart,
           rent_amount: rentCost,
@@ -93,8 +103,8 @@ export async function createAssignment(
           payments_log: [],
           created_at: new Date().toISOString(),
         };
-        rentals.unshift(nextRental);
-        setLocalData("weekly_rentals", rentals);
+        allRentals.unshift(nextRental);
+        setLocalData("weekly_rentals", allRentals);
         if (supabase) {
           const { error: rErr } = await supabase.from("weekly_rentals").insert(nextRental);
           if (rErr) addPendingId("weekly_rentals", nextRental.id);
@@ -104,7 +114,7 @@ export async function createAssignment(
   }
 
   if (supabase) {
-    await supabase.from("vehicles").update({ active_driver_id: type === "ASSIGN" ? driverId : null }).eq("id", vehicleId);
+    await ownerEq(supabase.from("vehicles").update({ active_driver_id: type === "ASSIGN" ? driverId : null }), ownerId).eq("id", vehicleId);
     const { data, error } = await supabase.from("assignments").insert(newAssignment).select().single();
     if (!error && data) return data;
   }
@@ -118,8 +128,10 @@ export async function createAssignment(
 }
 
 export async function removeAssignment(vehicleId: string, driverId: string, reason: string): Promise<void> {
+  const ownerId = getOwnerId();
   const newReleaseEntry: Assignment = {
     id: genId(),
+    owner_id: ownerId ?? undefined,
     vehicle_id: vehicleId,
     driver_id: driverId,
     action_type: "RELEASE",
@@ -128,11 +140,11 @@ export async function removeAssignment(vehicleId: string, driverId: string, reas
   };
 
   // Clear active_driver_id on the vehicle
-  const vehicles = getLocalData("vehicles", seedVehicles);
-  const vIndex = vehicles.findIndex((v) => v.id === vehicleId);
+  const allVehicles = getLocalData<Vehicle>("vehicles", seedVehicles);
+  const vIndex = allVehicles.findIndex((v) => v.id === vehicleId);
   if (vIndex >= 0) {
-    vehicles[vIndex].active_driver_id = null;
-    setLocalData("vehicles", vehicles);
+    allVehicles[vIndex].active_driver_id = null;
+    setLocalData("vehicles", allVehicles);
   }
 
   // Persist the RELEASE record
@@ -140,9 +152,9 @@ export async function removeAssignment(vehicleId: string, driverId: string, reas
   assignments.unshift(newReleaseEntry);
   setLocalData("assignments", assignments);
 
-  // Sync to Supabase
+  // Sync to Supabase (owner-scoped vehicle update)
   if (supabase) {
-    await supabase.from("vehicles").update({ active_driver_id: null }).eq("id", vehicleId);
+    await ownerEq(supabase.from("vehicles").update({ active_driver_id: null }), ownerId).eq("id", vehicleId);
     const { error: insertError } = await supabase.from("assignments").insert(newReleaseEntry);
     if (insertError) {
       addPendingId("assignments", newReleaseEntry.id);
@@ -156,8 +168,9 @@ export async function removeAssignment(vehicleId: string, driverId: string, reas
 
 export async function getAvailableDrivers(): Promise<Driver[]> {
   const { getDrivers } = await import("./drivers");
+  const { getVehicles } = await import("./vehicles");
   const drivers = await getDrivers();
-  const vehicles = getLocalData("vehicles", seedVehicles);
+  const vehicles = await getVehicles();
   const assignedDriverIds = new Set(vehicles.filter((v) => v.active_driver_id).map((v) => v.active_driver_id));
   return drivers.filter((d) => !assignedDriverIds.has(d.id));
 }

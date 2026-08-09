@@ -120,15 +120,28 @@ export function clearPendingIds(table: string, idsToRemove: string[]): void {
 // failed entirely and we fall back to plain localStorage. Only records whose
 // ids are marked pending AND absent from remote are prepended, so seed data is
 // never injected into a live Supabase list.
-export function mergePendingLocal<T extends { id: string }>(table: string, remote: T[] | null, seed: T[]): T[] {
-  if (!remote) return getLocalData(table, seed);
+//
+// `ownerId` is REQUIRED for isolation: localStorage is shared per-device, so
+// without filtering by owner a pending (offline) record of user A would leak
+// into user B's reads. When no owner is provided we return an empty merge
+// instead of unfiltered local data.
+export function mergePendingLocal<T extends { id: string }>(
+  table: string,
+  remote: T[] | null,
+  seed: T[],
+  ownerId?: string | null
+): T[] {
+  const localAll = getLocalData(table, seed);
+  const local = ownerId
+    ? localAll.filter((l) => (l as { owner_id?: string | null }).owner_id === ownerId)
+    : [];
+  if (!remote) return local;
   const pending = getPendingIds(table);
   if (!pending.length) return remote;
   const remoteIds = new Set(remote.map((r) => r.id));
   // Clear pending ids that have now appeared in Supabase (synced).
   const synced = pending.filter((id) => remoteIds.has(id));
   if (synced.length) clearPendingIds(table, synced);
-  const local = getLocalData(table, seed);
   const orphans = local.filter((l) => getPendingIds(table).includes(l.id) && !remoteIds.has(l.id));
   return orphans.length ? [...orphans, ...remote] : remote;
 }

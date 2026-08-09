@@ -2,10 +2,14 @@ import { supabase } from "./index";
 import type { RenewalLog } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { genId } from "./utils";
+import { getOwnerId, ownerScoped } from "./owner";
+
+const EMPTY_SEED: RenewalLog[] = [];
 
 export async function saveRenewalLog(log: Omit<RenewalLog, "id" | "created_at">): Promise<RenewalLog> {
   const fullLog: RenewalLog = {
     id: genId(),
+    owner_id: getOwnerId() ?? undefined,
     created_at: new Date().toISOString(),
     ...log,
   };
@@ -24,13 +28,15 @@ export async function saveRenewalLog(log: Omit<RenewalLog, "id" | "created_at">)
 }
 
 export async function getRenewalLogs(vehicleId?: string): Promise<RenewalLog[]> {
+  const ownerId = getOwnerId();
   if (supabase) {
-    let query = supabase.from("renewal_logs").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("renewal_logs").select("*");
+    if (ownerId) query = query.eq("owner_id", ownerId);
     if (vehicleId) query = query.eq("vehicle_id", vehicleId);
-    const { data, error } = await query;
-    if (!error) return mergePendingLocal("renewal_logs", data, []);
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (!error) return mergePendingLocal("renewal_logs", data, EMPTY_SEED, ownerId);
   }
-  const logs = getLocalData("renewal_logs", [] as RenewalLog[]);
+  const logs = ownerScoped(getLocalData<RenewalLog>("renewal_logs", EMPTY_SEED));
   if (vehicleId) return logs.filter((l) => l.vehicle_id === vehicleId);
   return logs;
 }

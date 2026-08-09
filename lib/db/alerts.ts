@@ -1,7 +1,8 @@
-import type { Alert } from "./types";
+import type { Alert, Vehicle } from "./types";
 import { getLocalData, setLocalData } from "./localStorage";
 import { getVerificationSchedule } from "./utils";
 import { estimateServiceDate } from "../utils";
+import { getOwnerId } from "./owner";
 
 export async function getAlerts(): Promise<Alert[]> {
   const { getDrivers } = await import("./drivers");
@@ -180,8 +181,11 @@ export async function dismissAlert(alertId: string): Promise<boolean> {
   if (alertId.startsWith("alert-ver-") && alertId.split("-").length === 3) {
     const vehicleId = alertId.replace("alert-ver-", "");
     const { seedVehicles } = await import("./seed");
-    const vehicles = getLocalData("vehicles", seedVehicles);
-    const vehicle = vehicles.find((v: any) => v.id === vehicleId);
+    const ownerId = getOwnerId();
+    const vehicles = ownerId
+      ? getLocalData<Vehicle>("vehicles", seedVehicles).filter((v) => v.owner_id === ownerId)
+      : [];
+    const vehicle = vehicles.find((v) => v.id === vehicleId);
     if (vehicle && vehicle.plate_number) {
       const today = new Date();
       const match = vehicle.plate_number.replace(/\D/g, "");

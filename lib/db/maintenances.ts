@@ -1,26 +1,32 @@
 import { supabase } from "./index";
 import type { Maintenance } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
-import { seedMaintenances, seedChecklists } from "./seed";
+import { seedMaintenances } from "./seed";
 import { genId } from "./utils";
+import { getOwnerId, ownerScoped } from "./owner";
 
 export async function getMaintenances(): Promise<Maintenance[]> {
+  const ownerId = getOwnerId();
   if (supabase) {
-    const { data, error } = await supabase.from("maintenances").select("*").order("created_at", { ascending: false });
-    if (!error) return mergePendingLocal("maintenances", data, seedMaintenances);
+    let query = supabase.from("maintenances").select("*");
+    if (ownerId) query = query.eq("owner_id", ownerId);
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (!error) return mergePendingLocal("maintenances", data, seedMaintenances, ownerId);
   }
-  return getLocalData("maintenances", seedMaintenances);
+  return ownerScoped(getLocalData<Maintenance>("maintenances", seedMaintenances));
 }
 
 export async function saveMaintenance(maintenance: Omit<Maintenance, "id" | "created_at">): Promise<Maintenance> {
   const fullMaint: Maintenance = {
     id: genId(),
+    owner_id: getOwnerId() ?? undefined,
     created_at: new Date().toISOString(),
     ...maintenance,
   };
 
-  // Auto-update the vehicle's next_service_mileage
-  const checklists = getLocalData("checklists", seedChecklists);
+  // Auto-update the vehicle's next_service_mileage (owner-scoped read)
+  const { getChecklists } = await import("./checklists");
+  const checklists = await getChecklists();
   const vChecklists = checklists.filter((c) => c.vehicle_id === maintenance.vehicle_id);
   if (vChecklists.length > 0) {
     const sorted = [...vChecklists].sort(
