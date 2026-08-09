@@ -76,9 +76,9 @@ export default function PasskeyRegistrationDialog({
       } else {
         throw new Error("No se pudo verificar la passkey");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Passkey registration error:", err);
-      setErrorMsg(err.message || "Error al registrar passkey");
+      setErrorMsg(err instanceof Error ? err.message : "Error al registrar passkey");
       setStep("error");
     }
   };

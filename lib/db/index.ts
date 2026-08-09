@@ -1,44 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import type {
-  Driver,
-  Vehicle,
-  Assignment,
-  Checklist,
-  WeeklyRental,
-  Maintenance,
-  RenewalLog,
-  Alert,
-  VehicleInventory,
-  User,
-  RegistrationToken,
-} from "./types";
 export type * from "./types";
 export { getVerificationSchedule, genId, normalizeEmptyDates } from "./utils";
 export { getMondayOf, prorateRent, estimateServiceDate } from "../utils";
-
-import {
-  seedDrivers,
-  seedVehicles,
-  seedAssignments,
-  seedChecklists,
-  seedWeeklyRentals,
-  seedMaintenances,
-} from "./seed";
-import {
-  getLocalData,
-  setLocalData,
-  mergePendingLocal,
-  addPendingId,
-  clearPendingIds,
-} from "./localStorage";
-import {
-  DRIVER_DATE_KEYS,
-  VEHICLE_DATE_KEYS,
-  genId,
-  normalizeEmptyDates,
-  getVerificationSchedule,
-} from "./utils";
-import { getMondayOf, prorateRent, applyPayment, estimateServiceDate } from "../utils";
 
 // --- Supabase Connection ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -68,13 +31,13 @@ export const db = {
   // --- Drivers ---
   getDrivers: () => import("./drivers").then((m) => m.getDrivers()),
   getArchivedDrivers: () => import("./drivers").then((m) => m.getArchivedDrivers()),
-  saveDriver: (d: any) => import("./drivers").then((mod) => mod.saveDriver(d)),
+  saveDriver: (d: Parameters<typeof import("./drivers").saveDriver>[0]) => import("./drivers").then((mod) => mod.saveDriver(d)),
   deleteDriver: (id: string) => import("./drivers").then((mod) => mod.deleteDriver(id)),
 
   // --- Vehicles ---
   getVehicles: () => import("./vehicles").then((mod) => mod.getVehicles()),
   getArchivedVehicles: () => import("./vehicles").then((mod) => mod.getArchivedVehicles()),
-  saveVehicle: (v: any) => import("./vehicles").then((mod) => mod.saveVehicle(v)),
+  saveVehicle: (v: Parameters<typeof import("./vehicles").saveVehicle>[0]) => import("./vehicles").then((mod) => mod.saveVehicle(v)),
   deleteVehicle: (id: string) => import("./vehicles").then((mod) => mod.deleteVehicle(id)),
   updateVehicleServiceSchedule: (id: string, nsm: number | null, nmd: string | null) =>
     import("./vehicles").then((mod) => mod.updateVehicleServiceSchedule(id, nsm, nmd)),
@@ -90,7 +53,7 @@ export const db = {
 
   // --- Checklists ---
   getChecklists: () => import("./checklists").then((mod) => mod.getChecklists()),
-  saveChecklist: (c: any) => import("./checklists").then((mod) => mod.saveChecklist(c)),
+  saveChecklist: (c: Parameters<typeof import("./checklists").saveChecklist>[0]) => import("./checklists").then((mod) => mod.saveChecklist(c)),
   autoGenerateMondayChecklists: () => import("./checklists").then((mod) => mod.autoGenerateMondayChecklists()),
 
   // --- Weekly Rentals & Finance ---
@@ -101,15 +64,15 @@ export const db = {
   getDriverCredit: (did: string) => import("./finances").then((mod) => mod.getDriverCredit(did)),
   addDriverCredit: (did: string, amt: number) =>
     import("./finances").then((mod) => mod.addDriverCredit(did, amt)),
-  createWeeklyRental: (r: any) => import("./finances").then((mod) => mod.createWeeklyRental(r)),
-  saveWeeklyRental: (r: any) => import("./finances").then((mod) => mod.saveWeeklyRental(r)),
+  createWeeklyRental: (r: Parameters<typeof import("./finances").createWeeklyRental>[0]) => import("./finances").then((mod) => mod.createWeeklyRental(r)),
+  saveWeeklyRental: (r: Parameters<typeof import("./finances").saveWeeklyRental>[0]) => import("./finances").then((mod) => mod.saveWeeklyRental(r)),
 
   // --- Maintenances ---
   getMaintenances: () => import("./maintenances").then((mod) => mod.getMaintenances()),
-  saveMaintenance: (maint: any) => import("./maintenances").then((mod) => mod.saveMaintenance(maint)),
+  saveMaintenance: (maint: Parameters<typeof import("./maintenances").saveMaintenance>[0]) => import("./maintenances").then((mod) => mod.saveMaintenance(maint)),
 
   // --- Renewal Logs ---
-  saveRenewalLog: (l: any) => import("./renewal-logs").then((mod) => mod.saveRenewalLog(l)),
+  saveRenewalLog: (l: Parameters<typeof import("./renewal-logs").saveRenewalLog>[0]) => import("./renewal-logs").then((mod) => mod.saveRenewalLog(l)),
   getRenewalLogs: (vid?: string) => import("./renewal-logs").then((mod) => mod.getRenewalLogs(vid)),
 
   // --- Alerts ---
@@ -118,13 +81,13 @@ export const db = {
 
   // --- Vehicle Inventory ---
   getVehicleInventory: (vid: string) => import("./inventory").then((mod) => mod.getVehicleInventory(vid)),
-  saveVehicleInventory: (i: any) => import("./inventory").then((mod) => mod.saveVehicleInventory(i)),
+  saveVehicleInventory: (i: Parameters<typeof import("./inventory").saveVehicleInventory>[0]) => import("./inventory").then((mod) => mod.saveVehicleInventory(i)),
 
   // --- Users ---
   getUsers: () => import("./users").then((mod) => mod.getUsers()),
   getUserByEmail: (e: string) => import("./users").then((mod) => mod.getUserByEmail(e)),
   getUserCount: () => import("./users").then((mod) => mod.getUserCount()),
-  saveUser: (u: any) => import("./users").then((mod) => mod.saveUser(u)),
+  saveUser: (u: Parameters<typeof import("./users").saveUser>[0]) => import("./users").then((mod) => mod.saveUser(u)),
   deleteUser: (id: string) => import("./users").then((mod) => mod.deleteUser(id)),
 
   // --- Registration Tokens ---

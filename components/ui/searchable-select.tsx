@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Check, ChevronDown } from "lucide-react";
 
@@ -23,6 +23,7 @@ export function SearchableSelect({ options, value, onValueChange, placeholder = 
   const [highlighted, setHighlighted] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
 
   const filtered = search
     ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
@@ -32,8 +33,8 @@ export function SearchableSelect({ options, value, onValueChange, placeholder = 
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-      setHighlighted(0);
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
     }
   }, [open]);
 
@@ -72,7 +73,7 @@ export function SearchableSelect({ options, value, onValueChange, placeholder = 
       )}
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); if (!open) setHighlighted(0); }}
         className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-input bg-background text-xs text-left cursor-pointer hover:border-primary/50 transition-colors"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -104,9 +105,12 @@ export function SearchableSelect({ options, value, onValueChange, placeholder = 
                 className="flex-1 bg-transparent border-none text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-hidden"
                 role="combobox"
                 aria-autocomplete="list"
+                aria-expanded={open}
+                aria-controls={listboxId}
               />
             </div>
             <div
+              id={listboxId}
               className="max-h-48 overflow-y-auto py-1"
               role="listbox"
             >

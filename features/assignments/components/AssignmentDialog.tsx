@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { db, type Driver, type Vehicle } from "@/lib/db";
-import { getDriverName } from "@/lib/lookups";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { User, Car, ArrowLeftRight, CheckCircle2, X } from "lucide-react";
+import { User, Car, ArrowLeftRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface AssignmentDialogProps {
@@ -27,9 +26,11 @@ export default function AssignmentDialog({ open, onClose, onComplete, onAssign, 
 
   useEffect(() => {
     if (!open) {
-      setSelectedDriver(null);
-      setSelectedVehicle(null);
-      setSuccess(false);
+      Promise.resolve().then(() => {
+        setSelectedDriver(null);
+        setSelectedVehicle(null);
+        setSuccess(false);
+      });
     }
   }, [open]);
 

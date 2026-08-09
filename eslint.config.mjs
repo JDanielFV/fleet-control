@@ -21,7 +21,7 @@ const eslintConfig = defineConfig([
     // effects. Surface them as warnings instead of blocking the build.
     rules: {
       "react-hooks/set-state-in-effect": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "react-hooks/purity": "warn",
     },
   },

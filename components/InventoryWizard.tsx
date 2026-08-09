@@ -2,7 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Camera, Check, X, ChevronLeft, ChevronRight, Package, Plus, ImageIcon } from "lucide-react";
+import { Camera, X, ChevronLeft, ChevronRight, Package, Plus, ImageIcon } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState("1");
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -55,6 +57,7 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
+      setIsStreaming(true);
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (e) {
       alert("No se pudo acceder a la cámara: " + e);
@@ -66,6 +69,7 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    setIsStreaming(false);
   }, []);
 
   const capturePhoto = useCallback(() => {
@@ -189,7 +193,7 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
                           }`}
                         >
                           {p.dataUrl ? (
-                            <img src={p.dataUrl} alt={PHOTO_ANGLES[i].label} className="w-full h-full object-cover" />
+                            <Image src={p.dataUrl} alt={PHOTO_ANGLES[i].label} fill className="object-cover" unoptimized />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <span className="text-[11px] text-muted-foreground/50 font-bold text-center leading-tight px-1">
@@ -255,12 +259,12 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
               <div className="space-y-4">
                 <div className="relative aspect-video w-full rounded-xl bg-muted overflow-hidden flex items-center justify-center border border-border">
                   {currentPhoto.dataUrl ? (
-                    <img src={currentPhoto.dataUrl} alt={currentAngle.label} className="w-full h-full object-cover" />
+                    <Image src={currentPhoto.dataUrl} alt={currentAngle.label} fill className="object-cover" unoptimized />
                   ) : (
                     <>
                       <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                       <canvas ref={canvasRef} className="hidden" />
-                      {!streamRef.current && (
+                      {!isStreaming && (
                         <button onClick={startCamera} className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/80 cursor-pointer">
                           <Camera className="w-8 h-8 text-primary" />
                           <span className="text-xs font-bold text-foreground">Iniciar cámara</span>
@@ -274,7 +278,7 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
                 </div>
 
                 <div className="flex items-center justify-center gap-3">
-                  {streamRef.current && !currentPhoto.dataUrl && (
+                  {isStreaming && !currentPhoto.dataUrl && (
                     <Button onClick={capturePhoto} className="rounded-full h-12 px-6 bg-primary text-white font-bold">
                       <Camera className="w-5 h-5 mr-2" /> Capturar
                     </Button>
@@ -370,7 +374,7 @@ export default function InventoryWizard({ open, onClose, onSave, initialPhotos, 
               tabIndex={0}
               aria-label="Cerrar vista previa"
             >
-              <img src={previewPhoto} alt="Vista previa" className="max-w-full max-h-full object-contain" />
+              <Image src={previewPhoto} alt="Vista previa" width={800} height={600} className="max-w-full max-h-full object-contain w-auto h-auto" unoptimized />
               <button onClick={() => setPreviewPhoto(null)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>

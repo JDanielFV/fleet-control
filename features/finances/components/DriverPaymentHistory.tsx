@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { db, type WeeklyRental } from "@/lib/db";
-import { CheckCircle2, AlertTriangle, XCircle, DollarSign, Calendar } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +19,12 @@ export default function DriverPaymentHistory({ driverId }: DriverPaymentHistoryP
   const [condoneRental, setCondoneRental] = useState<WeeklyRental | null>(null);
   const [condoneDays, setCondoneDays] = useState(0);
 
-  const loadRentals = async () => {
+  const loadRentals = useCallback(async () => {
     const all = await db.getWeeklyRentals();
     setRentals(all.filter((r) => r.driver_id === driverId).sort((a, b) => new Date(b.week_start).getTime() - new Date(a.week_start).getTime()));
-  };
+  }, [driverId]);
 
-  useEffect(() => { loadRentals(); }, [driverId]);
+  useEffect(() => { Promise.resolve().then(() => { void loadRentals(); }); }, [loadRentals]);
 
   const totalDebt = rentals.reduce((acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount - (r.condoned_amount || 0)), 0);
   const totalPaid = rentals.reduce((acc, r) => acc + r.paid_amount, 0);

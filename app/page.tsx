@@ -10,9 +10,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const s = getSession();
-    setSession(s);
-    setLoading(false);
+    Promise.resolve().then(() => {
+      setSession(getSession());
+      setLoading(false);
+    });
   }, []);
 
   if (loading) {

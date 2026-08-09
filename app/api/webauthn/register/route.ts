@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       if (supabaseUrl && supabaseKey) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const { data: user } = await supabase.from("users").select("webauthn_credentials").eq("id", userId).single();
-        const existing = (user?.webauthn_credentials as any[]) || [];
+        const existing = (user?.webauthn_credentials as Record<string, unknown>[]) || [];
         await supabase.from("users").update({
           webauthn_credentials: [...existing, newCred],
         }).eq("id", userId);
@@ -119,8 +119,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: "Invalid step" }, { status: 400 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("WebAuthn register error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }

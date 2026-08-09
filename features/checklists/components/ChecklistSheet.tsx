@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { db, Vehicle, Checklist } from "@/lib/db";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { Check, CheckCircle, Camera, X } from "lucide-react";
 
 interface ChecklistSheetProps {
@@ -251,7 +252,7 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
                       </div>
                     ) : irregularityPhoto ? (
                       <div className="relative mt-2 rounded-lg overflow-hidden border border-border">
-                        <img src={irregularityPhoto} alt="Evidencia" className="w-full h-32 object-cover" />
+                        <Image src={irregularityPhoto} alt="Evidencia" width={640} height={256} className="w-full h-32 object-cover" unoptimized />
                         <button
                           onClick={() => setIrregularityPhoto(null)}
                           className="absolute top-2 right-2 p-1 bg-black/60 text-white rounded-full cursor-pointer"

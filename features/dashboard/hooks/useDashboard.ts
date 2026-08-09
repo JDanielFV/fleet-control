@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { db, Driver, Vehicle, Assignment, Checklist, WeeklyRental, Alert } from "@/lib/db";
+import { db, Driver, Vehicle, Checklist, WeeklyRental, Alert, User } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
-import { computeUsageStats } from "@/lib/usageStats";
-import { getDriverName } from "@/lib/lookups";
 import { getVerificationSchedule } from "@/lib/db";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { useToast } from "@/components/ui/toast";
@@ -13,7 +11,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 export type TabId = "dashboard" | "drivers" | "vehicles" | "users";
 
 export function useDashboard() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<User | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -22,7 +20,6 @@ export function useDashboard() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
-  const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [currentTime, setCurrentTime] = useState("");
@@ -109,17 +106,19 @@ export function useDashboard() {
 
   // Session restore
   useEffect(() => {
-    const stored = localStorage.getItem("fleet_session");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSession({ id: parsed.userId, display_name: parsed.displayName, email: null, role: parsed.role, webauthn_credentials: [], metadata: {}, is_active: true, last_login_at: parsed.loginAt, created_at: "", updated_at: "" });
-      } catch {}
-    }
-    setIsSessionLoading(false);
+    Promise.resolve().then(() => {
+      const stored = localStorage.getItem("fleet_session");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setSession({ id: parsed.userId, display_name: parsed.displayName, email: null, role: parsed.role, webauthn_credentials: [], metadata: {}, is_active: true, last_login_at: parsed.loginAt, created_at: "", updated_at: "" });
+        } catch {}
+      }
+      setIsSessionLoading(false);
+    });
   }, []);
 
-  const handleLogin = (user: any) => setSession(user);
+  const handleLogin = (user: User) => setSession(user);
 
   // Time
   useEffect(() => {
@@ -155,8 +154,6 @@ export function useDashboard() {
     const activeVehicles = new Set(activeAss.map((x) => x.vehicle_id));
     setStats({ vehicles: vList.length, drivers: dList.length, assigned: activeVehicles.size });
 
-    const sortedAss = sortByDateDesc(aList, "created_at");
-    setRecentAssignments(sortedAss.slice(0, 10));
   }, []);
 
   const loadData = useCallback(async () => {
@@ -170,7 +167,7 @@ export function useDashboard() {
     }
   }, [loadAlerts, loadStats]);
 
-  useEffect(() => { loadData(); }, [refreshTrigger]);
+  useEffect(() => { Promise.resolve().then(() => { void loadData(); }); }, [loadData, refreshTrigger]);
 
   // Derived
   const filteredDriversList = useMemo(() => {

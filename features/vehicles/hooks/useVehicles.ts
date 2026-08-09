@@ -1,16 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { db, Vehicle, Driver, getVerificationSchedule, Checklist, Maintenance, Assignment, RenewalLog, WeeklyRental } from "@/lib/db";
+import { db, Vehicle, Driver, Checklist, Maintenance, Assignment, WeeklyRental } from "@/lib/db";
 import { parseOcrText } from "@/lib/ocr";
-import { computeUsageStats } from "@/lib/usageStats";
-import { getDriverName } from "@/lib/lookups";
 import { getNextVerificationDate } from "@/lib/db/utils";
 import Tesseract from "tesseract.js";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { requirePasskeyConfirmation } from "@/lib/webauthn";
-import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export interface UseVehiclesOptions {
@@ -38,7 +35,6 @@ export function useVehicles(options: UseVehiclesOptions) {
   const [showArchived, setShowArchived] = useState(false);
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
 
-  const { toast } = useToast();
   const { confirm: showConfirm } = useConfirm();
 
   // --- Dialog state ---
@@ -126,19 +122,23 @@ export function useVehicles(options: UseVehiclesOptions) {
   // Auto-open
   useEffect(() => {
     if (autoOpen && !isOpen) {
-      setIsOpen(true);
-      onAutoOpenConsumed?.();
+      Promise.resolve().then(() => {
+        setIsOpen(true);
+        onAutoOpenConsumed?.();
+      });
     }
   }, [autoOpen, isOpen, onAutoOpenConsumed]);
 
   // External wear part trigger
   useEffect(() => {
     if (extWearPartVehicle) {
-      setWearPartVehicleState(extWearPartVehicle);
-      setWearPartName("");
-      setWearPartCost("");
-      setWearPartDate(new Date().toISOString().split("T")[0]);
-      setWearPartOpen(true);
+      Promise.resolve().then(() => {
+        setWearPartVehicleState(extWearPartVehicle);
+        setWearPartName("");
+        setWearPartCost("");
+        setWearPartDate(new Date().toISOString().split("T")[0]);
+        setWearPartOpen(true);
+      });
     }
   }, [extWearPartVehicle]);
 
@@ -499,7 +499,7 @@ export function useVehicles(options: UseVehiclesOptions) {
         const errJson = await apiResponse.json();
         setOcrLogs((prev) => [...prev, `⚠ [OCR API] ${errJson.error || "Fallo API"}. Usando Tesseract local...`]);
       }
-    } catch (err) {
+    } catch {
       setOcrLogs((prev) => [...prev, "⚠ Error de red con Gemini. Iniciando Tesseract local..."]);
     }
 

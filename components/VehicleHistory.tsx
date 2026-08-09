@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { db, type Maintenance, type Assignment, type Driver, type RenewalLog, type Vehicle, type Checklist, type WeeklyRental, type VehicleInventory } from "@/lib/db";
 import { getDriverName } from "@/lib/lookups";
-import { Wrench, AlertTriangle, ArrowLeftRight, RefreshCcw, Shield, DollarSign, ClipboardCheck, Camera, CalendarPlus, Edit3, CreditCard } from "lucide-react";
+import { Wrench, AlertTriangle, ArrowLeftRight, RefreshCcw, Shield, DollarSign, ClipboardCheck, Camera, CalendarPlus, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface VehicleHistoryProps {

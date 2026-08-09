@@ -24,9 +24,11 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
 
   useEffect(() => {
     if (open && vehicle) {
-      setPartName("");
-      setPartCost("");
-      setPartDate(new Date().toISOString().split("T")[0]);
+      Promise.resolve().then(() => {
+        setPartName("");
+        setPartCost("");
+        setPartDate(new Date().toISOString().split("T")[0]);
+      });
     }
   }, [open, vehicle]);
 
