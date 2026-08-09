@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { db, Driver, Vehicle, WeeklyRental } from "@/lib/db";
-import { parseOcrText, calculateCurp, MEXICAN_STATES } from "@/lib/ocr";
+import { parseOcrText, calculateCurp } from "@/lib/ocr";
 import Tesseract from "tesseract.js";
 import { useOcrScanner } from "@/components/useOcrScanner";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { requirePasskeyConfirmation } from "@/lib/webauthn";
-import { useToast } from "@/components/ui/toast";
-import { useConfirm } from "@/components/ui/confirm-dialog";
+
 
 export interface UseDriversOptions {
   onRefreshAlerts: () => void;
@@ -29,8 +28,6 @@ export function useDrivers(options: UseDriversOptions) {
   const [isLoading, setIsLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
 
-  const { toast } = useToast();
-  const { confirm: showConfirm } = useConfirm();
 
   // --- Dialog state ---
   const [isOpen, setIsOpen] = useState(false);
@@ -59,7 +56,6 @@ export function useDrivers(options: UseDriversOptions) {
   const [ineSex, setIneSex] = useState<"M" | "F" | "X">("M");
   const [ineElectorKey, setIneElectorKey] = useState("");
   const [birthState, setBirthState] = useState("DF");
-  const [demoIndex, setDemoIndex] = useState<number | null>(null);
   const [driverPhotoImg, setDriverPhotoImg] = useState("");
   const [addressProofImg, setAddressProofImg] = useState("");
   const [ineImg, setIneImg] = useState("");
@@ -125,8 +121,10 @@ export function useDrivers(options: UseDriversOptions) {
   // --- Auto-open ---
   useEffect(() => {
     if (autoOpen && !isOpen) {
-      setIsOpen(true);
-      onAutoOpenConsumed?.();
+      Promise.resolve().then(() => {
+        setIsOpen(true);
+        onAutoOpenConsumed?.();
+      });
     }
   }, [autoOpen, isOpen, onAutoOpenConsumed]);
 
@@ -412,7 +410,6 @@ export function useDrivers(options: UseDriversOptions) {
     setAddressProofImg("");
     setIneImg("");
     setLicenseImg("");
-    setDemoIndex(null);
     setEditingDriverId(null);
     setShowManualFields(false);
     stopCamera();
@@ -549,51 +546,6 @@ export function useDrivers(options: UseDriversOptions) {
     reader.readAsDataURL(file);
   };
 
-  const fillDemoData = (target: "INE" | "LICENCIA") => {
-    const idx = demoIndex ?? (target === "INE" ? 0 : 3);
-    if (demoIndex === null) setDemoIndex(idx);
-    setOcrLogs((prev) => [...prev, `[Demo] Rellenando campos de ${target}…`, "[Demo] [OK] Listo, puedes seguir editando."]);
-
-    if (target === "INE") {
-      const demoDrivers = [
-        { first_name: "Carlos Alberto", paternal_last_name: "Mendoza", maternal_last_name: "Ruiz", curp: "MERC920814HDFRZS03", dob: "1992-08-14", address: "Av. Insurgentes Sur 1204, Del Valle, CDMX", sex: "M" as const, elector_key: "MNDZCR92081409H400" },
-        { first_name: "María Fernanda", paternal_last_name: "Gómez", maternal_last_name: "López", curp: "GOLM940315MDFRNS04", dob: "1994-03-15", address: "Calle Benito Juárez 45, Coyoacán, CDMX", sex: "F" as const, elector_key: "GOMZFE94031512M800" },
-        { first_name: "Alejandro", paternal_last_name: "Silva", maternal_last_name: "Torres", curp: "SITA881122HDFRND05", dob: "1988-11-22", address: "Paseo de la Reforma 300, Cuauhtémoc, CDMX", sex: "M" as const, elector_key: "SLVATR88112204H500" },
-        { first_name: "Sofia", paternal_last_name: "Ramírez", maternal_last_name: "Castro", curp: "RACS960130MDFRNR02", dob: "1996-01-30", address: "Av. Universidad 1900, Copilco, CDMX", sex: "F" as const, elector_key: "RMRZCS96013018M300" },
-        { first_name: "Javier", paternal_last_name: "Ortega", maternal_last_name: "Martínez", curp: "ORMJ910512HDFRTR09", dob: "1991-05-12", address: "Calzada de Tlalpan 4050, Tlalpan, CDMX", sex: "M" as const, elector_key: "ORTGMT91051222H100" },
-        { first_name: "Ana Patricia", paternal_last_name: "Herrera", maternal_last_name: "Juárez", curp: "HEJA930704MDFRRN01", dob: "1993-07-04", address: "Av. Revolución 580, Mixcoac, CDMX", sex: "F" as const, elector_key: "HRRAJZ93070408M600" },
-      ];
-      const choice = demoDrivers[idx];
-      setFirstName(choice.first_name);
-      setPaternalLastName(choice.paternal_last_name);
-      setMaternalLastName(choice.maternal_last_name);
-      setIneCurp(choice.curp);
-      setIneDob(choice.dob);
-      setIneAddress(choice.address);
-      setIneSex(choice.sex);
-      setIneElectorKey(choice.elector_key);
-    } else {
-      const demoLicenses = [
-        { first_name: "Carlos Alberto", paternal_last_name: "Mendoza", maternal_last_name: "Ruiz", curp: "MERC920814HDFRZS03", dob: "1992-08-14", number: "LIC-554901-M", issue: "2025-02-10", expiration: "2028-02-10" },
-        { first_name: "María Fernanda", paternal_last_name: "Gómez", maternal_last_name: "López", curp: "GOLM940315MDFRNS04", dob: "1994-03-15", number: "LIC-983104-F", issue: "2024-05-18", expiration: "2027-05-18" },
-        { first_name: "Alejandro", paternal_last_name: "Silva", maternal_last_name: "Torres", curp: "SITA881122HDFRND05", dob: "1988-11-22", number: "LIC-112349-M", issue: "2023-11-01", expiration: "2026-11-01" },
-        { first_name: "Sofia", paternal_last_name: "Ramírez", maternal_last_name: "Castro", curp: "RACS960130MDFRNR02", dob: "1996-01-30", number: "LIC-662304-F", issue: "2026-01-15", expiration: "2029-01-15" },
-        { first_name: "Javier", paternal_last_name: "Ortega", maternal_last_name: "Martínez", curp: "ORMJ910512HDFRTR09", dob: "1991-05-12", number: "LIC-881204-M", issue: "2025-04-12", expiration: "2028-04-12" },
-        { first_name: "Ana Patricia", paternal_last_name: "Herrera", maternal_last_name: "Juárez", curp: "HEJA930704MDFRRN01", dob: "1993-07-04", number: "LIC-334910-F", issue: "2024-08-04", expiration: "2027-08-04" },
-      ];
-      const choice = demoLicenses[idx];
-      setFirstName(choice.first_name);
-      setPaternalLastName(choice.paternal_last_name);
-      setMaternalLastName(choice.maternal_last_name);
-      setLicenseCurp(choice.curp);
-      setLicenseDob(choice.dob);
-      setLicenseNumber(choice.number);
-      setLicenseIssueDate(choice.issue);
-      setLicenseExpirationDate(choice.expiration);
-      setLicenseIsPermanent(false);
-    }
-  };
-
   // --- Derived ---
   const filteredDrivers = useMemo(
     () =>
@@ -714,7 +666,6 @@ export function useDrivers(options: UseDriversOptions) {
     resetForm,
     handleFileChange,
     handleAddressProofFile,
-    fillDemoData,
     startCamera,
     stopCamera,
     onOpenActionSheet,
