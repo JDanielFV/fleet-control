@@ -54,7 +54,7 @@ export default function LoginPage() {
     })();
   }, []);
 
-  const handleRegisterSuccess = async (saved: { id: string; display_name: string; email: string | null; role: "admin" | "operator" }) => {
+  const handleRegisterSuccess = async (saved: { id: string; display_name: string; email: string | null; role: "admin" | "owner" }) => {
     if (token) {
       const rt = await db.getRegistrationToken(token);
       if (rt) await db.useRegistrationToken(rt.id);
@@ -125,6 +125,7 @@ export default function LoginPage() {
             <UserForm
               showPassword
               submitLabel="Crear cuenta"
+              role="admin"
               onSuccess={handleRegisterSuccess}
             />
           </div>

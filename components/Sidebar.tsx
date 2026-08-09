@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import type { TabId } from "@/features/dashboard/hooks/useDashboard";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ interface SidebarProps {
   onChange: (tab: TabId) => void;
   alertCount: number;
   onAlertsClick: () => void;
+  onLogout?: () => void;
 }
 
 export default function Sidebar({
@@ -25,6 +26,7 @@ export default function Sidebar({
   onChange,
   alertCount,
   onAlertsClick,
+  onLogout,
 }: SidebarProps) {
   return (
     <aside
@@ -68,7 +70,7 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* Footer: alerts only */}
+      {/* Footer: alerts + logout */}
       <div className="w-full px-2 py-3 border-t border-border/60 flex flex-col items-center gap-2">
         <button
           onClick={onAlertsClick}
@@ -83,6 +85,16 @@ export default function Sidebar({
             </span>
           )}
         </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="relative w-full flex flex-col items-center gap-1 py-2 rounded-xl bg-secondary hover:bg-red-500/10 hover:text-red-500 text-foreground transition-all active:scale-95 cursor-pointer"
+            aria-label="Cerrar sesión"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-[10px] font-semibold leading-tight">Salir</span>
+          </button>
+        )}
       </div>
     </aside>
   );

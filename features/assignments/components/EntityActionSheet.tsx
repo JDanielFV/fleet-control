@@ -1,12 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { db, Driver, Vehicle } from "@/lib/db";
-import { ActionItem } from "@/components/ui/ActionItem";
 import { AssignmentSelector } from "@/components/ui/AssignmentSelector";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Car, Ban, ClipboardList, CheckCircle2, X, User } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface EntityActionSheetProps {
@@ -18,7 +15,6 @@ interface EntityActionSheetProps {
 
   entity?: Driver | Vehicle | null;
   type?: "driver" | "vehicle";
-  isAssigned?: boolean;
 
   onActionComplete?: () => void;
   onRequestChecklist?: (vehicle: Vehicle) => void;
@@ -35,7 +31,6 @@ export const EntityActionSheet = ({
   isInline = false,
   entity,
   type,
-  isAssigned,
   onActionComplete,
   onRequestChecklist,
   onVehicleAssigned,
@@ -44,7 +39,6 @@ export const EntityActionSheet = ({
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { toast } = useToast();
   const { confirm: showConfirm } = useConfirm();
 
   const [resolvedDriver, setResolvedDriver] = useState<Driver | null>(null);

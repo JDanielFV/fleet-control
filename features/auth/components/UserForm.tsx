@@ -6,7 +6,6 @@ import { hashPassword } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 
 interface UserFormProps {
@@ -14,9 +13,9 @@ interface UserFormProps {
     id?: string;
     display_name: string;
     email: string | null;
-    role: "admin" | "operator";
+    role: "admin" | "owner";
   };
-  onSuccess: (savedUser: { id: string; display_name: string; email: string | null; role: "admin" | "operator" }) => void;
+  onSuccess: (savedUser: { id: string; display_name: string; email: string | null; role: "admin" | "owner" }) => void;
   onCancel?: () => void;
   /** When true, shows password field (for first-run / token registration) */
   showPassword?: boolean;
@@ -25,6 +24,12 @@ interface UserFormProps {
   onOpenPasskey?: (data: { userId: string; userName: string; displayName: string }) => void;
   /** Optional submit label override */
   submitLabel?: string;
+  /**
+   * Rol del usuario nuevo. Por defecto "owner" (dueño): cada usuario
+   * administra exclusivamente su propia flota. Solo el primer registro
+   * del sistema (setup) debe crear el rol "admin".
+   */
+  role?: "admin" | "owner";
 }
 
 export default function UserForm({
@@ -35,11 +40,11 @@ export default function UserForm({
   openPasskeyAfterSave = false,
   onOpenPasskey,
   submitLabel,
+  role = "owner",
 }: UserFormProps) {
   const [displayName, setDisplayName] = useState(initialValues?.display_name || "");
   const [email, setEmail] = useState(initialValues?.email || "");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "operator">(initialValues?.role || (showPassword ? "admin" : "operator"));
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -61,7 +66,7 @@ export default function UserForm({
         password_hash: passwordHash || null,
         role,
         webauthn_credentials: [],
-        metadata: {},
+        metadata: role === "admin" ? { is_system_admin: true } : {},
         is_active: true,
         last_login_at: null,
       });
@@ -117,20 +122,6 @@ export default function UserForm({
             placeholder="Mínimo 6 caracteres"
             className="border-input bg-background rounded-xl mt-1"
           />
-        </div>
-      )}
-      {!showPassword && (
-        <div>
-          <Label className="text-muted-foreground text-xs">Rol</Label>
-          <Select value={role} onValueChange={(v: "admin" | "operator") => setRole(v)}>
-            <SelectTrigger className="w-full border-input bg-background rounded-xl mt-1">
-              <SelectValue placeholder="Selecciona un rol" />
-            </SelectTrigger>
-            <SelectContent className="border-border bg-popover text-popover-foreground">
-              <SelectItem value="operator">Operador</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       )}
       <div className="flex gap-2 pt-1">

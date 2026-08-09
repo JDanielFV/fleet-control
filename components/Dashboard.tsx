@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { db, Driver, Vehicle, Assignment, Checklist, WeeklyRental, Alert } from "@/lib/db";
-import { formatDate, sortByDateDesc } from "@/lib/utils";
+import React from "react";
+import { Vehicle } from "@/lib/db";
+import { sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
-import { getDriverName } from "@/lib/lookups";
-import { getVerificationSchedule } from "@/lib/db";
-import { uploadDocumentImage } from "@/lib/db/storage";
 import DriversSlice from "./DriversSlice";
 import VehiclesSlice from "./VehiclesSlice";
 import UsersSlice from "@/features/auth/components/UsersSlice";
 import LoginScreen from "@/features/auth/components/LoginScreen";
+import { clearSession } from "@/lib/auth";
 import { EntityActionSheet } from "@/features/assignments/components/EntityActionSheet";
 import { ChecklistSheet } from "@/features/checklists/components/ChecklistSheet";
 import AssignmentDialog from "@/features/assignments/components/AssignmentDialog";
@@ -18,28 +16,28 @@ import ChecklistActionModal from "@/features/checklists/components/ChecklistActi
 import WearPartDialog from "@/features/maintenance/components/WearPartDialog";
 import InventoryWizard from "./InventoryWizard";
 import Sidebar from "./Sidebar";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
-import { Bell, User, Car, ArrowLeftRight, CheckCircle, AlertTriangle, Sun, Moon, Sparkles, Shield, ShieldAlert, Gauge, Search, X, CheckCircle2, BarChart3, Download, DollarSign } from "lucide-react";
+import { Bell, User, Car, ArrowLeftRight, CheckCircle, AlertTriangle, Sparkles, Shield, ShieldAlert, Search, X, BarChart3, Download, DollarSign, LogOut } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { useToast } from "@/components/ui/toast";
-import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useDashboard, type TabId } from "@/features/dashboard/hooks/useDashboard";
 
 export default function Dashboard() {
   const ctx = useDashboard();
 
-  const desktopNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  // La pestaña "Usuarios" solo la ve el admin del proyecto; los dueños
+  // solo administran su propia flota (choferes y autos).
+  const isAdmin = ctx.session?.role === "admin";
+  const allNavItems: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "dashboard", label: "Check Lists", icon: Sparkles },
     { id: "drivers", label: "Choferes", icon: User },
     { id: "vehicles", label: "Autos", icon: Car },
     { id: "users", label: "Usuarios", icon: Shield },
   ];
-
+  const desktopNavItems = allNavItems.filter((item) => item.id !== "users" || isAdmin);
   const mobileNavItems = desktopNavItems;
 
   const tileVariants: Variants = {
@@ -58,9 +56,14 @@ export default function Dashboard() {
     return <LoginScreen onLogin={ctx.handleLogin} />;
   }
 
+  const handleLogout = () => {
+    clearSession();
+    window.location.href = "/";
+  };
+
   return (
     <div className="relative flex flex-col md:flex-row h-screen w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
-      <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} />
+      <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} />
 
       <div className="flex-1 flex h-full overflow-hidden">
         <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
@@ -247,7 +250,7 @@ export default function Dashboard() {
                 <motion.div key="actions-inline" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3, ease: "easeOut" }} className="h-full w-full flex flex-col overflow-hidden">
                   <EntityActionSheet isOpen={true} isInline={true} driver={ctx.actionSheet.driver} vehicle={ctx.actionSheet.vehicle}
-                    entity={ctx.activeEntity} type={ctx.actionSheet.type} isAssigned={ctx.isEntityAssigned}
+                    entity={ctx.activeEntity} type={ctx.actionSheet.type}
                     onActionComplete={ctx.handleActionComplete} onRequestChecklist={ctx.openChecklistSheet}
                     onVehicleAssigned={ctx.handleVehicleAssignedFromSheet} onClose={() => ctx.setActionSheet(null)} />
                 </motion.div>
@@ -263,7 +266,7 @@ export default function Dashboard() {
           <AnimatePresence>
             {ctx.actionSheet?.open && (
               <EntityActionSheet isOpen={true} driver={ctx.actionSheet.driver} vehicle={ctx.actionSheet.vehicle}
-                entity={ctx.activeEntity} type={ctx.actionSheet.type} isAssigned={ctx.isEntityAssigned}
+                entity={ctx.activeEntity} type={ctx.actionSheet.type}
                 onActionComplete={ctx.handleActionComplete} onRequestChecklist={ctx.openChecklistSheet}
                 onVehicleAssigned={ctx.handleVehicleAssignedFromSheet} onClose={() => ctx.setActionSheet(null)} />
             )}
@@ -402,7 +405,7 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* Payment Dialog */}
-      <Dialog open={ctx.paymentDialog.open} onOpenChange={(o) => { if (!o) ctx.setPaymentDialog((prev: any) => ({ ...prev, open: false })); }}>
+      <Dialog open={ctx.paymentDialog.open} onOpenChange={(o) => { if (!o) ctx.setPaymentDialog((prev) => ({ ...prev, open: false })); }}>
         <DialogContent className="max-w-sm border border-border bg-background text-foreground rounded-2xl">
           <DialogHeader>
             <div className="flex items-start gap-3">
@@ -451,13 +454,13 @@ export default function Dashboard() {
                 min="0"
                 step="1"
                 value={ctx.paymentDialog.amount || ""}
-                onChange={(e) => ctx.setPaymentDialog((prev: any) => ({ ...prev, amount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                onChange={(e) => ctx.setPaymentDialog((prev) => ({ ...prev, amount: Math.max(0, parseInt(e.target.value) || 0) }))}
                 className="mt-1.5 border-input bg-background rounded-xl"
                 placeholder="0"
               />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={() => ctx.setPaymentDialog((prev: any) => ({ ...prev, open: false }))} className="flex-1 rounded-xl border-border">
+              <Button variant="outline" onClick={() => ctx.setPaymentDialog((prev) => ({ ...prev, open: false }))} className="flex-1 rounded-xl border-border">
                 Cancelar
               </Button>
               <Button
@@ -486,6 +489,14 @@ export default function Dashboard() {
             </button>
           );
         })}
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center flex-1 h-full py-1 text-xs transition-all active:scale-95 cursor-pointer text-muted-foreground"
+          aria-label="Cerrar sesión"
+        >
+          <LogOut className="w-5 h-5 mb-0.5" />
+          <span>Salir</span>
+        </button>
       </nav>
     </div>
   );
