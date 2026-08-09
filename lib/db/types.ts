@@ -2,6 +2,8 @@
 
 export interface Driver {
   id: string;
+  /** Id del usuario dueño de este registro (multi-usuario) */
+  owner_id?: string | null;
   first_name: string;
   paternal_last_name: string;
   maternal_last_name: string;
@@ -24,6 +26,7 @@ export interface Driver {
 
 export interface Vehicle {
   id: string;
+  owner_id?: string | null;
   brand: string;
   vehicle_name: string;
   model: string;
@@ -52,6 +55,7 @@ export interface Vehicle {
 
 export interface Assignment {
   id: string;
+  owner_id?: string | null;
   vehicle_id: string;
   driver_id: string;
   action_type: "ASSIGN" | "RELEASE";
@@ -61,6 +65,7 @@ export interface Assignment {
 
 export interface Checklist {
   id: string;
+  owner_id?: string | null;
   vehicle_id: string;
   driver_id: string;
   type: "DELIVERY" | "WEEKLY_START";
@@ -84,6 +89,7 @@ export interface Payment {
 
 export interface WeeklyRental {
   id: string;
+  owner_id?: string | null;
   driver_id: string;
   week_start: string; // YYYY-MM-DD (typically a Monday)
   rent_amount: number;
@@ -120,7 +126,7 @@ export interface User {
   display_name: string;
   email: string | null;
   password_hash?: string | null;
-  role: "admin" | "operator";
+  role: "admin" | "owner";
   webauthn_credentials: Record<string, unknown>[];
   metadata: Record<string, unknown>;
   is_active: boolean;
@@ -142,12 +148,13 @@ export interface Session {
   userId: string;
   email: string;
   displayName: string;
-  role: "admin" | "operator";
+  role: "admin" | "owner";
   expiresAt: string; // ISO date of today 23:59
 }
 
 export interface Maintenance {
   id: string;
+  owner_id?: string | null;
   vehicle_id: string;
   cost: number;
   description: string;
@@ -158,6 +165,7 @@ export interface Maintenance {
 
 export interface RenewalLog {
   id: string;
+  owner_id?: string | null;
   vehicle_id: string;
   type: "CIRCULACION" | "SEGURO";
   previous_expiration: string | null;
@@ -177,6 +185,7 @@ export interface Alert {
 
 export interface VehicleInventory {
   id: string;
+  owner_id?: string | null;
   vehicle_id: string;
   photos: { angle: string; url: string }[];
   items: { name: string; quantity: number }[];

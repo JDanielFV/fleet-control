@@ -1,158 +1,194 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
+import { saveSession } from "@/lib/auth";
+import { verifyPassword } from "@/lib/password";
 import { db, User } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { Shield, Fingerprint, User as UserIcon, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, Fingerprint, Mail, Lock, AlertTriangle, KeyRound, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import UserForm from "@/features/auth/components/UserForm";
-import { useToast } from "@/components/ui/toast";
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
 }
 
+type Mode = "passkey" | "password";
+
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [mode, setMode] = useState<Mode>("passkey");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  // User resolved from the email (used to offer passkey registration).
+  const [resolvedUser, setResolvedUser] = useState<{ userId: string; displayName: string; role: string } | null>(null);
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    const list = await db.getUsers();
-    setUsers(list);
-    setIsLoading(false);
+  const finishLogin = (userId: string, userEmail: string, displayName: string, role: string) => {
+    saveSession(userId, userEmail, displayName, role as "admin" | "owner");
+    onLogin({
+      id: userId,
+      display_name: displayName,
+      email: userEmail,
+      role: (role as "admin" | "owner") || "owner",
+      webauthn_credentials: [],
+      metadata: {},
+      is_active: true,
+      last_login_at: new Date().toISOString(),
+      created_at: "",
+      updated_at: "",
+    });
   };
 
-  const handleLoginWithPasskey = async () => {
-    if (!selectedUser) return;
+  // --- Passkey flow: resolve the email and trigger the authenticator ---
+  const handleContinueWithPasskey = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setError("Ingresa tu correo para continuar.");
+      return;
+    }
     setError("");
-
+    setIsLoading(true);
     try {
-      // Step 1: Get login options from server
-      const optionsRes = await fetch("/api/webauthn/login", {
+      const res = await fetch("/api/webauthn/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: "options", userId: selectedUser.id }),
+        body: JSON.stringify({ step: "options", email: cleanEmail }),
       });
 
-      if (!optionsRes.ok) {
-        const err = await optionsRes.json();
-        setError(err.error || "Error al iniciar login");
-        return;
+      // No Supabase configured → fall back to password login.
+      if (res.status === 200) {
+        const data = await res.json();
+        if (data.localFallback) {
+          setMode("password");
+          setError("");
+          return;
+        }
+        setResolvedUser({ userId: data.userId, displayName: data.displayName, role: data.role });
+
+        if (data.hasPasskeys) {
+          const credential = await startAuthentication({ optionsJSON: data.options });
+          const verifyRes = await fetch("/api/webauthn/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ step: "verify", userId: data.userId, credential }),
+          });
+          const result = await verifyRes.json();
+          if (!result.verified) {
+            setError(result.error || "No se pudo verificar tu passkey.");
+            return;
+          }
+          finishLogin(data.userId, cleanEmail, data.displayName, data.role);
+        } else {
+          // User exists but has no passkeys → use password or register one.
+          setMode("password");
+          setError("No tienes una passkey registrada en este dispositivo. Inicia con tu contraseña o registra una passkey.");
+        }
+      } else {
+        const err = await res.json();
+        setError(err.error || "No se encontró un usuario con ese correo.");
+        setMode("password");
       }
-
-      const options = await optionsRes.json();
-
-      // Step 2: Use SimpleWebAuthn browser helper
-      const credential = await startAuthentication({ optionsJSON: options });
-
-      // Step 3: Send credential to server for verification
-      const verifyRes = await fetch("/api/webauthn/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: "verify",
-          userId: selectedUser.id,
-          credential,
-        }),
-      });
-
-      if (!verifyRes.ok) {
-        const err = await verifyRes.json();
-        setError(err.error || "Error al verificar passkey");
-        return;
-      }
-
-      const result = await verifyRes.json();
-      if (result.verified) {
-        // Save session
-        localStorage.setItem("fleet_session", JSON.stringify({
-          userId: selectedUser.id,
-          displayName: selectedUser.display_name,
-          role: selectedUser.role,
-          loginAt: new Date().toISOString(),
-        }));
-        onLogin(selectedUser);
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Error al autenticar");
+    } catch (err: unknown) {
+      console.error("Passkey login error:", err);
+      setError(err instanceof Error ? err.message : "Error al autenticar con passkey.");
+      setMode("password");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRegisterPasskey = async () => {
-    if (!selectedUser) return;
+  // --- Password login (server-side verification) ---
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      setError("Ingresa tu correo y contraseña.");
+      return;
+    }
     setError("");
-    setIsRegistering(true);
-
+    setIsLoading(true);
     try {
-      // Step 1: Get registration options from server
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.localFallback) {
+          // localStorage-only deployment: verify client-side against local users.
+          const user = await db.getUserByEmail(cleanEmail);
+          if (!user || !(await verifyPassword(password, user.password_hash)) || !user.is_active) {
+            setError("Correo o contraseña incorrectos.");
+            return;
+          }
+          finishLogin(user.id, user.email || cleanEmail, user.display_name, user.role);
+          return;
+        }
+        finishLogin(data.userId, data.email || cleanEmail, data.displayName, data.role);
+        return;
+      }
+
+      const err = await res.json();
+      setError(err.error || "Correo o contraseña incorrectos.");
+    } catch (err: unknown) {
+      console.error("Password login error:", err);
+      setError("Error al iniciar sesión. Intenta de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // --- Register a passkey for the resolved user (no passkeys yet) ---
+  const handleRegisterPasskey = async () => {
+    if (!resolvedUser) return;
+    setError("");
+    setIsLoading(true);
+    try {
       const optionsRes = await fetch("/api/webauthn/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           step: "options",
-          userId: selectedUser.id,
-          userName: selectedUser.email || selectedUser.id,
-          userDisplayName: selectedUser.display_name,
+          userId: resolvedUser.userId,
+          userName: email.trim().toLowerCase(),
+          userDisplayName: resolvedUser.displayName,
         }),
       });
-
       if (!optionsRes.ok) {
         const err = await optionsRes.json();
-        setError(err.error || "Error al iniciar registro");
-        setIsRegistering(false);
+        setError(err.error || "Error al iniciar el registro de la passkey.");
         return;
       }
-
       const options = await optionsRes.json();
-
-      // Step 2: Use SimpleWebAuthn browser helper
       const credential = await startRegistration({ optionsJSON: options });
-
-      // Step 3: Send credential to server for verification
       const verifyRes = await fetch("/api/webauthn/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: "verify",
-          userId: selectedUser.id,
-          credential,
-        }),
+        body: JSON.stringify({ step: "verify", userId: resolvedUser.userId, credential }),
       });
-
-      if (!verifyRes.ok) {
-        const err = await verifyRes.json();
-        setError(err.error || "Error al verificar passkey");
-        setIsRegistering(false);
+      const result = await verifyRes.json();
+      if (!result.verified) {
+        setError(result.error || "No se pudo verificar la passkey.");
         return;
       }
-
-      const result = await verifyRes.json();
-      if (result.verified) {
-        toast("Passkey registrada exitosamente", "success");
-        // Auto-login
-        localStorage.setItem("fleet_session", JSON.stringify({
-          userId: selectedUser.id,
-          displayName: selectedUser.display_name,
-          role: selectedUser.role,
-          loginAt: new Date().toISOString(),
-        }));
-        onLogin(selectedUser);
-      }
-    } catch (err: any) {
-      console.error("Register passkey error:", err);
-      setError(err.message || "Error al registrar passkey");
+      finishLogin(resolvedUser.userId, email.trim().toLowerCase(), resolvedUser.displayName, resolvedUser.role);
+    } catch (err: unknown) {
+      console.error("Passkey registration error:", err);
+      setError(err instanceof Error ? err.message : "Error al registrar la passkey.");
+    } finally {
+      setIsLoading(false);
     }
-    setIsRegistering(false);
+  };
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setError("");
   };
 
   return (
@@ -172,95 +208,115 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <p className="text-sm text-muted-foreground mt-1">Sistema de Control de Flotas</p>
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Cargando...</div>
-        ) : users.length === 0 ? (
-          /* First run — no users registered: show the form inline */
-          <div className="space-y-4">
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-              <p className="text-xs text-amber-600 font-semibold text-center">
-                No hay usuarios registrados. Crea el primer usuario para comenzar.
-              </p>
+        {/* Mode selector */}
+        <div className="flex bg-muted/50 rounded-xl p-1 mb-5">
+          <button
+            type="button"
+            onClick={() => switchMode("passkey")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              mode === "passkey" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            <Fingerprint className="w-4 h-4" /> Passkey
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("password")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              mode === "password" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            <Lock className="w-4 h-4" /> Contraseña
+          </button>
+        </div>
+
+        {mode === "passkey" ? (
+          <form onSubmit={handleContinueWithPasskey} className="space-y-4">
+            <div>
+              <Label className="text-muted-foreground text-xs">Correo electrónico</Label>
+              <div className="relative mt-1">
+                <Mail className="w-4 h-4 text-muted-foreground/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ej. juan@ejemplo.com"
+                  autoComplete="email"
+                  className="border-input bg-background rounded-xl pl-10 h-12"
+                />
+              </div>
             </div>
-            <UserForm
-              showPassword
-              submitLabel="Crear cuenta"
-              onSuccess={(saved) => {
-                localStorage.setItem("fleet_session", JSON.stringify({
-                  userId: saved.id,
-                  displayName: saved.display_name,
-                  role: saved.role,
-                  loginAt: new Date().toISOString(),
-                }));
-                onLogin({
-                  id: saved.id,
-                  display_name: saved.display_name,
-                  email: saved.email,
-                  role: saved.role,
-                  webauthn_credentials: [],
-                  metadata: {},
-                  is_active: true,
-                  last_login_at: null,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground text-center">
-              Selecciona tu usuario
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary/90 h-12 disabled:opacity-50"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verificando…</>
+              ) : (
+                <><Fingerprint className="w-5 h-5 mr-2" /> Continuar</>
+              )}
+            </Button>
+            <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+              Si tu usuario tiene una passkey registrada, se abrirá automáticamente la verificación con tu huella o rostro.
             </p>
-            <div className="space-y-2">
-              {users.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={() => setSelectedUser(user)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer text-left ${
-                    selectedUser?.id === user.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40 hover:bg-muted/20"
-                  }`}
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <UserIcon className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-foreground truncate">{user.display_name}</div>
-                    <div className="text-[11px] text-muted-foreground">{user.role === "admin" ? "Administrador" : "Operador"}</div>
-                  </div>
-                  {selectedUser?.id === user.id && (
-                    <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                  )}
-                </button>
-              ))}
+          </form>
+        ) : (
+          <form onSubmit={handlePasswordLogin} className="space-y-4">
+            <div>
+              <Label className="text-muted-foreground text-xs">Correo electrónico</Label>
+              <div className="relative mt-1">
+                <Mail className="w-4 h-4 text-muted-foreground/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ej. juan@ejemplo.com"
+                  autoComplete="email"
+                  className="border-input bg-background rounded-xl pl-10 h-12"
+                />
+              </div>
             </div>
-
-            {selectedUser && (
-              <div className="space-y-2 pt-2">
-                <Button
-                  onClick={handleLoginWithPasskey}
-                  className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary/90 h-12"
-                >
-                  <Fingerprint className="w-5 h-5 mr-2" /> Iniciar sesión
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleRegisterPasskey}
-                  disabled={isRegistering}
-                  className="w-full rounded-xl border-border h-10 text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Registrar nueva passkey
-                </Button>
+            <div>
+              <Label className="text-muted-foreground text-xs">Contraseña</Label>
+              <div className="relative mt-1">
+                <Lock className="w-4 h-4 text-muted-foreground/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Tu contraseña"
+                  autoComplete="current-password"
+                  className="border-input bg-background rounded-xl pl-10 h-12"
+                />
               </div>
-            )}
+            </div>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary/90 h-12 disabled:opacity-50"
+            >
+              {isLoading ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verificando…</> : <>Iniciar sesión</>}
+            </Button>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-500 font-semibold text-center">
-                {error}
-              </div>
+            {resolvedUser && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleRegisterPasskey}
+                disabled={isLoading}
+                className="w-full rounded-xl border-border h-11 text-xs"
+              >
+                <KeyRound className="w-3.5 h-3.5 mr-1.5" /> Registrar passkey para este usuario
+              </Button>
             )}
+          </form>
+        )}
+
+        {error && (
+          <div className="mt-4 flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-500 font-semibold">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
       </motion.div>

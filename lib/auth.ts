@@ -2,6 +2,8 @@
 
 import type { Session } from "@/lib/db/types";
 
+export { hashPassword, verifyPassword } from "./password";
+
 const SESSION_KEY = "fleet_session";
 
 /**
@@ -23,7 +25,7 @@ function isExpired(expiresAt: string): boolean {
 /**
  * Save a session to localStorage.
  */
-export function saveSession(userId: string, email: string, displayName: string, role: "admin" | "operator"): void {
+export function saveSession(userId: string, email: string, displayName: string, role: "admin" | "owner"): void {
   const session: Session = {
     userId,
     email,
@@ -63,16 +65,11 @@ export function clearSession(): void {
 }
 
 /**
- * Hash a password using the Web Crypto API (SHA-256 based).
- * This is a client-side hash for simplicity. In production you'd hash server-side.
+ * The id of the currently logged-in user (owner), or null when not logged in.
+ * Used by the data layer to scope every read/write to the user's own fleet.
  */
-export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "fleet-control-salt");
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+export function getOwnerId(): string | null {
+  return getSession()?.userId ?? null;
 }
 
 /**

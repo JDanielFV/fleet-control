@@ -5,30 +5,91 @@ import { createClient } from "@supabase/supabase-js";
 const rpId = process.env.NEXT_PUBLIC_RP_ID || "localhost";
 const expectedOrigin = process.env.NEXT_PUBLIC_RP_ORIGIN || "http://localhost:3000";
 
+interface StoredCred {
+  id: string;
+  publicKey: string;
+  counter: number;
+  transports?: string[];
+}
+
+async function lookupUserByEmail(email: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return { supabase: null, user: null };
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Escape LIKE wildcards so a crafted email can't match unrelated rows.
+  const safeEmail = email.replace(/[\\%_]/g, (c: string) => "\\" + c);
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, display_name, email, role, webauthn_credentials, is_active")
+    .ilike("email", safeEmail)
+    .maybeSingle();
+  if (error) {
+    console.error("[WebAuthn] user lookup error:", error.message);
+    return { supabase, user: null };
+  }
+  return { supabase, user };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { step, userId, credential } = body;
+    const { step, userId, credential, email } = body;
 
     if (step === "options") {
-      if (!userId) {
-        return NextResponse.json({ error: "userId is required" }, { status: 400 });
-      }
+      // Look up the user by email (preferred) or by explicit userId.
+      let resolvedUserId = typeof userId === "string" ? userId : "";
+      let displayName = "";
+      let role = "owner";
+      let userCredentials: StoredCred[] = [];
 
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      let userCredentials: { id: string; publicKey: string; counter: number; transports?: string[] }[] = [];
 
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: user } = await supabase.from("users").select("webauthn_credentials, display_name").eq("id", userId).single();
-        if (user?.webauthn_credentials) {
-          userCredentials = user.webauthn_credentials as any[];
+      // No Supabase → passkeys can't be verified server-side; signal the
+      // client to fall back to password login.
+      if (!supabaseUrl || !supabaseKey) {
+        return NextResponse.json({ localFallback: true });
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      if (typeof email === "string" && email.trim()) {
+        const { user } = await lookupUserByEmail(email.trim().toLowerCase());
+        if (!user) {
+          return NextResponse.json({ error: "No existe un usuario con ese correo." }, { status: 404 });
+        }
+        if (!user.is_active) {
+          return NextResponse.json({ error: "Este usuario está inactivo." }, { status: 403 });
+        }
+        resolvedUserId = user.id;
+        displayName = user.display_name;
+        role = user.role || "owner";
+        userCredentials = (user.webauthn_credentials as StoredCred[]) || [];
+      } else {
+        if (!resolvedUserId) {
+          return NextResponse.json({ error: "email o userId son requeridos" }, { status: 400 });
+        }
+        const { data: user } = await supabase
+          .from("users")
+          .select("webauthn_credentials, display_name, role")
+          .eq("id", resolvedUserId)
+          .single();
+        if (user) {
+          displayName = user.display_name;
+          role = user.role || "owner";
+          userCredentials = (user.webauthn_credentials as StoredCred[]) || [];
         }
       }
 
+      // No passkeys → tell the client to use password / register a passkey.
       if (userCredentials.length === 0) {
-        return NextResponse.json({ error: "No passkeys registered for this user" }, { status: 400 });
+        return NextResponse.json({
+          userId: resolvedUserId,
+          displayName,
+          role,
+          hasPasskeys: false,
+        });
       }
 
       const options = await generateAuthenticationOptions({
@@ -43,7 +104,13 @@ export async function POST(req: NextRequest) {
 
       // Store challenge in cookie
       const isSecure = !!process.env.VERCEL_URL;
-      const response = NextResponse.json(options);
+      const response = NextResponse.json({
+        userId: resolvedUserId,
+        displayName,
+        role,
+        hasPasskeys: true,
+        options,
+      });
       response.cookies.set("wa_login_challenge", options.challenge, {
         httpOnly: true,
         secure: isSecure,
@@ -51,7 +118,7 @@ export async function POST(req: NextRequest) {
         path: "/",
         maxAge: 120,
       });
-      response.cookies.set("wa_login_userId", userId, {
+      response.cookies.set("wa_login_userId", resolvedUserId, {
         httpOnly: true,
         secure: isSecure,
         sameSite: "lax",
@@ -76,14 +143,14 @@ export async function POST(req: NextRequest) {
       // Fetch the stored credential
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      let storedCredential: any = null;
+      let storedCredential: StoredCred | null = null;
 
       if (supabaseUrl && supabaseKey) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const { data: user } = await supabase.from("users").select("webauthn_credentials, display_name").eq("id", userId).single();
         if (user?.webauthn_credentials) {
-          const creds: any[] = user.webauthn_credentials as any[];
-          storedCredential = creds.find((c) => c.id === credential.id);
+          const creds: StoredCred[] = user.webauthn_credentials as StoredCred[];
+          storedCredential = creds.find((c) => c.id === credential.id) || null;
         }
       }
 
@@ -100,7 +167,7 @@ export async function POST(req: NextRequest) {
           id: storedCredential.id,
           publicKey: Buffer.from(storedCredential.publicKey, "base64url"),
           counter: storedCredential.counter,
-          transports: storedCredential.transports || ["internal"],
+          transports: (storedCredential.transports || ["internal"]) as AuthenticatorTransport[],
         },
       });
 
@@ -118,8 +185,8 @@ export async function POST(req: NextRequest) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const { data: user } = await supabase.from("users").select("webauthn_credentials").eq("id", userId).single();
         if (user?.webauthn_credentials) {
-          const creds: any[] = user.webauthn_credentials as any[];
-          const idx = creds.findIndex((c) => c.id === storedCredential.id);
+          const creds: StoredCred[] = user.webauthn_credentials as StoredCred[];
+          const idx = creds.findIndex((c) => c.id === storedCredential!.id);
           if (idx >= 0) {
             creds[idx].counter = verification.authenticationInfo.newCounter;
             await supabase.from("users").update({
@@ -134,8 +201,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: "Invalid step" }, { status: 400 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("WebAuthn login error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }
