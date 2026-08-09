@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Claude IDE
 .claude/
+
+# Freebuff tooling data
+.freebuff/
