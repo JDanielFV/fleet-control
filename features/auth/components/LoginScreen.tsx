@@ -26,8 +26,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   // User resolved from the email (used to offer passkey registration).
   const [resolvedUser, setResolvedUser] = useState<{ userId: string; displayName: string; role: string } | null>(null);
 
-  const finishLogin = (userId: string, userEmail: string, displayName: string, role: string) => {
-    saveSession(userId, userEmail, displayName, role as "admin" | "owner");
+  const finishLogin = (userId: string, userEmail: string, displayName: string, role: string, token: string | null = null) => {
+    saveSession(userId, userEmail, displayName, role as "admin" | "owner", token);
     onLogin({
       id: userId,
       display_name: displayName,
@@ -81,7 +81,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             setError(result.error || "No se pudo verificar tu passkey.");
             return;
           }
-          finishLogin(data.userId, cleanEmail, data.displayName, data.role);
+          finishLogin(data.userId, cleanEmail, data.displayName, data.role, result.token ?? null);
         } else {
           // User exists but has no passkeys → use password or register one.
           setMode("password");
@@ -130,7 +130,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           finishLogin(user.id, user.email || cleanEmail, user.display_name, user.role);
           return;
         }
-        finishLogin(data.userId, data.email || cleanEmail, data.displayName, data.role);
+        finishLogin(data.userId, data.email || cleanEmail, data.displayName, data.role, data.token ?? null);
         return;
       }
 
@@ -177,7 +177,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         setError(result.error || "No se pudo verificar la passkey.");
         return;
       }
-      finishLogin(resolvedUser.userId, email.trim().toLowerCase(), resolvedUser.displayName, resolvedUser.role);
+      finishLogin(resolvedUser.userId, email.trim().toLowerCase(), resolvedUser.displayName, resolvedUser.role, result.token ?? null);
     } catch (err: unknown) {
       console.error("Passkey registration error:", err);
       setError(err instanceof Error ? err.message : "Error al registrar la passkey.");

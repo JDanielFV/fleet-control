@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/db";
-import { getSession, saveSession } from "@/lib/auth";
+import { getSession, saveSession, syncSessionFromServer } from "@/lib/auth";
 import { Shield, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import UserForm from "@/features/auth/components/UserForm";
 import PasskeyRegistrationDialog from "@/features/auth/components/PasskeyRegistrationDialog";
@@ -30,23 +30,62 @@ export default function LoginPage() {
         window.location.href = "/";
         return;
       }
+      // The HttpOnly cookie is authoritative: a valid cookie without a local
+      // mirror (e.g. localStorage was cleared) means the user IS logged in.
+      const synced = await syncSessionFromServer();
+      if (synced) {
+        window.location.href = "/";
+        return;
+      }
 
-      const count = await db.getUserCount();
       const urlParams = new URLSearchParams(window.location.search);
       const urlToken = urlParams.get("token");
 
-      if (count === 0 && !urlToken) {
-        const t = await db.createRegistrationToken(null);
-        setToken(t.token);
+      // User count + first-run setup token, resolved server-side (RLS keeps
+      // the anon key away from `users`/`registration_tokens`).
+      const statusRes = await fetch("/api/auth/status").catch(() => null);
+      const status = statusRes ? await statusRes.json().catch(() => ({})) : {};
+
+      if (status.localFallback) {
+        // No Supabase configured → localStorage demo mode.
+        const count = await db.getUserCount();
+        if (count === 0 && !urlToken) {
+          const t = await db.createRegistrationToken(null);
+          setToken(t.token);
+          setMode("token_ready");
+        } else if (urlToken) {
+          const rt = await db.getRegistrationToken(urlToken);
+          if (!rt || rt.used_at || new Date(rt.expires_at) < new Date()) {
+            setError("Token inválido, usado o expirado.");
+            setMode("login");
+          } else {
+            setToken(urlToken);
+            setMode("register");
+          }
+        } else {
+          setMode("login");
+        }
+        return;
+      }
+
+      if (status.userCount === 0 && !urlToken) {
+        // First run: show the setup link + form with the server-side token.
+        setToken(status.setupToken || "");
         setMode("token_ready");
       } else if (urlToken) {
-        const rt = await db.getRegistrationToken(urlToken);
-        if (!rt || rt.used_at || new Date(rt.expires_at) < new Date()) {
-          setError("Token inválido, usado o expirado.");
-          setMode("login");
-        } else {
+        // Validate the invitation token server-side before showing the form.
+        const vRes = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ step: "validate", token: urlToken }),
+        }).catch(() => null);
+        const v = vRes ? await vRes.json().catch(() => ({})) : {};
+        if (v.valid === true) {
           setToken(urlToken);
           setMode("register");
+        } else {
+          setError(v.error || "Token inválido, usado o expirado.");
+          setMode("login");
         }
       } else {
         setMode("login");
@@ -54,13 +93,17 @@ export default function LoginPage() {
     })();
   }, []);
 
-  const handleRegisterSuccess = async (saved: { id: string; display_name: string; email: string | null; role: "admin" | "owner" }) => {
-    if (token) {
-      const rt = await db.getRegistrationToken(token);
-      if (rt) await db.useRegistrationToken(rt.id);
-    }
+  const handleRegisterSuccess = (saved: {
+    id: string;
+    display_name: string;
+    email: string | null;
+    role: "admin" | "owner";
+    token?: string | null;
+  }) => {
+    // The invitation token is consumed server-side by /api/auth/register
+    // (or locally by UserForm in demo mode) — nothing to do here.
     // Save session so the user is logged in after passkey setup
-    saveSession(saved.id, saved.email!, saved.display_name, saved.role);
+    saveSession(saved.id, saved.email!, saved.display_name, saved.role, saved.token ?? null);
     // Store user info and show passkey registration dialog
     setNewUser({ id: saved.id, display_name: saved.display_name, email: saved.email });
     setMode("passkey_setup");
@@ -126,6 +169,7 @@ export default function LoginPage() {
               showPassword
               submitLabel="Crear cuenta"
               role="admin"
+              registrationToken={token}
               onSuccess={handleRegisterSuccess}
             />
           </div>
@@ -139,6 +183,7 @@ export default function LoginPage() {
             <UserForm
               showPassword
               submitLabel="Crear cuenta"
+              registrationToken={token}
               onSuccess={handleRegisterSuccess}
             />
           </div>

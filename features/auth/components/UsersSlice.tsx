@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { db, User } from "@/lib/db";
 import { getSession, clearSession } from "@/lib/auth";
-import { systemAdminId } from "@/lib/admin";
+import { adminGetUsers, adminDeleteUser, adminCreateRegistrationToken, systemAdminId, type AdminUser } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { User as UserIcon, Trash2, KeyRound, Copy, CheckCircle2, LogOut, ShieldCheck } from "lucide-react";
@@ -13,7 +12,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 
 export default function UsersSlice() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [tokenUrl, setTokenUrl] = useState("");
   const [copied, setCopied] = useState(false);
@@ -25,9 +24,13 @@ export default function UsersSlice() {
   const { toast } = useToast();
 
   const loadUsers = useCallback(async () => {
-    const list = await db.getUsers();
-    setUsers(list);
-    setIsSystemAdmin(!!session?.userId && systemAdminId(list) === session.userId);
+    // User reads go through the admin API (server-side, guarded) — the anon
+    // key can't see the `users` table once RLS is enabled.
+    const res = await adminGetUsers();
+    if (res && res !== "unauthorized") {
+      setUsers(res.users);
+      setIsSystemAdmin(!!session?.userId && systemAdminId(res.users) === session.userId);
+    }
     setIsLoading(false);
   }, [session?.userId]);
 
@@ -38,14 +41,22 @@ export default function UsersSlice() {
   const handleDelete = async (id: string) => {
     const confirmed = await showConfirm({ title: "Eliminar Usuario", message: "¿Eliminar este usuario?", confirmLabel: "Eliminar", variant: "danger" });
     if (!confirmed) return;
-    await db.deleteUser(id);
-    loadUsers();
-    toast("Usuario eliminado", "success");
+    const result = await adminDeleteUser(id, false);
+    if (result === true) {
+      toast("Usuario eliminado", "success");
+      loadUsers();
+    } else {
+      toast(typeof result === "string" ? result : "No se pudo eliminar", "error");
+    }
   };
 
   const generateToken = async () => {
-    const t = await db.createRegistrationToken(session?.userId || null);
-    setTokenUrl(`${window.location.origin}/?token=${t.token}`);
+    const t = await adminCreateRegistrationToken();
+    if (t) {
+      setTokenUrl(`${window.location.origin}/?token=${t}`);
+    } else {
+      toast("No se pudo generar el token de registro.", "error");
+    }
   };
 
   const copyToken = () => {
