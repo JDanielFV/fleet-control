@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSystemAdmin, ADMIN_OWNED_TABLES } from "@/lib/admin-server";
-import { hashPassword } from "@/lib/password";
+import { requireSystemAdminFromRequest, ADMIN_OWNED_TABLES } from "@/lib/admin-server";
+import { getSessionFromRequest } from "@/lib/session-server";
+import { hashPasswordServer } from "@/lib/password-server";
 
 /**
  * External admin panel — user management.
- * All routes are guarded server-side: only the system admin may call them.
+ * All routes are guarded server-side via the HttpOnly session cookie: only
+ * the system admin may call them (the client can't forge the role).
  */
 
 async function guard(req: NextRequest) {
-  return requireSystemAdmin(req.headers.get("x-admin-user-id"));
+  return requireSystemAdminFromRequest(req);
+}
+
+/** The caller's user id, from the signed session cookie (never the client). */
+async function getCurrentUserId(req: NextRequest): Promise<string | null> {
+  return (await getSessionFromRequest(req))?.userId ?? null;
 }
 
 export async function GET(req: NextRequest) {
@@ -63,7 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
   }
 
-  const password_hash = await hashPassword(password);
+  const password_hash = await hashPasswordServer(password);
   const { data, error } = await g.supabase
     .from("users")
     .insert({
@@ -102,7 +109,7 @@ export async function PATCH(req: NextRequest) {
   const id = typeof body.id === "string" ? body.id : "";
   if (!id) return NextResponse.json({ error: "id es obligatorio." }, { status: 400 });
 
-  const currentUserId = req.headers.get("x-admin-user-id");
+  const currentUserId = await getCurrentUserId(req);
   // Never allow the system admin to lock themselves out (deactivate or remove
   // their own passkeys): requireSystemAdmin rejects inactive users, so there
   // would be no way back in.
@@ -129,7 +136,7 @@ export async function PATCH(req: NextRequest) {
     if (body.password.length < 6) {
       return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
     }
-    patch.password_hash = await hashPassword(body.password);
+    patch.password_hash = await hashPasswordServer(body.password);
   }
   if (typeof body.remove_credential_id === "string" && body.remove_credential_id) {
     const { data: user } = await g.supabase
@@ -176,7 +183,7 @@ export async function DELETE(req: NextRequest) {
   const id = typeof body.id === "string" ? body.id : "";
   if (!id) return NextResponse.json({ error: "id es obligatorio." }, { status: 400 });
 
-  const currentUserId = req.headers.get("x-admin-user-id");
+  const currentUserId = await getCurrentUserId(req);
   if (id === currentUserId) {
     return NextResponse.json({ error: "No puedes eliminar tu propia cuenta desde el panel." }, { status: 400 });
   }

@@ -1,21 +1,33 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { NextRequest } from "next/server";
+import { getSessionFromRequest } from "./session-server";
 
 /**
- * Server-only helpers for the external admin panel (/admin).
+ * Server-only helpers for the external admin panel (/admin) and auth routes.
  * Never import this file from client components.
  */
 
 /**
- * Create a Supabase client for admin operations. Prefers the service-role
- * key (bypasses RLS); falls back to the anon key, which is sufficient while
- * RLS stays open (demo mode). Returns null when Supabase isn't configured —
- * the API then signals the client to fall back to local (localStorage) ops.
+ * Server-only Supabase client with the service-role key (bypasses RLS).
+ * Used by auth routes and the admin panel to read/write `users` and
+ * `registration_tokens` — tables that RLS closes to the anon key.
+ * Returns null when Supabase or the service-role key isn't configured; the
+ * API then signals the client to fall back to local (localStorage) ops.
  */
-export function getAdminClient(): SupabaseClient | null {
+export function getServiceRoleClient(): SupabaseClient | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseKey) return null;
   return createClient(supabaseUrl, supabaseKey);
+}
+
+/**
+ * Create a Supabase client for admin operations. Requires the service-role
+ * key (bypasses RLS) — with RLS enabled the anon key can't read `users`,
+ * so falling back to it would break the panel.
+ */
+export function getAdminClient(): SupabaseClient | null {
+  return getServiceRoleClient();
 }
 
 type GuardResult =
@@ -23,13 +35,24 @@ type GuardResult =
   | { ok: false; reason: "local" | "unauthorized" };
 
 /**
- * Verify the caller (identified by the `x-admin-user-id` header, i.e. the
- * logged-in session) is the system administrator:
- *  1. The user must exist and be active.
- *  2. The user must be marked `metadata.is_system_admin` — or, as fallback,
+ * Verify the caller is the system administrator, reading the identity from
+ * the HttpOnly session cookie (fase 2.1):
+ *  1. The session cookie must be valid (signed, not expired).
+ *  2. The user must exist and be active.
+ *  3. The user must be marked `metadata.is_system_admin` — or, as fallback,
  *     be the oldest registered user (the owner who set everything up).
- * The header can be forged, but the check is done server-side against the
- * real users table, so forging doesn't grant access.
+ * The client can't forge the cookie, so this is real server-side auth.
+ */
+export async function requireSystemAdminFromRequest(req: NextRequest): Promise<GuardResult> {
+  const session = await getSessionFromRequest(req);
+  if (!session) return { ok: false, reason: "unauthorized" };
+  return requireSystemAdmin(session.userId);
+}
+
+/**
+ * Verify a given user id is the system administrator (DB check shared by
+ * the cookie guard). The id must come from a trusted source (the session
+ * cookie) — never from a client-supplied header.
  */
 export async function requireSystemAdmin(userId: string | null): Promise<GuardResult> {
   const supabase = getAdminClient();

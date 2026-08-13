@@ -93,12 +93,12 @@ type AdminFetchResult<T> =
 
 async function adminFetch<T>(path: string, init?: RequestInit): Promise<AdminFetchResult<T>> {
   try {
-    const session = getSession();
+    // The server validates the HttpOnly session cookie — the client can't
+    // (and doesn't need to) send its identity.
     const res = await fetch(path, {
       ...init,
       headers: {
         "Content-Type": "application/json",
-        "x-admin-user-id": session?.userId ?? "",
         ...(init?.headers ?? {}),
       },
     });

@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSystemAdmin } from "@/lib/admin-server";
+import { requireSystemAdminFromRequest } from "@/lib/admin-server";
+import { getSessionFromRequest } from "@/lib/session-server";
 
 /**
  * External admin panel — registration tokens.
  * The system admin generates a shareable registration link (token) so the
  * invited user creates their own account (name, email, password, passkey).
+ * Guarded via the HttpOnly session cookie.
  */
 
 export async function POST(req: NextRequest) {
-  const g = await requireSystemAdmin(req.headers.get("x-admin-user-id"));
+  const g = await requireSystemAdminFromRequest(req);
   if (!g.ok) {
     return g.reason === "local"
       ? NextResponse.json({ localFallback: true })
       : NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  const createdBy = req.headers.get("x-admin-user-id");
+  const createdBy = (await getSessionFromRequest(req))?.userId ?? null;
   const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

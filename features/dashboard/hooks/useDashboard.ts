@@ -5,10 +5,27 @@ import { db, Driver, Vehicle, Checklist, WeeklyRental, Alert, User } from "@/lib
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { getVerificationSchedule } from "@/lib/db";
 import { uploadDocumentImage } from "@/lib/db/storage";
+import { getSession, syncSessionFromServer } from "@/lib/auth";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export type TabId = "dashboard" | "drivers" | "vehicles" | "users";
+
+/** Map the session mirror to the User shape the dashboard renders with. */
+function toUserView(s: { userId: string; email: string | null; displayName: string; role: "admin" | "owner" }): User {
+  return {
+    id: s.userId,
+    display_name: s.displayName,
+    email: s.email || null,
+    role: s.role,
+    webauthn_credentials: [],
+    metadata: {},
+    is_active: true,
+    last_login_at: null,
+    created_at: "",
+    updated_at: "",
+  };
+}
 
 export function useDashboard() {
   const [session, setSession] = useState<User | null>(null);
@@ -104,17 +121,22 @@ export function useDashboard() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Session restore
+  // Session restore: mirror for instant render, then re-sync with the
+  // authoritative HttpOnly cookie (role changes, deactivated accounts,
+  // server-side logout take effect here — the mirror is never trusted).
   useEffect(() => {
     Promise.resolve().then(() => {
-      const stored = localStorage.getItem("fleet_session");
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setSession({ id: parsed.userId, display_name: parsed.displayName, email: null, role: parsed.role, webauthn_credentials: [], metadata: {}, is_active: true, last_login_at: parsed.loginAt, created_at: "", updated_at: "" });
-        } catch {}
-      }
+      const s = getSession();
+      setSession(s ? toUserView(s) : null);
       setIsSessionLoading(false);
+      void syncSessionFromServer().then((synced) => {
+        if (!synced) {
+          setSession(null);
+          window.location.href = "/";
+        } else {
+          setSession(toUserView(synced));
+        }
+      });
     });
   }, []);
 

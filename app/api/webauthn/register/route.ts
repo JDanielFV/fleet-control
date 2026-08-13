@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateRegistrationOptions, verifyRegistrationResponse } from "@simplewebauthn/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceRoleClient } from "@/lib/admin-server";
+import { setSessionCookie } from "@/lib/session-server";
+import { signJwt } from "@/lib/jwt";
 
 const rpName = "Fleet Control";
 const rpId = process.env.NEXT_PUBLIC_RP_ID || "localhost";
@@ -16,12 +18,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "userId and userName are required" }, { status: 400 });
       }
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Service-role client: RLS closes `users` to the anon key.
       let existingCredentials: { id: string }[] = [];
-
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getServiceRoleClient();
+      if (supabase) {
         const { data: user } = await supabase.from("users").select("webauthn_credentials").eq("id", userId).single();
         if (user?.webauthn_credentials) {
           existingCredentials = (user.webauthn_credentials as { id: string }[]).map((c) => ({ id: c.id }));
@@ -99,20 +99,41 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
       };
 
-      // Save credential to Supabase
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: user } = await supabase.from("users").select("webauthn_credentials").eq("id", userId).single();
-        const existing = (user?.webauthn_credentials as Record<string, unknown>[]) || [];
+      // Save credential to Supabase (service-role: RLS closes `users`).
+      let user: { display_name?: string; email?: string | null; role?: string } | null = null;
+      const supabase = getServiceRoleClient();
+      if (supabase) {
+        const { data: u } = await supabase
+          .from("users")
+          .select("webauthn_credentials, display_name, email, role")
+          .eq("id", userId)
+          .single();
+        user = u ?? null;
+        const existing = (u?.webauthn_credentials as Record<string, unknown>[] | null) || [];
         await supabase.from("users").update({
           webauthn_credentials: [...existing, newCred],
         }).eq("id", userId);
       }
 
-      // Clear cookies
-      const response = NextResponse.json({ verified: true, credential: newCred });
+      // Mint a session JWT: the user just proved possession of the new
+      // credential, so treat this as an authenticated login event.
+      let token: string | null = null;
+      if (process.env.SUPABASE_JWT_SECRET) {
+        try {
+          token = await signJwt({ sub: userId });
+        } catch (err: unknown) {
+          console.warn("[WebAuthn] JWT signing failed:", err instanceof Error ? err.message : err);
+        }
+      }
+
+      // Clear cookies + set the authoritative HttpOnly session cookie.
+      const response = NextResponse.json({ verified: true, credential: newCred, token });
+      await setSessionCookie(response, {
+        userId,
+        email: user?.email ?? null,
+        displayName: user?.display_name ?? "",
+        role: user?.role === "admin" ? "admin" : "owner",
+      });
       response.cookies.set("wa_reg_challenge", "", { maxAge: 0, path: "/" });
       response.cookies.set("wa_reg_userId", "", { maxAge: 0, path: "/" });
       return response;

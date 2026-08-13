@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireSystemAdmin, ADMIN_OWNED_TABLES, isOwnedTable } from "@/lib/admin-server";
+import { requireSystemAdminFromRequest, ADMIN_OWNED_TABLES, isOwnedTable } from "@/lib/admin-server";
 
 /**
  * External admin panel — data audit & manual correction.
@@ -26,7 +26,7 @@ const TABLE_COLUMNS: Record<string, string> = {
 };
 
 async function guard(req: NextRequest) {
-  return requireSystemAdmin(req.headers.get("x-admin-user-id"));
+  return requireSystemAdminFromRequest(req);
 }
 
 export async function GET(req: NextRequest) {
