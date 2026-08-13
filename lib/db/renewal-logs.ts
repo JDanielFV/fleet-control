@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { RenewalLog } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { genId } from "./utils";
@@ -13,7 +13,7 @@ export async function saveRenewalLog(log: Omit<RenewalLog, "id" | "created_at">)
     created_at: new Date().toISOString(),
     ...log,
   };
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("renewal_logs").insert(fullLog).select().single();
     if (!error && data) {
       clearPendingIds("renewal_logs", [fullLog.id]);
@@ -29,7 +29,7 @@ export async function saveRenewalLog(log: Omit<RenewalLog, "id" | "created_at">)
 
 export async function getRenewalLogs(vehicleId?: string): Promise<RenewalLog[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("renewal_logs").select("*");
     if (ownerId) query = query.eq("owner_id", ownerId);
     if (vehicleId) query = query.eq("vehicle_id", vehicleId);

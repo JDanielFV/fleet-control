@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { Driver, Vehicle } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedDrivers } from "./seed";
@@ -7,7 +7,7 @@ import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 
 export async function getDrivers(): Promise<Driver[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("drivers").select("*").is("deleted_at", null);
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
@@ -18,7 +18,7 @@ export async function getDrivers(): Promise<Driver[]> {
 
 export async function getArchivedDrivers(): Promise<Driver[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("drivers").select("*").not("deleted_at", "is", null);
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("deleted_at", { ascending: false });
@@ -64,7 +64,7 @@ export async function saveDriver(
     DRIVER_DATE_KEYS
   ) as Driver;
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("drivers").upsert(fullDriver).select().single();
     if (!error && data) {
       clearPendingIds("drivers", [fullDriver.id]);
@@ -122,7 +122,7 @@ export async function deleteDriver(id: string): Promise<boolean> {
   }
 
   // 3. Update Supabase if active (owner-scoped)
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     if (updatedAny) {
       await ownerEq(supabase.from("vehicles").update({ active_driver_id: null }).eq("active_driver_id", id), ownerId);
     }

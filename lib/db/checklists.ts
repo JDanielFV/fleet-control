@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { Checklist } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedChecklists } from "./seed";
@@ -7,7 +7,7 @@ import { getOwnerId, ownerScoped } from "./owner";
 
 export async function getChecklists(): Promise<Checklist[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("checklists").select("*");
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
@@ -23,7 +23,7 @@ export async function saveChecklist(checklist: Omit<Checklist, "id" | "created_a
     created_at: new Date().toISOString(),
     ...checklist,
   };
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("checklists").insert(fullChecklist).select().single();
     if (!error && data) {
       clearPendingIds("checklists", [fullChecklist.id]);

@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { Vehicle } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedVehicles } from "./seed";
@@ -7,7 +7,7 @@ import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 
 export async function getVehicles(): Promise<Vehicle[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("vehicles").select("*").is("deleted_at", null);
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
@@ -18,7 +18,7 @@ export async function getVehicles(): Promise<Vehicle[]> {
 
 export async function getArchivedVehicles(): Promise<Vehicle[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("vehicles").select("*").not("deleted_at", "is", null);
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("deleted_at", { ascending: false });
@@ -62,7 +62,7 @@ export async function saveVehicle(
     VEHICLE_DATE_KEYS
   ) as Vehicle;
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("vehicles").upsert(fullVehicle).select().single();
     if (!error && data) {
       clearPendingIds("vehicles", [fullVehicle.id]);
@@ -98,7 +98,7 @@ export async function deleteVehicle(id: string): Promise<boolean> {
   const filtered = vehicles.filter((v) => v.id !== id);
   setLocalData("vehicles", filtered);
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { error } = await ownerEq(supabase.from("vehicles").delete(), ownerId).eq("id", id);
     return !error;
   }
@@ -114,7 +114,7 @@ export async function updateVehicleServiceSchedule(
     next_service_mileage: nextServiceMileage,
   };
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { error } = await ownerEq(supabase.from("vehicles").update(patch), getOwnerId()).eq("id", id);
     if (!error) return;
     console.error("Supabase updateVehicleServiceSchedule error:", error.message);

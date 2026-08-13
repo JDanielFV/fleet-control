@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { WeeklyRental, DriverCredit } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedWeeklyRentals } from "./seed";
@@ -8,7 +8,7 @@ import { getOwnerId, ownerScoped } from "./owner";
 
 export async function getWeeklyRentals(): Promise<WeeklyRental[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("weekly_rentals").select("*");
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("week_start", { ascending: false });
@@ -55,7 +55,7 @@ export async function addPayment(
     setLocalData("driver_credits", credits);
   }
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     for (const r of updatedRentals) {
       const { error } = await supabase.from("weekly_rentals").upsert(r).eq("id", r.id);
       if (error) addPendingId("weekly_rentals", r.id);
@@ -113,7 +113,7 @@ export async function createWeeklyRental(
     created_at: new Date().toISOString(),
     ...rental,
   };
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("weekly_rentals").insert(fullRental).select().single();
     if (!error && data) {
       clearPendingIds("weekly_rentals", [fullRental.id]);
@@ -132,7 +132,7 @@ export async function saveWeeklyRental(rental: WeeklyRental): Promise<WeeklyRent
     ...rental,
     owner_id: rental.owner_id ?? getOwnerId() ?? undefined,
   };
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("weekly_rentals").upsert(fullRental).select().single();
     if (!error && data) {
       clearPendingIds("weekly_rentals", [rental.id]);

@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { Maintenance } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedMaintenances } from "./seed";
@@ -7,7 +7,7 @@ import { getOwnerId, ownerScoped } from "./owner";
 
 export async function getMaintenances(): Promise<Maintenance[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("maintenances").select("*");
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
@@ -41,7 +41,7 @@ export async function saveMaintenance(maintenance: Omit<Maintenance, "id" | "cre
     await updateVehicleServiceSchedule(maintenance.vehicle_id, null, maintenance.next_maintenance_date);
   }
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase.from("maintenances").insert(fullMaint).select().single();
     if (!error && data) {
       clearPendingIds("maintenances", [fullMaint.id]);

@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { VehicleInventory } from "./types";
 import { getLocalData, setLocalData } from "./localStorage";
 import { genId } from "./utils";
@@ -6,7 +6,7 @@ import { getOwnerId } from "./owner";
 
 export async function getVehicleInventory(vehicleId: string): Promise<VehicleInventory | null> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("vehicle_inventories").select("*").eq("vehicle_id", vehicleId);
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.maybeSingle();
@@ -30,7 +30,7 @@ export async function saveVehicleInventory(
     created_at: now,
     updated_at: now,
   };
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     const { data, error } = await supabase
       .from("vehicle_inventories")
       .upsert({ ...full, updated_at: now })

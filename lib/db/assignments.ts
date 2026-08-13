@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import type { Assignment, Driver, Vehicle, WeeklyRental } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedAssignments, seedVehicles, seedWeeklyRentals } from "./seed";
@@ -8,7 +8,7 @@ import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 
 export async function getAssignments(): Promise<Assignment[]> {
   const ownerId = getOwnerId();
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("assignments").select("*");
     if (ownerId) query = query.eq("owner_id", ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
@@ -73,7 +73,7 @@ export async function createAssignment(
       };
       allRentals.unshift(newRental);
       setLocalData("weekly_rentals", allRentals);
-      if (supabase) {
+      const supabase = getSupabase(); if (supabase) {
         const { error: rErr } = await supabase.from("weekly_rentals").insert(newRental);
         if (rErr) addPendingId("weekly_rentals", newRental.id);
       }
@@ -105,7 +105,7 @@ export async function createAssignment(
         };
         allRentals.unshift(nextRental);
         setLocalData("weekly_rentals", allRentals);
-        if (supabase) {
+        const supabase = getSupabase(); if (supabase) {
           const { error: rErr } = await supabase.from("weekly_rentals").insert(nextRental);
           if (rErr) addPendingId("weekly_rentals", nextRental.id);
         }
@@ -113,7 +113,7 @@ export async function createAssignment(
     }
   }
 
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     await ownerEq(supabase.from("vehicles").update({ active_driver_id: type === "ASSIGN" ? driverId : null }), ownerId).eq("id", vehicleId);
     const { data, error } = await supabase.from("assignments").insert(newAssignment).select().single();
     if (!error && data) return data;
@@ -153,7 +153,7 @@ export async function removeAssignment(vehicleId: string, driverId: string, reas
   setLocalData("assignments", assignments);
 
   // Sync to Supabase (owner-scoped vehicle update)
-  if (supabase) {
+  const supabase = getSupabase(); if (supabase) {
     await ownerEq(supabase.from("vehicles").update({ active_driver_id: null }), ownerId).eq("id", vehicleId);
     const { error: insertError } = await supabase.from("assignments").insert(newReleaseEntry);
     if (insertError) {

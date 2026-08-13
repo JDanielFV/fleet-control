@@ -150,6 +150,12 @@ export interface Session {
   displayName: string;
   role: "admin" | "owner";
   expiresAt: string; // ISO date of today 23:59
+  /**
+   * JWT firmado con SUPABASE_JWT_SECRET que identifica al usuario ante
+   * PostgREST (rol `authenticated`) para que las policies RLS por owner_id
+   * y auth.uid() funcionen. Null cuando no hay Supabase o aún no se emite.
+   */
+  token: string | null;
 }
 
 export interface Maintenance {

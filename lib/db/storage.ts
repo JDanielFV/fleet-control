@@ -1,4 +1,4 @@
-import { supabase } from "./index";
+import { getSupabase } from "./index";
 import { genId } from "./utils";
 
 /**
@@ -14,6 +14,7 @@ export async function uploadDocumentImage(
   prefix: string
 ): Promise<string> {
   // If no Supabase, store base64 inline (current behaviour)
+  const supabase = getSupabase();
   if (!supabase) return dataUrl;
 
   // If it's already a URL (not a data URL), return as-is
@@ -58,6 +59,7 @@ export async function uploadDocumentImage(
  * No-op if the URL is a data URL (inline base64) or Supabase is not configured.
  */
 export async function deleteDocumentImage(url: string): Promise<void> {
+  const supabase = getSupabase();
   if (!supabase || url.startsWith("data:")) return;
 
   try {

@@ -1,4 +1,14 @@
-import { supabase } from "./index";
+/**
+ * Local (demo-mode) registration-token storage.
+ *
+ * In production tokens are created and consumed server-side: GET
+ * /api/auth/status (first-run setup token), POST /api/admin/tokens (admin
+ * invitations) and POST /api/auth/register (validation + single-use
+ * consumption). With RLS enabled the anon key can't touch
+ * `registration_tokens` anymore, so this module only serves the no-Supabase
+ * demo mode (localStorage).
+ */
+
 import type { RegistrationToken } from "./types";
 import { getLocalData, setLocalData } from "./localStorage";
 import { genId } from "./utils";
@@ -15,21 +25,6 @@ export async function createRegistrationToken(createdBy: string | null): Promise
     expires_at: new Date(Date.now() + 86400000).toISOString(),
     created_at: new Date().toISOString(),
   };
-
-  if (supabase) {
-    // If created_by is null (first user, no admin yet), skip Supabase and use localStorage
-    if (!createdBy) {
-      const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
-      tokens.unshift(full);
-      setLocalData("registration_tokens", tokens);
-      return full;
-    }
-
-    const { data, error } = await supabase.from("registration_tokens").insert(full).select().single();
-    if (!error && data) return data as RegistrationToken;
-    if (error) console.error("Supabase createRegistrationToken error:", error.message);
-  }
-
   const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
   tokens.unshift(full);
   setLocalData("registration_tokens", tokens);
@@ -37,24 +32,12 @@ export async function createRegistrationToken(createdBy: string | null): Promise
 }
 
 export async function getRegistrationToken(token: string): Promise<RegistrationToken | null> {
-  if (supabase) {
-    const { data, error } = await supabase
-      .from("registration_tokens")
-      .select("*")
-      .eq("token", token)
-      .maybeSingle();
-    if (!error && data) return data as RegistrationToken;
-  }
   const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
   return tokens.find((t) => t.token === token) || null;
 }
 
 export async function useRegistrationToken(tokenId: string): Promise<void> {
   const now = new Date().toISOString();
-  if (supabase) {
-    await supabase.from("registration_tokens").update({ used_at: now }).eq("id", tokenId);
-    return;
-  }
   const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
   const t = tokens.find((t) => t.id === tokenId);
   if (t) t.used_at = now;
