@@ -45,51 +45,56 @@ export default function LoginPage() {
 
       // User count + first-run setup token, resolved server-side (RLS keeps
       // the anon key away from `users`/`registration_tokens`).
-      const statusRes = await fetch("/api/auth/status").catch(() => null);
-      const status = statusRes ? await statusRes.json().catch(() => ({})) : {};
+      try {
+        const statusRes = await fetch("/api/auth/status").catch(() => null);
+        const status = statusRes ? await statusRes.json().catch(() => ({})) : {};
 
-      if (status.localFallback) {
-        // No Supabase configured → localStorage demo mode.
-        const count = await getUserCount();
-        if (count === 0 && !urlToken) {
-          const t = await createRegistrationToken(null);
-          setToken(t.token);
+        if (status?.localFallback) {
+          // No Supabase configured → localStorage demo mode.
+          const count = await getUserCount();
+          if (count === 0 && !urlToken) {
+            const t = await createRegistrationToken(null);
+            setToken(t.token);
+            setMode("token_ready");
+          } else if (urlToken) {
+            const rt = await getRegistrationToken(urlToken);
+            if (!rt || rt.used_at || new Date(rt.expires_at) < new Date()) {
+              setError("Token inválido, usado o expirado.");
+              setMode("login");
+            } else {
+              setToken(urlToken);
+              setMode("register");
+            }
+          } else {
+            setMode("login");
+          }
+          return;
+        }
+
+        if (status?.userCount === 0 && !urlToken) {
+          // First run: show the setup link + form with the server-side token.
+          setToken(status.setupToken || "");
           setMode("token_ready");
         } else if (urlToken) {
-          const rt = await getRegistrationToken(urlToken);
-          if (!rt || rt.used_at || new Date(rt.expires_at) < new Date()) {
-            setError("Token inválido, usado o expirado.");
-            setMode("login");
-          } else {
+          // Validate the invitation token server-side before showing the form.
+          const vRes = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ step: "validate", token: urlToken }),
+          }).catch(() => null);
+          const v = vRes ? await vRes.json().catch(() => ({})) : {};
+          if (v?.valid === true) {
             setToken(urlToken);
             setMode("register");
+          } else {
+            setError(v?.error || "Token inválido, usado o expirado.");
+            setMode("login");
           }
         } else {
           setMode("login");
         }
-        return;
-      }
-
-      if (status.userCount === 0 && !urlToken) {
-        // First run: show the setup link + form with the server-side token.
-        setToken(status.setupToken || "");
-        setMode("token_ready");
-      } else if (urlToken) {
-        // Validate the invitation token server-side before showing the form.
-        const vRes = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ step: "validate", token: urlToken }),
-        }).catch(() => null);
-        const v = vRes ? await vRes.json().catch(() => ({})) : {};
-        if (v.valid === true) {
-          setToken(urlToken);
-          setMode("register");
-        } else {
-          setError(v.error || "Token inválido, usado o expirado.");
-          setMode("login");
-        }
-      } else {
+      } catch (err) {
+        console.error("[Auth] initialization error:", err);
         setMode("login");
       }
     })();
