@@ -38,8 +38,8 @@ BEGIN
       FROM pg_policies p
      WHERE p.schemaname = 'storage' AND p.tablename = 'objects'
        AND (p.policyname ILIKE '%documentos%'
-            OR pg_get_expr(p.polqual, 'storage.objects'::regclass)::text ILIKE '%documentos%'
-            OR pg_get_expr(p.polwithcheck, 'storage.objects'::regclass)::text ILIKE '%documentos%')
+            OR p.qual ILIKE '%documentos%'
+            OR p.with_check ILIKE '%documentos%')
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', r.policyname);
   END LOOP;
