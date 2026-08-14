@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   createRegistrationToken,
   getRegistrationToken,
-  useRegistrationToken,
+  consumeRegistrationToken,
 } from "../lib/db/tokens";
 
 /**
@@ -44,7 +44,7 @@ describe("registration tokens (modo demo)", () => {
 
   it("consumir el token (un solo uso) lo invalida", async () => {
     const rt = await createRegistrationToken(null);
-    await useRegistrationToken(rt.id);
+    await consumeRegistrationToken(rt.id);
 
     const stored = await getRegistrationToken(rt.token);
     expect(stored?.used_at).not.toBeNull();
@@ -66,7 +66,7 @@ describe("registration tokens (modo demo)", () => {
     const a = await createRegistrationToken(null);
     const b = await createRegistrationToken(null);
     expect(a.token).not.toBe(b.token);
-    await useRegistrationToken(a.id);
+    await consumeRegistrationToken(a.id);
     expect(isTokenValid((await getRegistrationToken(b.token))!)).toBe(true);
   });
 });

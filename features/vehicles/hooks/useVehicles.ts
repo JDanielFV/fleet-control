@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { db, Vehicle, Driver, Checklist, Maintenance, Assignment, WeeklyRental } from "@/lib/db";
+import { Vehicle, Driver, Checklist, Maintenance, Assignment, WeeklyRental } from "@/lib/db";
+import { deleteVehicle, getArchivedVehicles, getVehicles, saveVehicle } from "@/lib/db/vehicles";
+import { getDrivers } from "@/lib/db/drivers";
+import { getMaintenances, saveMaintenance } from "@/lib/db/maintenances";
+import { getAssignments } from "@/lib/db/assignments";
+import { getChecklists } from "@/lib/db/checklists";
+import { getWeeklyRentals, saveWeeklyRental } from "@/lib/db/finances";
+import { saveRenewalLog } from "@/lib/db/renewal-logs";
 import { parseOcrText } from "@/lib/ocr";
 import { getNextVerificationDate } from "@/lib/db/utils";
 import Tesseract from "tesseract.js";
@@ -153,12 +160,12 @@ export function useVehicles(options: UseVehiclesOptions) {
   // Data loading
   const loadData = useCallback(async () => {
     const [list, dList, maints, assigns, cls, rents] = await Promise.all([
-      showArchived ? db.getArchivedVehicles() : db.getVehicles(),
-      db.getDrivers(),
-      db.getMaintenances(),
-      db.getAssignments(),
-      db.getChecklists(),
-      db.getWeeklyRentals(),
+      showArchived ? getArchivedVehicles() : getVehicles(),
+      getDrivers(),
+      getMaintenances(),
+      getAssignments(),
+      getChecklists(),
+      getWeeklyRentals(),
     ]);
     setVehicles(list);
     setDrivers(dList);
@@ -172,12 +179,12 @@ export function useVehicles(options: UseVehiclesOptions) {
     let isStale = false;
     (async () => {
       const [list, dList, maints, assigns, cls, rents] = await Promise.all([
-        showArchived ? db.getArchivedVehicles() : db.getVehicles(),
-        db.getDrivers(),
-        db.getMaintenances(),
-        db.getAssignments(),
-        db.getChecklists(),
-        db.getWeeklyRentals(),
+        showArchived ? getArchivedVehicles() : getVehicles(),
+        getDrivers(),
+        getMaintenances(),
+        getAssignments(),
+        getChecklists(),
+        getWeeklyRentals(),
       ]);
       if (isStale) return;
       setVehicles(list);
@@ -195,12 +202,12 @@ export function useVehicles(options: UseVehiclesOptions) {
     let isStale = false;
     (async () => {
       const [list, dList, maints, assigns, cls, rents] = await Promise.all([
-        db.getVehicles(),
-        db.getDrivers(),
-        db.getMaintenances(),
-        db.getAssignments(),
-        db.getChecklists(),
-        db.getWeeklyRentals(),
+        getVehicles(),
+        getDrivers(),
+        getMaintenances(),
+        getAssignments(),
+        getChecklists(),
+        getWeeklyRentals(),
       ]);
       if (isStale) return;
       setVehicles(list);
@@ -223,7 +230,7 @@ export function useVehicles(options: UseVehiclesOptions) {
   const handleDeleteVehicle = async (id: string) => {
     const confirmed = await requirePasskeyConfirmation("¿Estás seguro de que deseas eliminar este vehículo? Se archivará y no afectará a los registros activos.");
     if (!confirmed) return;
-    const success = await db.deleteVehicle(id);
+    const success = await deleteVehicle(id);
     if (success) {
       setVehicles((prev) => prev.filter((v) => v.id !== id));
       onRefreshAlerts();
@@ -278,9 +285,9 @@ export function useVehicles(options: UseVehiclesOptions) {
     } else if (renewTarget === "VERIFICACION") {
       patch.verification_expiration_date = renewExpirationDate;
     }
-    await db.saveVehicle({ ...renewingVehicle, ...patch });
+    await saveVehicle({ ...renewingVehicle, ...patch });
     if (renewTarget === "CIRCULACION" || renewTarget === "SEGURO") {
-      await db.saveRenewalLog({
+      await saveRenewalLog({
         vehicle_id: renewingVehicle.id,
         type: renewTarget,
         previous_expiration: prevExpiration,
@@ -300,7 +307,7 @@ export function useVehicles(options: UseVehiclesOptions) {
     if (!verifVehicle) return;
     const imgUrl = verifImg ? await uploadDocumentImage(verifImg, "verification") : null;
     const nextDate = getNextVerificationDate(verifVehicle.plate_number);
-    await db.saveVehicle({
+    await saveVehicle({
       ...verifVehicle,
       verification_completed: true,
       verification_img: imgUrl || verifImg,
@@ -314,7 +321,7 @@ export function useVehicles(options: UseVehiclesOptions) {
 
   const handleServiceOut = async (vehicle: Vehicle) => {
     if (!(await showConfirm({ title: "Retirar a Servicio", message: `¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio? No generará costo de renta mientras esté en servicio.`, confirmLabel: "Retirar", variant: "warning" }))) return;
-    await db.saveVehicle({ ...vehicle, status: "in_service", service_out_date: new Date().toISOString().split("T")[0], service_return_date: null });
+    await saveVehicle({ ...vehicle, status: "in_service", service_out_date: new Date().toISOString().split("T")[0], service_return_date: null });
     loadData();
     onRefreshAlerts();
   };
@@ -326,10 +333,10 @@ export function useVehicles(options: UseVehiclesOptions) {
     const daysOut = Math.max(1, Math.round((returnDate.getTime() - outDate.getTime()) / (1000 * 60 * 60 * 24)));
     const discountDays = daysOut === 1 ? 0.5 : daysOut;
 
-    await db.saveVehicle({ ...vehicle, status: "active", service_return_date: returnDate.toISOString().split("T")[0] });
+    await saveVehicle({ ...vehicle, status: "active", service_return_date: returnDate.toISOString().split("T")[0] });
 
     if (vehicle.active_driver_id) {
-      const rentals = await db.getWeeklyRentals();
+      const rentals = await getWeeklyRentals();
       const currentRental = rentals.find((r) => r.driver_id === vehicle.active_driver_id && r.status !== "PAID");
       if (currentRental) {
         const dailyRate = currentRental.rent_amount / 7;
@@ -343,7 +350,7 @@ export function useVehicles(options: UseVehiclesOptions) {
         if (updated.paid_amount >= effectiveRent) updated.status = "PAID";
         else if (updated.paid_amount > 0) updated.status = "PARTIAL";
         else updated.status = "UNPAID";
-        await db.saveWeeklyRental(updated);
+        await saveWeeklyRental(updated);
       }
     }
     loadData();
@@ -360,7 +367,7 @@ export function useVehicles(options: UseVehiclesOptions) {
 
   const submitWearPart = async () => {
     if (!wearPartVehicleState || !wearPartName.trim()) return;
-    await db.saveMaintenance({
+    await saveMaintenance({
       vehicle_id: wearPartVehicleState.id,
       cost: parseFloat(wearPartCost) || 0,
       description: `[REEMPLAZO PIEZA] ${wearPartName.trim()}`,
@@ -398,7 +405,7 @@ export function useVehicles(options: UseVehiclesOptions) {
       insPagesUrls.push(url);
     }
 
-    await db.saveVehicle({
+    await saveVehicle({
       id: editingVehicleId || undefined,
       brand,
       vehicle_name: vehicleName,

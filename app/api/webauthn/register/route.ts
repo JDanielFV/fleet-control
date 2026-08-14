@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateRegistrationOptions, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { getServiceRoleClient } from "@/lib/admin-server";
-import { setSessionCookie } from "@/lib/session-server";
+import { getSessionFromRequest, setSessionCookie } from "@/lib/session-server";
 import { signJwt } from "@/lib/jwt";
 
 const rpName = "Fleet Control";
@@ -12,6 +12,21 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { step, userId, userName, userDisplayName } = body;
+
+    // Authorization: only the authenticated user may register a passkey for
+    // their own account. Without this, anyone with a target userId could
+    // attach their own authenticator and take over the account. The check is
+    // gated on SUPABASE_JWT_SECRET so transitional/local deployments without
+    // server-side sessions keep working.
+    if (process.env.SUPABASE_JWT_SECRET) {
+      const session = await getSessionFromRequest(req);
+      if (!session) {
+        return NextResponse.json({ error: "Debes iniciar sesión para registrar una passkey." }, { status: 401 });
+      }
+      if (session.userId !== userId) {
+        return NextResponse.json({ error: "No puedes registrar una passkey para otra cuenta." }, { status: 403 });
+      }
+    }
 
     if (step === "options") {
       if (!userId || !userName) {

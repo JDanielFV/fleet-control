@@ -30,6 +30,31 @@ export async function addPayment(
     return { rentals: await getWeeklyRentals(), appliedPerWeek: [], leftover: 0 };
   }
 
+  const supabase = getSupabase();
+  if (supabase) {
+    // Server-side: RPC `apply_payment` hace la aplicación de forma atómica
+    // y convierte el sobrante en crédito.
+    const res = await fetch("/api/finances/payments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driverId, amount, paymentDate }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      applied?: { week_start: string; amount: number }[];
+      leftover?: number;
+      error?: string;
+    };
+    if (!res.ok) {
+      console.error("[fleet] addPayment failed:", data.error);
+      return { rentals: await getWeeklyRentals(), appliedPerWeek: [], leftover: 0 };
+    }
+    return {
+      rentals: await getWeeklyRentals(),
+      appliedPerWeek: data.applied ?? [],
+      leftover: data.leftover ?? 0,
+    };
+  }
+
   const allRentals = getLocalData<WeeklyRental>("weekly_rentals", seedWeeklyRentals);
   const ownerId = getOwnerId();
   const ownerRentals = ownerId ? allRentals.filter((r) => r.owner_id === ownerId) : [];
@@ -42,7 +67,6 @@ export async function addPayment(
   setLocalData("weekly_rentals", merged);
 
   if (leftover > 0) {
-    const ownerId = getOwnerId();
     const credits = getLocalData<DriverCredit & { owner_id?: string | null }>("driver_credits", []);
     const idx = credits.findIndex((c) => c.driver_id === driverId && c.owner_id === ownerId);
     const now = new Date().toISOString();
@@ -55,21 +79,68 @@ export async function addPayment(
     setLocalData("driver_credits", credits);
   }
 
-  const supabase = getSupabase(); if (supabase) {
-    for (const r of updatedRentals) {
-      const { error } = await supabase.from("weekly_rentals").upsert(r).eq("id", r.id);
-      if (error) addPendingId("weekly_rentals", r.id);
-      else clearPendingIds("weekly_rentals", [r.id]);
-    }
-  } else {
-    for (const r of updatedRentals) addPendingId("weekly_rentals", r.id);
-  }
+  for (const r of updatedRentals) addPendingId("weekly_rentals", r.id);
 
   return { rentals: updatedRentals, appliedPerWeek, leftover };
 }
 
+/**
+ * Pago sobre un rental concreto (flujo de la UI). Con Supabase se delega al
+ * servidor (RPC `apply_rental_payment`, atómico); en modo local replica la
+ * lógica de incremento + recálculo de status.
+ */
+export async function applyRentalPayment(
+  rentalId: string,
+  amount: number,
+  paymentDate: string = new Date().toISOString().split("T")[0]
+): Promise<WeeklyRental | null> {
+  if (amount <= 0) return null;
+
+  const supabase = getSupabase();
+  if (supabase) {
+    const res = await fetch("/api/finances/payments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rentalId, amount, paymentDate }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      rental?: { id: string; paid_amount: number; status: WeeklyRental["status"] };
+      error?: string;
+    };
+    if (!res.ok || !data.rental) {
+      console.error("[fleet] applyRentalPayment failed:", data.error);
+      return null;
+    }
+    const rentals = await getWeeklyRentals();
+    return rentals.find((r) => r.id === data.rental!.id) ?? null;
+  }
+
+  const rentals = getLocalData<WeeklyRental>("weekly_rentals", seedWeeklyRentals);
+  const rental = rentals.find((r) => r.id === rentalId);
+  if (!rental) return null;
+
+  const updated: WeeklyRental = {
+    ...rental,
+    paid_amount: rental.paid_amount + amount,
+  };
+  const effectiveRent = rental.rent_amount - (rental.condoned_amount || 0);
+  if (updated.paid_amount >= effectiveRent) updated.status = "PAID";
+  else if (updated.paid_amount > 0) updated.status = "PARTIAL";
+  else updated.status = "UNPAID";
+  updated.payments_log = [
+    ...(rental.payments_log || []),
+    { amount, date: paymentDate },
+  ];
+
+  const idx = rentals.findIndex((r) => r.id === rentalId);
+  if (idx >= 0) rentals[idx] = updated;
+  setLocalData("weekly_rentals", rentals);
+  addPendingId("weekly_rentals", rentalId);
+  return updated;
+}
+
 export async function getDriverDebt(driverId: string): Promise<number> {
-  const rentals = ownerScoped(getLocalData<WeeklyRental>("weekly_rentals", seedWeeklyRentals));
+  const rentals = await getWeeklyRentals();
   return rentals
     .filter((r) => r.driver_id === driverId && r.status !== "PAID")
     .reduce((acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount), 0);
@@ -77,12 +148,30 @@ export async function getDriverDebt(driverId: string): Promise<number> {
 
 export async function getDriverCredit(driverId: string): Promise<number> {
   const ownerId = getOwnerId();
+  const supabase = getSupabase();
+  if (supabase) {
+    const res = await fetch(`/api/finances/credits?driverId=${encodeURIComponent(driverId)}`);
+    const data = (await res.json().catch(() => ({}))) as { amount?: number; error?: string };
+    if (res.ok && typeof data.amount === "number") return data.amount;
+    console.error("[fleet] getDriverCredit failed:", data.error);
+  }
   const credits = getLocalData<(DriverCredit & { owner_id?: string | null })>("driver_credits", []);
   return credits.find((c) => c.driver_id === driverId && c.owner_id === ownerId)?.amount ?? 0;
 }
 
 export async function addDriverCredit(driverId: string, amount: number): Promise<void> {
   const ownerId = getOwnerId();
+  const supabase = getSupabase();
+  if (supabase) {
+    const res = await fetch("/api/finances/credits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driverId, delta: amount }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) console.error("[fleet] addDriverCredit failed:", data.error);
+    return;
+  }
   const credits = getLocalData<(DriverCredit & { owner_id?: string | null })>("driver_credits", []);
   const existing = credits.find((c) => c.driver_id === driverId && c.owner_id === ownerId);
   if (existing) {

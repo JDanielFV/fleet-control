@@ -102,6 +102,9 @@ Este proyecto fue desarrollado bajo una arquitectura de **Vertical Slices** y un
 | `NEXT_PUBLIC_RP_ID` | Cliente | Solo multi-dominio | El dominio del deploy (p. ej. `fleet-control-three.vercel.app`) |
 | `NEXT_PUBLIC_RP_ORIGIN` | Cliente | Solo multi-dominio | `https://<dominio>` (sin barra final) |
 | `GEMINI_API_KEY` | Servidor | Solo OCR | Google AI Studio |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Cliente | Solo push | `npx web-push generate-vapid-keys` |
+| `VAPID_PRIVATE_KEY` | Servidor | Solo push | `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | Servidor | Opcional | `mailto:tu@correo.com` (contacto del emisor push) |
 
 **Dónde ponerlas**: en `.env.local` para desarrollo (archivo gitignored — nunca commitees secretos) y en **Vercel → Settings → Environment Variables** (Production) + redeploy. Con el CLI de Vercel: `vercel env add NOMBRE production`.
 
@@ -135,6 +138,16 @@ supabase migration list                     # verificar que local == remoto
 4. `supabase db push` (aplica las migraciones RLS).
 
 > Si cierras RLS antes de que el deploy emita el JWT, la app deja de leer datos. Después del release, los usuarios con sesión previa deben iniciar sesión una vez (sus sesiones viejas no traen la cookie).
+
+**Documentos e imágenes (bucket privado)**: desde la migración `20260813000010_secure_document_storage` el bucket `documentos` es **privado** y el acceso se hace por URLs firmadas de corta duración vía `GET /api/doc?path=...` (verificación de sesión + ruta bajo `{ownerId}/`). No hay URLs públicas.
+
+**Pagos atómicos**: los handlers usan los RPC `apply_rental_payment` / `apply_payment` / `adjust_driver_credit` (migración `20260813000020`), que calculan deuda, condonación y saldo de crédito del chofer dentro de una transacción — la UI ya no hace read-modify-write.
+
+**Notificaciones push**: el botón *Notif.* en el sidebar pide permiso y guarda la suscripción en `push_subscriptions` (migración `20260813000030`, RLS owner-scoped). Para el envío se necesitan las llaves VAPID:
+
+```bash
+npx web-push generate-vapid-keys
+```
 
 ---
 

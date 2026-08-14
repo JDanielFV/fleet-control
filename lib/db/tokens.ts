@@ -36,7 +36,7 @@ export async function getRegistrationToken(token: string): Promise<RegistrationT
   return tokens.find((t) => t.token === token) || null;
 }
 
-export async function useRegistrationToken(tokenId: string): Promise<void> {
+export async function consumeRegistrationToken(tokenId: string): Promise<void> {
   const now = new Date().toISOString();
   const tokens: RegistrationToken[] = getLocalData<RegistrationToken>("registration_tokens", []);
   const t = tokens.find((t) => t.id === tokenId);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { db, Vehicle, Checklist } from "@/lib/db";
+import { Vehicle, Checklist } from "@/lib/db";
+import { saveChecklist } from "@/lib/db/checklists";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Check, CheckCircle, Camera, X } from "lucide-react";
@@ -95,7 +96,7 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
 
     setIsLoading(true);
     try {
-      await db.saveChecklist({
+      await saveChecklist({
         vehicle_id: vehicle.id,
         driver_id: assignedDriver,
         type: "DELIVERY",

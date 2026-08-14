@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { db } from "@/lib/db";
+import { } from "@/lib/db";
+import { saveUser } from "@/lib/db/users";
+import { getRegistrationToken, consumeRegistrationToken } from "@/lib/db/tokens";
 import { hashPassword } from "@/lib/auth";
+import { validatePassword } from "@/lib/password-policy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,9 +70,12 @@ export default function UserForm({
     e.preventDefault();
     if (!displayName) return;
     if (showPassword && (!email || !password)) return;
-    if (showPassword && password.length < 6) {
-      toast("La contraseña debe tener al menos 6 caracteres.", "error");
-      return;
+    if (showPassword) {
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) {
+        toast(pwCheck.error || "Contraseña inválida.", "error");
+        return;
+      }
     }
     setIsSaving(true);
     try {
@@ -116,7 +122,7 @@ export default function UserForm({
       }
 
       const passwordHash = showPassword ? await hashPassword(password) : undefined;
-      const saved = await db.saveUser({
+      const saved = await saveUser({
         id: initialValues?.id || undefined,
         display_name: displayName,
         email: email || null,
@@ -149,8 +155,8 @@ export default function UserForm({
       }
       // Local demo mode: consume the invitation token here (single use).
       if (registrationToken) {
-        const rt = await db.getRegistrationToken(registrationToken);
-        if (rt) await db.useRegistrationToken(rt.id);
+        const rt = await getRegistrationToken(registrationToken);
+        if (rt) await consumeRegistrationToken(rt.id);
       }
       onSuccess({ id: saved.id, display_name: saved.display_name, email: saved.email, role: saved.role, token });
       if (openPasskeyAfterSave && onOpenPasskey) {

@@ -1,12 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionFromRequest } from "@/lib/session-server";
+import { checkUsageLimit, recordUsage } from "@/lib/rate-limit";
 
 const VALID_TARGETS = ["INE", "LICENCIA", "CIRCULACION", "SEGURO"] as const;
 type OcrTarget = (typeof VALID_TARGETS)[number];
 
 const MAX_BASE64_MB = 4;
+const OCR_LIMIT_PER_HOUR = 20;
+const OCR_WINDOW_MS = 60 * 60 * 1000;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Authentication: OCR burns paid Gemini quota, so only logged-in users
+    // may call it. Gated on SUPABASE_JWT_SECRET so transitional/local
+    // deployments without server-side sessions keep working.
+    if (process.env.SUPABASE_JWT_SECRET) {
+      const session = await getSessionFromRequest(request);
+      if (!session) {
+        return NextResponse.json({ error: "Debes iniciar sesión para usar OCR." }, { status: 401 });
+      }
+      const quota = await checkUsageLimit("ocr", session.userId, OCR_LIMIT_PER_HOUR, OCR_WINDOW_MS);
+      if (!quota.allowed) {
+        return NextResponse.json(
+          { error: "Límite de OCR alcanzado. Intenta de nuevo más tarde." },
+          { status: 429, headers: { "Retry-After": String(quota.retryAfterSeconds) } }
+        );
+      }
+    }
+
     const { image, target } = await request.json();
 
     if (!image) {
@@ -122,8 +143,12 @@ No incluyas formateo de markdown (como \`\`\`json) en tu respuesta, devuelve est
 
     // Parse the JSON output returned by Gemini
     const parsedData = JSON.parse(resultText.trim());
-    console.log("[OCR API] Gemini successfully parsed:", parsedData);
-    
+    // Never log the parsed document: it contains PII (CURP, INE, license).
+    if (process.env.SUPABASE_JWT_SECRET) {
+      const session = await getSessionFromRequest(request);
+      if (session) await recordUsage("ocr", session.userId);
+    }
+
     return NextResponse.json(parsedData);
   } catch (err: unknown) {
     console.error("[OCR API] Route handler error:", err);

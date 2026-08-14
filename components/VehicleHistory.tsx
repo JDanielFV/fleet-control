@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db, type Maintenance, type Assignment, type Driver, type RenewalLog, type Vehicle, type Checklist, type WeeklyRental, type VehicleInventory } from "@/lib/db";
+import { type Maintenance, type Assignment, type Driver, type RenewalLog, type Vehicle, type Checklist, type WeeklyRental, type VehicleInventory } from "@/lib/db";
+import { getRenewalLogs } from "@/lib/db/renewal-logs";
+import { getVehicleInventory } from "@/lib/db/inventory";
 import { getDriverName } from "@/lib/lookups";
 import { Wrench, AlertTriangle, ArrowLeftRight, RefreshCcw, Shield, DollarSign, ClipboardCheck, Camera, CalendarPlus, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
@@ -28,8 +30,8 @@ export default function VehicleHistory({ vehicle, maintenances, assignments, dri
   const [inventory, setInventory] = useState<VehicleInventory | null>(null);
 
   useEffect(() => {
-    db.getRenewalLogs(vehicle.id).then(setRenewalLogs);
-    db.getVehicleInventory(vehicle.id).then(setInventory);
+    getRenewalLogs(vehicle.id).then(setRenewalLogs);
+    getVehicleInventory(vehicle.id).then(setInventory);
   }, [vehicle.id]);
 
   const events: HistoryEvent[] = [];

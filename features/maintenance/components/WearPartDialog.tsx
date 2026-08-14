@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db, type Vehicle } from "@/lib/db";
+import { type Vehicle } from "@/lib/db";
+import { saveMaintenance } from "@/lib/db/maintenances";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,7 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
     if (!vehicle || !partName.trim()) return;
     setIsLoading(true);
     try {
-      await db.saveMaintenance({
+      await saveMaintenance({
         vehicle_id: vehicle.id,
         cost: parseFloat(partCost) || 0,
         description: `[REEMPLAZO PIEZA] ${partName.trim()}`,

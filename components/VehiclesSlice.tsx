@@ -16,6 +16,7 @@ import SliceHeader from "@/components/SliceHeader";
 import { VehiclesListSkeleton } from "@/components/ui/skeletons";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import VehicleHistory from "@/components/VehicleHistory";
+import { resolveDocUrl } from "@/lib/db/storage";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
 
 interface VehiclesSliceProps {
@@ -393,8 +394,8 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                     </div>
                                     <div className="flex items-start gap-2.5">
                                       {vehicle.circulation_img ? (
-                                        <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.circulation_img!); }}>
-                                          <Image src={vehicle.circulation_img} alt="Tarjeta de Circulación" fill className="object-cover hover:scale-105 transition-transform" />
+                                        <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPreviewImage(resolveDocUrl(vehicle.circulation_img)); }}>
+                                          <Image src={resolveDocUrl(vehicle.circulation_img)} alt="Tarjeta de Circulación" fill className="object-cover hover:scale-105 transition-transform" />
                                         </div>
                                       ) : (
                                         <div className="w-14 h-10 rounded-lg border border-dashed border-border/50 bg-muted/30 flex items-center justify-center shrink-0"><Camera className="w-4 h-4 text-muted-foreground/40" /></div>
@@ -413,8 +414,8 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                     </div>
                                     <div className="flex items-start gap-2.5">
                                       {vehicle.insurance_policy_img ? (
-                                        <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPreviewImage(vehicle.insurance_policy_img); }}>
-                                          <Image src={vehicle.insurance_policy_img} alt="Póliza de Seguro" fill className="object-cover hover:scale-105 transition-transform" />
+                                        <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-border bg-card shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPreviewImage(resolveDocUrl(vehicle.insurance_policy_img)); }}>
+                                          <Image src={resolveDocUrl(vehicle.insurance_policy_img)} alt="Póliza de Seguro" fill className="object-cover hover:scale-105 transition-transform" />
                                         </div>
                                       ) : (
                                         <div className="w-14 h-10 rounded-lg border border-dashed border-border/50 bg-muted/30 flex items-center justify-center shrink-0"><Camera className="w-4 h-4 text-muted-foreground/40" /></div>

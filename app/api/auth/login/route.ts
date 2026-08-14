@@ -4,9 +4,9 @@ import { setSessionCookie } from "@/lib/session-server";
 import { verifyPasswordServer, hashPasswordServer } from "@/lib/password-server";
 import { signJwt } from "@/lib/jwt";
 import {
-  checkLoginRateLimit,
-  recordLoginFailure,
-  resetLoginRateLimit,
+  checkLoginRateLimitGlobal,
+  recordLoginFailureGlobal,
+  resetLoginRateLimitGlobal,
   getClientIp,
   loginRateLimitKey,
   LOGIN_LOCKED_MESSAGE,
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // lockout. Checked before any credential work, so locked keys can't even
     // be probed; the response is generic (no email or attempt-count leak).
     const rlKey = loginRateLimitKey(email, getClientIp(request));
-    const rl = checkLoginRateLimit(rlKey);
+    const rl = await checkLoginRateLimitGlobal(rlKey);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: LOGIN_LOCKED_MESSAGE },
@@ -57,18 +57,18 @@ export async function POST(request: Request) {
 
     if (!user || !user.is_active) {
       // Generic message: never reveal whether the email exists.
-      recordLoginFailure(rlKey);
+      await recordLoginFailureGlobal(rlKey);
       return NextResponse.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
     }
 
     const { ok, needsUpgrade } = await verifyPasswordServer(password, user.password_hash);
     if (!ok) {
-      recordLoginFailure(rlKey);
+      await recordLoginFailureGlobal(rlKey);
       return NextResponse.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
     }
 
     // Successful login clears the failure counter for this email+IP.
-    resetLoginRateLimit(rlKey);
+    await resetLoginRateLimitGlobal(rlKey);
 
     // Best-effort housekeeping: last_login_at + re-hash legacy SHA-256
     // hashes with scrypt on the next successful login (no password reset

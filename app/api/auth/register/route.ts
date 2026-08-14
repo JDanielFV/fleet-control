@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { saveUser } from "@/lib/db/users";
+import { consumeRegistrationToken } from "@/lib/db/tokens";
 import { getServiceRoleClient } from "@/lib/admin-server";
 import { setSessionCookie } from "@/lib/session-server";
 import { hashPasswordServer } from "@/lib/password-server";
+import { validatePassword } from "@/lib/password-policy";
 import { signJwt } from "@/lib/jwt";
 
 /**
  * POST /api/auth/register
  *
  * Server-side registration for the invitation flow. Replaces the old
- * client-side `db.saveUser` + `db.useRegistrationToken` path:
+ * client-side `saveUser` + `consumeRegistrationToken` path:
  *
  *   - `{ step: "validate", token }` → validates the invitation token
  *     (exists, unused, not expired) without creating anything.
@@ -71,8 +74,9 @@ export async function POST(req: NextRequest) {
     if (!display_name || !email || !password) {
       return NextResponse.json({ error: "Nombre, correo y contraseña son obligatorios." }, { status: 400 });
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.valid) {
+      return NextResponse.json({ error: pwCheck.error }, { status: 400 });
     }
     if (!token) {
       return NextResponse.json({ error: "Falta el token de invitación." }, { status: 400 });

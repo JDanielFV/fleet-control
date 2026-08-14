@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getUserCount } from "@/lib/db/users";
 import { getServiceRoleClient } from "@/lib/admin-server";
+import { getClientIp, checkUsageLimit, recordUsage } from "@/lib/rate-limit";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/auth/status
  *
- * Server-side replacement for the client's `db.getUserCount()` + first-run
+ * Server-side replacement for the client's `getUserCount()` + first-run
  * token creation. Returns how many users exist and — when the database is
  * empty — a one-time setup token so the very first user can register as the
  * system admin.
@@ -13,8 +18,22 @@ import { getServiceRoleClient } from "@/lib/admin-server";
  * key (the anon key can't see these tables anymore once RLS is enabled).
  * When Supabase isn't configured it answers `{ localFallback: true }` and the
  * client falls back to the localStorage demo mode.
+ *
+ * Rate-limited (120 req/hora por IP): este endpoint expone si el sistema está
+ * vacío (setup token), lo que alimenta enumeración de estado.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+
+  const { allowed, retryAfterSeconds } = await checkUsageLimit("setup_status", ip, 120, 3600000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Inténtalo más tarde." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
+  }
+  await recordUsage("setup_status", ip);
+
   const supabase = getServiceRoleClient();
   if (!supabase) {
     return NextResponse.json({ localFallback: true });

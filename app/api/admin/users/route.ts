@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSystemAdminFromRequest, ADMIN_OWNED_TABLES } from "@/lib/admin-server";
 import { getSessionFromRequest } from "@/lib/session-server";
 import { hashPasswordServer } from "@/lib/password-server";
+import { validatePassword } from "@/lib/password-policy";
 
 /**
  * External admin panel — user management.
@@ -66,8 +67,9 @@ export async function POST(req: NextRequest) {
   if (!display_name || !email || !password) {
     return NextResponse.json({ error: "Nombre, correo y contraseña son obligatorios." }, { status: 400 });
   }
-  if (password.length < 6) {
-    return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
+  const pwCheck = validatePassword(password);
+  if (!pwCheck.valid) {
+    return NextResponse.json({ error: pwCheck.error }, { status: 400 });
   }
 
   const password_hash = await hashPasswordServer(password);
@@ -133,8 +135,9 @@ export async function PATCH(req: NextRequest) {
     patch.is_active = body.is_active;
   }
   if (typeof body.password === "string" && body.password) {
-    if (body.password.length < 6) {
-      return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres." }, { status: 400 });
+    const pwCheck = validatePassword(body.password);
+    if (!pwCheck.valid) {
+      return NextResponse.json({ error: pwCheck.error }, { status: 400 });
     }
     patch.password_hash = await hashPasswordServer(body.password);
   }

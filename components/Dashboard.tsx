@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Vehicle } from "@/lib/db";
 import { sortByDateDesc } from "@/lib/utils";
 import { computeUsageStats } from "@/lib/usageStats";
@@ -16,6 +16,8 @@ import ChecklistActionModal from "@/features/checklists/components/ChecklistActi
 import WearPartDialog from "@/features/maintenance/components/WearPartDialog";
 import InventoryWizard from "./InventoryWizard";
 import Sidebar from "./Sidebar";
+import { resolveDocUrl } from "@/lib/db/storage";
+import { getPushSubscription, enablePushNotifications, disablePushNotifications } from "@/lib/push-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +29,27 @@ import { useDashboard, type TabId } from "@/features/dashboard/hooks/useDashboar
 
 export default function Dashboard() {
   const ctx = useDashboard();
+  const [pushEnabled, setPushEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPushSubscription().then((sub) => {
+      if (!cancelled) setPushEnabled(!!sub);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (pushEnabled) {
+      const ok = await disablePushNotifications();
+      if (ok) setPushEnabled(false);
+    } else {
+      const ok = await enablePushNotifications();
+      if (ok) setPushEnabled(true);
+    }
+  };
 
   // La pestaña "Usuarios" solo la ve el admin del proyecto; los dueños
   // solo administran su propia flota (choferes y autos).
@@ -63,7 +86,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col md:flex-row h-screen w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
-      <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} />
+      <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} pushEnabled={pushEnabled} onTogglePush={handleTogglePush} />
 
       <div className="flex-1 flex h-full overflow-hidden">
         <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
@@ -400,7 +423,7 @@ export default function Dashboard() {
         {ctx.inventoryOpen && (
           <InventoryWizard key="inventory-wizard" open={true}
             onClose={() => { ctx.setInventoryOpen(false); ctx.setInventoryVehicle(null); ctx.setInventoryExisting(null); }}
-            onSave={ctx.handleSaveInventory} initialPhotos={ctx.inventoryExisting?.photos.map((p) => ({ angle: p.angle, dataUrl: p.url }))} initialItems={ctx.inventoryExisting?.items} />
+            onSave={ctx.handleSaveInventory} initialPhotos={ctx.inventoryExisting?.photos.map((p) => ({ angle: p.angle, dataUrl: resolveDocUrl(p.url) }))} initialItems={ctx.inventoryExisting?.items} />
         )}
       </AnimatePresence>
 

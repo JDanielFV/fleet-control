@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { db, Driver, Vehicle } from "@/lib/db";
+import { Driver, Vehicle } from "@/lib/db";
+import { getVehicles } from "@/lib/db/vehicles";
+import { getDrivers } from "@/lib/db/drivers";
+import { createAssignment, removeAssignment } from "@/lib/db/assignments";
+import { dismissAlert } from "@/lib/db/alerts";
 import { AssignmentSelector } from "@/components/ui/AssignmentSelector";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
@@ -58,13 +62,13 @@ export const EntityActionSheet = ({
         if (type === "driver") {
           const d = entity as Driver;
           setResolvedDriver(d);
-          const vehicles = await db.getVehicles();
+          const vehicles = await getVehicles();
           const v = vehicles.find((x) => x.active_driver_id === d.id) || null;
           setResolvedVehicle(v);
         } else {
           const v = entity as Vehicle;
           setResolvedVehicle(v);
-          const drivers = await db.getDrivers();
+          const drivers = await getDrivers();
           const d = drivers.find((x) => x.id === v.active_driver_id) || null;
           setResolvedDriver(d);
         }
@@ -96,15 +100,15 @@ export const EntityActionSheet = ({
     setIsLoading(true);
     try {
       if (resolvedDriver) {
-        await db.createAssignment(targetId, resolvedDriver.id, "ASSIGN", "Asignación rápida desde Action Sheet");
+        await createAssignment(targetId, resolvedDriver.id, "ASSIGN", "Asignación rápida desde Action Sheet");
         onActionComplete?.();
         if (onVehicleAssigned) {
-          const vehicles = await db.getVehicles();
+          const vehicles = await getVehicles();
           const vehicleObj = vehicles.find((v) => v.id === targetId);
           if (vehicleObj) onVehicleAssigned(vehicleObj);
         }
       } else if (resolvedVehicle) {
-        await db.createAssignment(resolvedVehicle.id, targetId, "ASSIGN", "Asignación rápida desde Action Sheet");
+        await createAssignment(resolvedVehicle.id, targetId, "ASSIGN", "Asignación rápida desde Action Sheet");
         onActionComplete?.();
         if (onVehicleAssigned) {
           onVehicleAssigned(resolvedVehicle);
@@ -129,7 +133,7 @@ export const EntityActionSheet = ({
         throw new Error("No hay una asignación activa para este elemento.");
       }
 
-      await db.removeAssignment(vId, dId, reason);
+      await removeAssignment(vId, dId, reason);
       setReason("");
       setView("main");
       onActionComplete?.();
@@ -151,7 +155,7 @@ export const EntityActionSheet = ({
     if (!(await showConfirm({ title: "Verificación Completada", message: "¿Marcar la verificación vehicular como completada?", confirmLabel: "Completar", variant: "default" }))) return;
     setIsLoading(true);
     try {
-      await db.dismissAlert(`alert-ver-${resolvedVehicle.id}`);
+      await dismissAlert(`alert-ver-${resolvedVehicle.id}`);
       onActionComplete?.();
     } catch (err) {
       alert("Error al marcar verificación: " + err);

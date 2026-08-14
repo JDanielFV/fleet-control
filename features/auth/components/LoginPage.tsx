@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { db } from "@/lib/db";
+import { } from "@/lib/db";
+import { getUserCount } from "@/lib/db/users";
+import { createRegistrationToken, getRegistrationToken } from "@/lib/db/tokens";
 import { getSession, saveSession, syncSessionFromServer } from "@/lib/auth";
 import { Shield, KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import UserForm from "@/features/auth/components/UserForm";
@@ -48,13 +50,13 @@ export default function LoginPage() {
 
       if (status.localFallback) {
         // No Supabase configured → localStorage demo mode.
-        const count = await db.getUserCount();
+        const count = await getUserCount();
         if (count === 0 && !urlToken) {
-          const t = await db.createRegistrationToken(null);
+          const t = await createRegistrationToken(null);
           setToken(t.token);
           setMode("token_ready");
         } else if (urlToken) {
-          const rt = await db.getRegistrationToken(urlToken);
+          const rt = await getRegistrationToken(urlToken);
           if (!rt || rt.used_at || new Date(rt.expires_at) < new Date()) {
             setError("Token inválido, usado o expirado.");
             setMode("login");

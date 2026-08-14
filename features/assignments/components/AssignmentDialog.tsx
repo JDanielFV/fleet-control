@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db, type Driver, type Vehicle } from "@/lib/db";
+import { type Driver, type Vehicle } from "@/lib/db";
+import { createAssignment } from "@/lib/db/assignments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { User, Car, ArrowLeftRight, CheckCircle2 } from "lucide-react";
@@ -41,7 +42,7 @@ export default function AssignmentDialog({ open, onClose, onComplete, onAssign, 
     if (!selectedDriver || !selectedVehicle) return;
     setIsLoading(true);
     try {
-      await db.createAssignment(selectedVehicle, selectedDriver, "ASSIGN", "Asignación desde panel de checklists");
+      await createAssignment(selectedVehicle, selectedDriver, "ASSIGN", "Asignación desde panel de checklists");
       setSuccess(true);
       setTimeout(() => {
         onAssign(selectedVehicle, selectedDriver);

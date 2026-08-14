@@ -4,9 +4,9 @@ import { getServiceRoleClient } from "@/lib/admin-server";
 import { setSessionCookie } from "@/lib/session-server";
 import { signJwt } from "@/lib/jwt";
 import {
-  checkLoginRateLimit,
-  recordLoginFailure,
-  resetLoginRateLimit,
+  checkLoginRateLimitGlobal,
+  recordLoginFailureGlobal,
+  resetLoginRateLimitGlobal,
   getClientIp,
   loginRateLimitKey,
   LOGIN_LOCKED_MESSAGE,
@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
       if (typeof email === "string" && email.trim()) {
         const { user } = await lookupUserByEmail(email.trim().toLowerCase());
         if (!user) {
-          return NextResponse.json({ error: "No existe un usuario con ese correo." }, { status: 404 });
+          // Generic message: never reveal whether the email exists.
+          return NextResponse.json({ error: "No se pudo iniciar sesión con passkey. Intenta con tu contraseña." }, { status: 401 });
         }
         if (!user.is_active) {
           return NextResponse.json({ error: "Este usuario está inactivo." }, { status: 403 });
@@ -163,7 +164,7 @@ export async function POST(req: NextRequest) {
       // toward the lock. Skipped only in demo mode (no Supabase → no email).
       const rlEmail = sessionUser?.email?.trim().toLowerCase() || "";
       const rlKey = rlEmail ? loginRateLimitKey(rlEmail, getClientIp(req)) : null;
-      const rl = rlKey ? checkLoginRateLimit(rlKey) : { allowed: true, retryAfterSeconds: 0 };
+      const rl = rlKey ? await checkLoginRateLimitGlobal(rlKey) : { allowed: true, retryAfterSeconds: 0 };
       if (rlKey && !rl.allowed) {
         return NextResponse.json(
           { error: LOGIN_LOCKED_MESSAGE },
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!storedCredential) {
-        if (rlKey) recordLoginFailure(rlKey);
+        if (rlKey) await recordLoginFailureGlobal(rlKey);
         return NextResponse.json({ error: "Credential not found" }, { status: 400 });
       }
 
@@ -190,12 +191,12 @@ export async function POST(req: NextRequest) {
       });
 
       if (!verification.verified) {
-        if (rlKey) recordLoginFailure(rlKey);
+        if (rlKey) await recordLoginFailureGlobal(rlKey);
         return NextResponse.json({ verified: false, error: "Authentication failed" }, { status: 400 });
       }
 
       // Successful verification clears the failure counter.
-      if (rlKey) resetLoginRateLimit(rlKey);
+      if (rlKey) await resetLoginRateLimitGlobal(rlKey);
 
       // Mint a session JWT: the passkey just verified, so the user is
       // authenticated and can talk to PostgREST as `authenticated`.

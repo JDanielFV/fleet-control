@@ -55,6 +55,26 @@ export async function setSessionCookie(response: NextResponse, session: ServerSe
   });
 }
 
+/**
+ * Re-sign the session cookie with a fresh 24 h expiry (rolling session):
+ * as long as the user keeps hitting protected routes, the session never
+ * dies mid-use; once they stop, it expires 24 h after the last refresh.
+ * Call after validating the session, before returning the response.
+ */
+export async function extendSessionCookie(response: NextResponse, session: ServerSession): Promise<void> {
+  if (!process.env.SUPABASE_JWT_SECRET) return;
+  const token = await signJwt({
+    sub: session.userId,
+    email: session.email || undefined,
+    display_name: session.displayName,
+    app_role: session.role,
+  });
+  response.cookies.set(SESSION_COOKIE, token, {
+    ...cookieOptions(),
+    maxAge: SESSION_MAX_AGE,
+  });
+}
+
 /** Clear the session cookie (logout). */
 export function clearSessionCookie(response: NextResponse): void {
   response.cookies.set(SESSION_COOKIE, "", {

@@ -6,6 +6,8 @@ import {
   getClientIp,
   loginRateLimitKey,
   LOGIN_LOCKED_MESSAGE,
+  checkUsageLimit,
+  recordUsage,
 } from "../lib/rate-limit";
 
 const KEY = "daniel@test.com|1.2.3.4";
@@ -74,18 +76,25 @@ describe("login rate limiter", () => {
 });
 
 describe("getClientIp / loginRateLimitKey", () => {
-  it("toma la primera IP de x-forwarded-for", () => {
+  it("x-real-ip tiene prioridad cuando existe", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-real-ip": "198.51.100.9", "x-forwarded-for": "203.0.113.7, 10.0.0.1" },
+    });
+    expect(getClientIp(req)).toBe("198.51.100.9");
+  });
+
+  it("toma la última IP de x-forwarded-for (la añadida por el edge)", () => {
     const req = new Request("http://localhost", {
       headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.1" },
     });
-    expect(getClientIp(req)).toBe("203.0.113.7");
+    expect(getClientIp(req)).toBe("10.0.0.1");
   });
 
-  it("cae a x-real-ip", () => {
+  it("una sola IP en x-forwarded-for se usa tal cual", () => {
     const req = new Request("http://localhost", {
-      headers: { "x-real-ip": "198.51.100.9" },
+      headers: { "x-forwarded-for": "203.0.113.7" },
     });
-    expect(getClientIp(req)).toBe("198.51.100.9");
+    expect(getClientIp(req)).toBe("203.0.113.7");
   });
 
   it("cae a unknown sin headers", () => {
@@ -94,5 +103,28 @@ describe("getClientIp / loginRateLimitKey", () => {
 
   it("normaliza el email en la llave compuesta", () => {
     expect(loginRateLimitKey("  User@Test.COM ", "1.2.3.4")).toBe("user@test.com|1.2.3.4");
+  });
+});
+
+describe("usage quota genérico (sin Supabase → memoria)", () => {
+  it("permite hasta el límite y luego bloquea dentro de la ventana", async () => {
+    const scope = "ocr";
+    const key = "user-1";
+    for (let i = 0; i < 3; i++) {
+      const s = await checkUsageLimit(scope, key, 3, 60_000);
+      expect(s.allowed).toBe(true);
+      expect(s.remaining).toBe(3 - i);
+      await recordUsage(scope, key);
+    }
+    const blocked = await checkUsageLimit(scope, key, 3, 60_000);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("llaves de scope distinto son independientes", async () => {
+    await recordUsage("ocr", "user-1");
+    const other = await checkUsageLimit("ocr", "user-2", 3, 60_000);
+    expect(other.allowed).toBe(true);
+    expect(other.remaining).toBe(3);
   });
 });

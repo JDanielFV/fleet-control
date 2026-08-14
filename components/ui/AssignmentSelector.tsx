@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../../lib/db";
+import { getAvailableDrivers } from "@/lib/db/assignments";
+import { getAvailableVehicles } from "@/lib/db/vehicles";
 import type { Driver, Vehicle } from "../../lib/db/types";
 
 interface AssignmentSelectorProps {
@@ -17,8 +18,8 @@ export const AssignmentSelector = ({ selecting, onSelect, onCancel }: Assignment
       setIsLoading(true);
       try {
         const data = selecting === "driver" 
-          ? await db.getAvailableDrivers() 
-          : await db.getAvailableVehicles();
+          ? await getAvailableDrivers() 
+          : await getAvailableVehicles();
         setItems(data);
       } catch (err) {
         console.error(`Error loading available ${selecting}s:`, err);

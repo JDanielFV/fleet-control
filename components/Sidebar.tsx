@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, BellOff, LogOut } from "lucide-react";
 import type { TabId } from "@/features/dashboard/hooks/useDashboard";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,8 @@ interface SidebarProps {
   alertCount: number;
   onAlertsClick: () => void;
   onLogout?: () => void;
+  pushEnabled?: boolean;
+  onTogglePush?: () => void;
 }
 
 export default function Sidebar({
@@ -27,6 +29,8 @@ export default function Sidebar({
   alertCount,
   onAlertsClick,
   onLogout,
+  pushEnabled,
+  onTogglePush,
 }: SidebarProps) {
   return (
     <aside
@@ -85,6 +89,21 @@ export default function Sidebar({
             </span>
           )}
         </button>
+        {onTogglePush && (
+          <button
+            onClick={onTogglePush}
+            className={`relative w-full flex flex-col items-center gap-1 py-2 rounded-xl transition-all active:scale-95 cursor-pointer ${
+              pushEnabled
+                ? "bg-primary/15 text-primary"
+                : "bg-secondary hover:bg-secondary/80 text-foreground"
+            }`}
+            aria-label={pushEnabled ? "Desactivar notificaciones" : "Activar notificaciones"}
+            title={pushEnabled ? "Notificaciones activadas" : "Activar notificaciones"}
+          >
+            {pushEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+            <span className="text-[10px] font-semibold leading-tight">Notif.</span>
+          </button>
+        )}
         {onLogout && (
           <button
             onClick={onLogout}

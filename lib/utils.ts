@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Round a money amount to 2 decimals, correcting float drift
+ * (0.1 + 0.2 → 0.3 en vez de 0.30000000000000004).
+ */
+export function roundMoney(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
  * Build a CSV (UTF-8, BOM-prefixed) from headers + rows and trigger a browser
  * download as `${prefix}_YYYY-MM-DD.csv`. Replaces the duplicated Blob+link+revoke
  * boilerplate that lived in VehiclesSlice and FinancesSlice.
@@ -140,14 +148,14 @@ export function applyPayment<
   const updated = ordered.map<T>((rental) => {
     if (remaining <= 0) return rental;
 
-    const pending = Math.max(0, rental.rent_amount - rental.paid_amount);
+    const pending = Math.max(0, roundMoney(rental.rent_amount - rental.paid_amount));
     if (pending <= 0) return rental; // already fully paid
 
-    const apply = Math.min(pending, remaining);
-    remaining -= apply;
+    const apply = roundMoney(Math.min(pending, remaining));
+    remaining = roundMoney(remaining - apply);
     appliedPerWeek.push({ week_start: rental.week_start, amount: apply });
 
-    const newPaid = rental.paid_amount + apply;
+    const newPaid = roundMoney(rental.paid_amount + apply);
     const newStatus: "PAID" | "PARTIAL" | "UNPAID" =
       newPaid >= rental.rent_amount ? "PAID" : newPaid > 0 ? "PARTIAL" : "UNPAID";
 

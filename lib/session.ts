@@ -27,11 +27,9 @@ let memorySession: Session | null = null;
 /** Avoid spamming /api/auth/logout when clearSession is called repeatedly. */
 let logoutInFlight = false;
 
-/** Get today's 23:59 as ISO string for session expiry. */
-function getEndOfDayISO(): string {
-  const now = new Date();
-  const eod = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  return eod.toISOString();
+/** Get a rolling expiry 24 h from now (ISO string). */
+function getRollingExpiryISO(): string {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 }
 
 /** Check if the session has expired (past 23:59 today). */
@@ -62,7 +60,7 @@ export function saveSession(
     email,
     displayName,
     role,
-    expiresAt: getEndOfDayISO(),
+    expiresAt: getRollingExpiryISO(),
     token,
   });
 }
@@ -153,7 +151,7 @@ export async function syncSessionFromServer(): Promise<Session | null> {
         email: data.session.email ?? "",
         displayName: data.session.displayName ?? "",
         role: data.session.role === "admin" ? "admin" : "owner",
-        expiresAt: getEndOfDayISO(),
+        expiresAt: getRollingExpiryISO(),
         token: typeof data.token === "string" ? data.token : null,
       };
       persist(s);

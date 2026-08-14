@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest, clearSessionCookie } from "@/lib/session-server";
+import { getSessionFromRequest, clearSessionCookie, extendSessionCookie } from "@/lib/session-server";
 import { getServiceRoleClient } from "@/lib/admin-server";
 import { signJwt } from "@/lib/jwt";
 
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     console.warn("[Auth] JWT signing failed:", err instanceof Error ? err.message : err);
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     session: {
       userId: session.userId,
       email: session.email,
@@ -57,4 +57,10 @@ export async function GET(req: NextRequest) {
     },
     token,
   });
+
+  // Rolling session: re-sign the cookie with a fresh 24 h expiry on every
+  // session check, so active users don't get logged out mid-day (the JWT exp
+  // in the cookie is refreshed here; the bearer token above is short-lived).
+  await extendSessionCookie(res, session);
+  return res;
 }

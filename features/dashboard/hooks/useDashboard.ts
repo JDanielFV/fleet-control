@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { db, Driver, Vehicle, Checklist, WeeklyRental, Alert, User } from "@/lib/db";
+import { Driver, Vehicle, Checklist, WeeklyRental, Alert, User } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { getVerificationSchedule } from "@/lib/db";
+import { applyRentalPayment, getWeeklyRentals, saveWeeklyRental } from "@/lib/db/finances";
+import { dismissAlert, getAlerts } from "@/lib/db/alerts";
+import { getVehicles, saveVehicle } from "@/lib/db/vehicles";
+import { getDrivers } from "@/lib/db/drivers";
+import { getAssignments } from "@/lib/db/assignments";
+import { getChecklists } from "@/lib/db/checklists";
+import { getVehicleInventory, saveVehicleInventory } from "@/lib/db/inventory";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { getSession, syncSessionFromServer } from "@/lib/auth";
 import { useToast } from "@/components/ui/toast";
@@ -77,7 +84,7 @@ export function useDashboard() {
   const handlePayment = async (vehicle: Vehicle) => {
     const driverId = vehicle.active_driver_id;
     if (!driverId) { toast("El vehículo no tiene chofer asignado", "error"); return; }
-    const rentals = await db.getWeeklyRentals();
+    const rentals = await getWeeklyRentals();
     const currentRental = rentals.find((r) => r.driver_id === driverId && r.status !== "PAID");
     if (!currentRental) { toast("No hay renta activa para este chofer", "error"); return; }
     setPaymentDialog({ open: true, vehicle, driverId, rental: currentRental, amount: 0 });
@@ -86,15 +93,7 @@ export function useDashboard() {
   const submitPayment = async () => {
     const pd = paymentDialog;
     if (!pd.rental || pd.amount <= 0) return;
-    const updated: WeeklyRental = {
-      ...pd.rental,
-      paid_amount: pd.rental.paid_amount + pd.amount,
-    };
-    const effectiveRent = pd.rental.rent_amount - (pd.rental.condoned_amount || 0);
-    if (updated.paid_amount >= effectiveRent) updated.status = "PAID";
-    else if (updated.paid_amount > 0) updated.status = "PARTIAL";
-    else updated.status = "UNPAID";
-    await db.saveWeeklyRental(updated);
+    await applyRentalPayment(pd.rental.id, pd.amount);
     setPaymentDialog((prev: typeof paymentDialog) => ({ ...prev, open: false }));
     toast(`Pago de $${pd.amount.toLocaleString()} registrado`, "success");
     triggerRefresh();
@@ -156,16 +155,16 @@ export function useDashboard() {
 
   // Data loading
   const loadAlerts = useCallback(async () => {
-    const list = await db.getAlerts();
+    const list = await getAlerts();
     setAlerts(list);
   }, []);
 
   const loadStats = useCallback(async () => {
-    const vList = await db.getVehicles();
-    const dList = await db.getDrivers();
-    const aList = await db.getAssignments();
-    const cList = await db.getChecklists();
-    const rList = await db.getWeeklyRentals();
+    const vList = await getVehicles();
+    const dList = await getDrivers();
+    const aList = await getAssignments();
+    const cList = await getChecklists();
+    const rList = await getWeeklyRentals();
 
     setVehicles(vList);
     setDrivers(dList);
@@ -264,7 +263,7 @@ export function useDashboard() {
   // Service handlers
   const handleServiceOut = async (vehicle: Vehicle) => {
     if (!(await showConfirm({ title: "Retirar a Servicio", message: `¿Retirar ${vehicle.brand} ${vehicle.vehicle_name} (${vehicle.plate_number}) a servicio?`, confirmLabel: "Retirar", variant: "warning" }))) return;
-    await db.saveVehicle({ ...vehicle, status: "in_service", service_out_date: new Date().toISOString().split("T")[0], service_return_date: null });
+    await saveVehicle({ ...vehicle, status: "in_service", service_out_date: new Date().toISOString().split("T")[0], service_return_date: null });
     triggerRefresh();
   };
 
@@ -275,10 +274,10 @@ export function useDashboard() {
     const daysOut = Math.max(1, Math.round((returnDate.getTime() - outDate.getTime()) / (1000 * 60 * 60 * 24)));
     const discountDays = daysOut === 1 ? 0.5 : daysOut;
 
-    await db.saveVehicle({ ...vehicle, status: "active", service_return_date: returnDate.toISOString().split("T")[0] });
+    await saveVehicle({ ...vehicle, status: "active", service_return_date: returnDate.toISOString().split("T")[0] });
 
     if (vehicle.active_driver_id) {
-      const rentals = await db.getWeeklyRentals();
+      const rentals = await getWeeklyRentals();
       const currentRental = rentals.find((r) => r.driver_id === vehicle.active_driver_id && r.status !== "PAID");
       if (currentRental) {
         const dailyRate = currentRental.rent_amount / 7;
@@ -292,7 +291,7 @@ export function useDashboard() {
         if (updated.paid_amount >= effectiveRent) updated.status = "PAID";
         else if (updated.paid_amount > 0) updated.status = "PARTIAL";
         else updated.status = "UNPAID";
-        await db.saveWeeklyRental(updated);
+        await saveWeeklyRental(updated);
       }
     }
     triggerRefresh();
@@ -305,7 +304,7 @@ export function useDashboard() {
 
   const handleInventory = async (vehicle: Vehicle) => {
     setInventoryVehicle(vehicle);
-    const existing = await db.getVehicleInventory(vehicle.id);
+    const existing = await getVehicleInventory(vehicle.id);
     setInventoryExisting(existing ? { photos: existing.photos, items: existing.items } : null);
     setInventoryOpen(true);
   };
@@ -322,13 +321,13 @@ export function useDashboard() {
         photoEntries.push({ angle: p.angle, url: existing?.url || "" });
       }
     }
-    await db.saveVehicleInventory({ vehicle_id: inventoryVehicle.id, photos: photoEntries, items });
+    await saveVehicleInventory({ vehicle_id: inventoryVehicle.id, photos: photoEntries, items });
     triggerRefresh();
   };
 
   const handleDismissAlert = async (id: string, title: string) => {
     if (await showConfirm({ title: "Completar Alerta", message: `¿Deseas marcar la alerta "${title}" como completada?`, confirmLabel: "Completar", variant: "default" })) {
-      await db.dismissAlert(id);
+      await dismissAlert(id);
       loadAlerts();
     }
   };

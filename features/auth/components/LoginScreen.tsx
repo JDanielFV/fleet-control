@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { saveSession } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
-import { db, User } from "@/lib/db";
+import { User } from "@/lib/db";
+import { getUserByEmail } from "@/lib/db/users";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,7 +123,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         const data = await res.json();
         if (data.localFallback) {
           // localStorage-only deployment: verify client-side against local users.
-          const user = await db.getUserByEmail(cleanEmail);
+          const user = await getUserByEmail(cleanEmail);
           if (!user || !(await verifyPassword(password, user.password_hash)) || !user.is_active) {
             setError("Correo o contraseña incorrectos.");
             return;

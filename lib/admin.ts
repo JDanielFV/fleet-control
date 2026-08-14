@@ -6,7 +6,9 @@
  * and we operate directly on localStorage (single-device demo mode).
  */
 
-import { db } from "@/lib/db";
+import { } from "@/lib/db";
+import { deleteUser, getUsers, saveUser } from "@/lib/db/users";
+import { createRegistrationToken } from "@/lib/db/tokens";
 import { hashPassword } from "@/lib/password";
 import { getSession } from "@/lib/auth";
 import { getLocalData, setLocalData } from "@/lib/db/localStorage";
@@ -134,7 +136,7 @@ export async function adminGetUsers(): Promise<UsersPayload | "unauthorized" | n
 }
 
 async function adminGetUsersLocal(): Promise<UsersPayload> {
-  const users = (await db.getUsers()) as unknown as AdminUser[];
+  const users = (await getUsers()) as unknown as AdminUser[];
   const counts: Record<string, Record<string, number>> = {};
   for (const table of ADMIN_TABLES) {
     const rows = getLocalData<Record<string, unknown>>(table, []);
@@ -159,7 +161,7 @@ export async function adminCreateUser(p: { display_name: string; email: string; 
   // Local mode
   const password_hash = await hashPassword(p.password);
   try {
-    const saved = await db.saveUser({
+    const saved = await saveUser({
       display_name: p.display_name,
       email: p.email.trim().toLowerCase(),
       password_hash,
@@ -189,7 +191,7 @@ export async function adminUpdateUser(
   }
   // Local mode
   try {
-    const users = await db.getUsers();
+    const users = await getUsers();
     const user = users.find((u) => u.id === id);
     if (!user) return "Usuario no encontrado.";
     const next: Record<string, unknown> = { ...user };
@@ -202,7 +204,7 @@ export async function adminUpdateUser(
         (c) => c.id !== patch.remove_credential_id
       );
     }
-    const saved = await db.saveUser(next as Parameters<typeof db.saveUser>[0]);
+    const saved = await saveUser(next as Parameters<typeof saveUser>[0]);
     return saved as unknown as AdminUser;
   } catch (err) {
     return err instanceof Error ? err.message : "Error al actualizar el usuario.";
@@ -235,7 +237,7 @@ export async function adminDeleteUser(id: string, deleteData: boolean): Promise<
         if (filtered.length !== rows.length) setLocalData(table, filtered);
       }
     }
-    await db.deleteUser(id);
+    await deleteUser(id);
     return true;
   } catch (err) {
     return err instanceof Error ? err.message : "Error al eliminar el usuario.";
@@ -249,7 +251,7 @@ export async function adminCreateRegistrationToken(): Promise<string | null> {
   if (!res.ok) return null;
   if (hasLocalFallback(res.data)) {
     const session = getSession();
-    const t = await db.createRegistrationToken(session?.userId ?? null);
+    const t = await createRegistrationToken(session?.userId ?? null);
     return t.token;
   }
   return res.data.token ?? null;
@@ -280,7 +282,7 @@ export async function adminAudit(): Promise<AuditData | "unauthorized" | null> {
 }
 
 async function adminAuditLocal(): Promise<AuditData> {
-  const users = (await db.getUsers()).map((u) => ({
+  const users = (await getUsers()).map((u) => ({
     id: u.id,
     display_name: u.display_name,
     email: u.email,

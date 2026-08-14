@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { db, type WeeklyRental } from "@/lib/db";
+import { type WeeklyRental } from "@/lib/db";
+import { getWeeklyRentals, saveWeeklyRental } from "@/lib/db/finances";
 import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default function DriverPaymentHistory({ driverId }: DriverPaymentHistoryP
   const [condoneDays, setCondoneDays] = useState(0);
 
   const loadRentals = useCallback(async () => {
-    const all = await db.getWeeklyRentals();
+    const all = await getWeeklyRentals();
     setRentals(all.filter((r) => r.driver_id === driverId).sort((a, b) => new Date(b.week_start).getTime() - new Date(a.week_start).getTime()));
   }, [driverId]);
 
@@ -40,7 +41,7 @@ export default function DriverPaymentHistory({ driverId }: DriverPaymentHistoryP
     if (!condoneRental || condoneDays < 0) return;
     const dailyRate = condoneRental.rent_amount / 7;
     const condonedAmount = Math.round(dailyRate * condoneDays);
-    await db.saveWeeklyRental({ ...condoneRental, condoned_days: condoneDays, condoned_amount: condonedAmount });
+    await saveWeeklyRental({ ...condoneRental, condoned_days: condoneDays, condoned_amount: condonedAmount });
     setCondoneOpen(false);
     setCondoneRental(null);
     loadRentals();

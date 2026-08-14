@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { db, Driver, Vehicle, WeeklyRental } from "@/lib/db";
+import { Driver, Vehicle, WeeklyRental } from "@/lib/db";
+import { deleteDriver, getArchivedDrivers, getDrivers, saveDriver } from "@/lib/db/drivers";
+import { getVehicles } from "@/lib/db/vehicles";
+import { applyRentalPayment, saveWeeklyRental } from "@/lib/db/finances";
 import { parseOcrText, calculateCurp } from "@/lib/ocr";
 import Tesseract from "tesseract.js";
 import { useOcrScanner } from "@/components/useOcrScanner";
-import { uploadDocumentImage } from "@/lib/db/storage";
+import { uploadDocumentImage, resolveDocUrl } from "@/lib/db/storage";
 import { requirePasskeyConfirmation } from "@/lib/webauthn";
 
 
@@ -138,8 +141,8 @@ export function useDrivers(options: UseDriversOptions) {
 
   // --- Data loading ---
   const loadDrivers = useCallback(async () => {
-    const list = showArchived ? await db.getArchivedDrivers() : await db.getDrivers();
-    const vList = await db.getVehicles();
+    const list = showArchived ? await getArchivedDrivers() : await getDrivers();
+    const vList = await getVehicles();
     setDrivers(list);
     setVehicles(vList);
   }, [showArchived]);
@@ -148,8 +151,8 @@ export function useDrivers(options: UseDriversOptions) {
     let isStale = false;
     (async () => {
       const [list, vList] = await Promise.all([
-        showArchived ? db.getArchivedDrivers() : db.getDrivers(),
-        db.getVehicles(),
+        showArchived ? getArchivedDrivers() : getDrivers(),
+        getVehicles(),
       ]);
       if (isStale) return;
       setDrivers(list);
@@ -162,7 +165,7 @@ export function useDrivers(options: UseDriversOptions) {
   useEffect(() => {
     let isStale = false;
     (async () => {
-      const [list, vList] = await Promise.all([db.getDrivers(), db.getVehicles()]);
+      const [list, vList] = await Promise.all([getDrivers(), getVehicles()]);
       if (isStale) return;
       setDrivers(list);
       setVehicles(vList);
@@ -232,10 +235,10 @@ export function useDrivers(options: UseDriversOptions) {
   ` : ""}
   <h2>Documentos</h2>
   <div class="docs">
-    ${driver.driver_photo_img ? `<div class="doc-item"><img src="${driver.driver_photo_img}" alt="Foto" /><span>Foto del Chofer</span></div>` : ""}
-    ${driver.ine_img ? `<div class="doc-item"><img src="${driver.ine_img}" alt="INE" /><span>INE</span></div>` : ""}
-    ${driver.license_img ? `<div class="doc-item"><img src="${driver.license_img}" alt="Licencia" /><span>Licencia</span></div>` : ""}
-    ${driver.address_proof_img ? `<div class="doc-item"><img src="${driver.address_proof_img}" alt="Comprobante" /><span>Comprobante de Domicilio</span></div>` : ""}
+    ${driver.driver_photo_img ? `<div class="doc-item"><img src="${resolveDocUrl(driver.driver_photo_img)}" alt="Foto" /><span>Foto del Chofer</span></div>` : ""}
+    ${driver.ine_img ? `<div class="doc-item"><img src="${resolveDocUrl(driver.ine_img)}" alt="INE" /><span>INE</span></div>` : ""}
+    ${driver.license_img ? `<div class="doc-item"><img src="${resolveDocUrl(driver.license_img)}" alt="Licencia" /><span>Licencia</span></div>` : ""}
+    ${driver.address_proof_img ? `<div class="doc-item"><img src="${resolveDocUrl(driver.address_proof_img)}" alt="Comprobante" /><span>Comprobante de Domicilio</span></div>` : ""}
   </div>
   <p class="footer">Fleet Control · Exportado el ${new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" })}</p>
   <script>window.onload = () => { window.print(); };</script>
@@ -248,7 +251,7 @@ export function useDrivers(options: UseDriversOptions) {
   const handleDeleteDriver = async (id: string) => {
     const confirmed = await requirePasskeyConfirmation("¿Estás seguro de que deseas eliminar este chofer? Se desvinculará de cualquier vehículo activo.");
     if (!confirmed) return;
-    const success = await db.deleteDriver(id);
+    const success = await deleteDriver(id);
     if (success) {
       setDrivers((prev) => prev.filter((d) => d.id !== id));
       onRefreshAlerts();
@@ -285,7 +288,7 @@ export function useDrivers(options: UseDriversOptions) {
 
   const submitLicenseRenewal = async () => {
     if (!renewingDriver) return;
-    await db.saveDriver({
+    await saveDriver({
       ...renewingDriver,
       license_number: renewNumber,
       license_issue_date: renewIssueDate,
@@ -311,22 +314,14 @@ export function useDrivers(options: UseDriversOptions) {
     if (rental.paid_amount >= effectiveRent) updated.status = "PAID";
     else if (rental.paid_amount > 0) updated.status = "PARTIAL";
     else updated.status = "UNPAID";
-    await db.saveWeeklyRental(updated);
+    await saveWeeklyRental(updated);
     setCondonationDialog(null);
     onRefreshAlerts();
   };
 
   const handlePayment = async (rental: WeeklyRental, amount: number) => {
     if (amount <= 0) return;
-    const updated: WeeklyRental = {
-      ...rental,
-      paid_amount: rental.paid_amount + amount,
-    };
-    const effectiveRent = rental.rent_amount - (rental.condoned_amount || 0);
-    if (updated.paid_amount >= effectiveRent) updated.status = "PAID";
-    else if (updated.paid_amount > 0) updated.status = "PARTIAL";
-    else updated.status = "UNPAID";
-    await db.saveWeeklyRental(updated);
+    await applyRentalPayment(rental.id, amount);
     setPaymentDialog(null);
     onRefreshAlerts();
   };
@@ -359,7 +354,7 @@ export function useDrivers(options: UseDriversOptions) {
         addressProofImg ? uploadDocumentImage(addressProofImg, "address") : Promise.resolve(null),
       ]);
 
-      await db.saveDriver({
+      await saveDriver({
         id: editingDriverId || undefined,
         first_name: firstName,
         paternal_last_name: paternalLastName,
