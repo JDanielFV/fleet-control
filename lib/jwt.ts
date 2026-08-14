@@ -30,12 +30,15 @@ function b64urlDecode(input: string): Uint8Array<ArrayBuffer> {
 }
 
 async function getHmacKey(secret: string): Promise<CryptoKey> {
+  // Both usages: the same key signs session cookies AND verifies them
+  // (verifyJwt). A sign-only key makes crypto.subtle.verify throw, which
+  // verifyJwt swallows into `null` — every session would look invalid.
   return crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign", "verify"]
   );
 }
 
