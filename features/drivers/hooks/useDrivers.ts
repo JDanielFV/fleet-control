@@ -328,7 +328,8 @@ export function useDrivers(options: UseDriversOptions) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !paternalLastName || !licenseCurp) {
+    const effectiveCurp = (licenseCurp || ineCurp || suggestedCurp || "").toUpperCase().trim();
+    if (!firstName.trim() || !paternalLastName.trim() || !effectiveCurp) {
       alert("Por favor completa los campos requeridos: Nombre, Apellido Paterno y CURP.");
       return;
     }
@@ -336,7 +337,7 @@ export function useDrivers(options: UseDriversOptions) {
     const isDuplicate = drivers.some(
       (d) =>
         d.id !== editingDriverId &&
-        (d.curp.toLowerCase().trim() === licenseCurp.toLowerCase().trim() ||
+        (d.curp.toLowerCase().trim() === effectiveCurp.toLowerCase().trim() ||
           (d.license_number && licenseNumber && d.license_number.toLowerCase().trim() === licenseNumber.toLowerCase().trim()) ||
           (d.ine_elector_key && ineElectorKey && d.ine_elector_key.toLowerCase().trim() === ineElectorKey.toLowerCase().trim()))
     );
@@ -356,18 +357,18 @@ export function useDrivers(options: UseDriversOptions) {
 
       await saveDriver({
         id: editingDriverId || undefined,
-        first_name: firstName,
-        paternal_last_name: paternalLastName,
-        maternal_last_name: maternalLastName,
-        curp: licenseCurp,
-        dob: ineDob,
-        license_number: licenseNumber,
+        first_name: firstName.trim(),
+        paternal_last_name: paternalLastName.trim(),
+        maternal_last_name: maternalLastName.trim(),
+        curp: effectiveCurp,
+        dob: ineDob || licenseDob,
+        license_number: licenseNumber.trim(),
         license_issue_date: licenseIssueDate,
         license_expiration_date: licenseIsPermanent ? "" : licenseExpirationDate,
         license_is_permanent: licenseIsPermanent,
-        ine_address: ineAddress,
+        ine_address: ineAddress.trim(),
         ine_sex: ineSex,
-        ine_elector_key: ineElectorKey,
+        ine_elector_key: ineElectorKey.trim(),
         ine_img: ineUrl,
         license_img: licenseUrl,
         driver_photo_img: photoUrl || driverPhotoImg || null,
@@ -432,7 +433,12 @@ export function useDrivers(options: UseDriversOptions) {
 
         if (target === "INE") {
           setIneImg(imageSource);
-          if (parsed.curp) { setIneCurp(parsed.curp); setIneDob(parsed.dob || ""); setOcrLogs((prev) => [...prev, `[OK] [Gemini] CURP INE: ${parsed.curp}`]); }
+          if (parsed.curp) {
+            setIneCurp(parsed.curp);
+            if (!licenseCurp) setLicenseCurp(parsed.curp);
+            setIneDob(parsed.dob || "");
+            setOcrLogs((prev) => [...prev, `[OK] [Gemini] CURP INE: ${parsed.curp}`]);
+          }
           if (parsed.electorKey) { setIneElectorKey(parsed.electorKey); setOcrLogs((prev) => [...prev, `[OK] [Gemini] Clave Elector: ${parsed.electorKey}`]); }
           if (parsed.firstName) setFirstName(parsed.firstName);
           if (parsed.paternalLastName) setPaternalLastName(parsed.paternalLastName);
@@ -453,6 +459,7 @@ export function useDrivers(options: UseDriversOptions) {
           }
           if (renewingDriver) { setRenewIsPermanent(false); setIsRenewOpen(true); }
           if (parsed.curp && !licenseCurp) setLicenseCurp(parsed.curp);
+          if (parsed.curp && !ineCurp) setIneCurp(parsed.curp);
           if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
           if (parsed.paternalLastName && !paternalLastName) setPaternalLastName(parsed.paternalLastName);
           if (parsed.maternalLastName && !maternalLastName) setMaternalLastName(parsed.maternalLastName);
@@ -492,7 +499,12 @@ export function useDrivers(options: UseDriversOptions) {
 
       if (target === "INE") {
         setIneImg(imageSource);
-        if (parsed.curp) { setIneCurp(parsed.curp); setIneDob(parsed.dob || ""); setOcrLogs((prev) => [...prev, `[OK] [Parser Local] CURP INE: ${parsed.curp}`]); }
+        if (parsed.curp) {
+          setIneCurp(parsed.curp);
+          if (!licenseCurp) setLicenseCurp(parsed.curp);
+          setIneDob(parsed.dob || "");
+          setOcrLogs((prev) => [...prev, `[OK] [Parser Local] CURP INE: ${parsed.curp}`]);
+        }
         if (parsed.electorKey) { setIneElectorKey(parsed.electorKey); setOcrLogs((prev) => [...prev, `[OK] [Parser Local] Clave Elector: ${parsed.electorKey}`]); }
         if (parsed.firstName) setFirstName(parsed.firstName);
         if (parsed.paternalLastName) setPaternalLastName(parsed.paternalLastName);
@@ -504,6 +516,7 @@ export function useDrivers(options: UseDriversOptions) {
         if (parsed.licenseNumber) setLicenseNumber(parsed.licenseNumber);
         if (parsed.expirationDate) setLicenseExpirationDate(parsed.expirationDate);
         if (parsed.curp && !licenseCurp) setLicenseCurp(parsed.curp);
+        if (parsed.curp && !ineCurp) setIneCurp(parsed.curp);
       }
 
       setOcrStep("done");
@@ -520,6 +533,7 @@ export function useDrivers(options: UseDriversOptions) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, target: "INE" | "LICENCIA") => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
     setIsScanning(true);
     setScanTarget(target);
     setOcrStep("align");
@@ -536,6 +550,7 @@ export function useDrivers(options: UseDriversOptions) {
   const handleAddressProofFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
     const reader = new FileReader();
     reader.onload = (event) => { if (event.target?.result) setAddressProofImg(event.target.result as string); };
     reader.readAsDataURL(file);

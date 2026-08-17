@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Check, StopCircle, Terminal, X } from "lucide-react";
+import { Camera, Check, FileText, StopCircle, Terminal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UseOcrScannerResult } from "@/components/useOcrScanner";
 
@@ -35,9 +36,22 @@ export default function ScannerViewfinder<T extends string>({
     isScanning,
     videoRef,
     canvasRef,
+    streamRef,
     capturePhoto,
     cancelScan,
   } = scanner;
+
+  // Bind video stream once the <video> element is mounted in DOM
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef?.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch((err) => {
+          console.warn("[Cámara] Error al iniciar reproducción de video:", err);
+        });
+      }
+    }
+  }, [isCameraActive, videoRef, streamRef]);
 
   if (!isScanning) return null;
 
@@ -62,14 +76,26 @@ export default function ScannerViewfinder<T extends string>({
 
       <div className="relative aspect-video w-full rounded-xl border border-primary/30 bg-muted overflow-hidden flex items-center justify-center">
         {isCameraActive && !cameraError ? (
-          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="text-center space-y-2 p-4 z-20">
-            <Camera
-              className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-primary animate-pulse" : "text-muted-foreground"}`}
-            />
+            {isCameraActive ? (
+              <Camera
+                className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-primary animate-pulse" : "text-muted-foreground"}`}
+              />
+            ) : (
+              <FileText
+                className={`w-8 h-8 mx-auto ${ocrStep !== "done" ? "text-primary animate-pulse" : "text-muted-foreground"}`}
+              />
+            )}
             <p className="text-xs font-bold text-foreground">
-              {ocrStep === "align" && (cameraError || "Iniciando captura...")}
+              {ocrStep === "align" && (cameraError || (isCameraActive ? "Iniciando cámara..." : "Procesando documento cargado..."))}
               {ocrStep === "scan" && labels.scan}
               {ocrStep === "extract" && labels.extract}
               {ocrStep === "done" && <><Check className="w-4 h-4 inline text-emerald-400" /> Procesado</>}

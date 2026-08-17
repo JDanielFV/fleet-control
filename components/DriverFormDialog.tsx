@@ -278,11 +278,11 @@ export default function DriverFormDialog(props: DriversFormProps) {
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div className="min-w-0 md:col-span-2">
                                       <Label htmlFor="firstName" className="text-muted-foreground text-xs">Nombres</Label>
-                                      <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="border-input bg-background rounded-xl w-full min-w-0" />
+                                      <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                                     </div>
                                     <div className="min-w-0">
                                       <Label htmlFor="patName" className="text-muted-foreground text-xs">Apellido Paterno</Label>
-                                      <Input id="patName" value={paternalLastName} onChange={(e) => setPaternalLastName(e.target.value)} required className="border-input bg-background rounded-xl w-full min-w-0" />
+                                      <Input id="patName" value={paternalLastName} onChange={(e) => setPaternalLastName(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                                     </div>
                                     <div className="min-w-0">
                                       <Label htmlFor="matName" className="text-muted-foreground text-xs">Apellido Materno</Label>

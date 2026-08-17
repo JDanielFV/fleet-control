@@ -195,6 +195,7 @@ export function useOcrScanner<T extends string>({
     setScanTarget,
     videoRef,
     canvasRef,
+    streamRef,
     startCamera,
     stopCamera,
     capturePhoto,
