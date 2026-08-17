@@ -46,7 +46,6 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
   startCamera,
   circFileRef,
   handleFileChange,
-  triggerOcrScanDemo,
   insFileRef,
   brand,
   setBrand,
@@ -170,7 +169,6 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                           <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
                           <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
                           <input type="file" accept="image/*" className="hidden" ref={circFileRef} onChange={(e) => handleFileChange(e, "CIRCULACION")} />
-                          <Button type="button" variant="ghost" onClick={() => triggerOcrScanDemo("CIRCULACION")} className="col-span-2 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center h-10">Simular Tarjeta Demo</Button>
                         </div>
                       </div>
 
@@ -181,7 +179,6 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                           <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
                           <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
                           <input type="file" accept="image/*,application/pdf" multiple className="hidden" ref={insFileRef} onChange={(e) => handleFileChange(e, "SEGURO")} />
-                          <Button type="button" variant="ghost" onClick={() => triggerOcrScanDemo("SEGURO")} className="col-span-2 text-xs text-muted-foreground hover:text-foreground font-bold uppercase tracking-wider text-center h-10">Simular Seguro Demo</Button>
                         </div>
                       </div>
 

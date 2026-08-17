@@ -585,48 +585,6 @@ export function useVehicles(options: UseVehiclesOptions) {
     reader.readAsDataURL(file);
   };
 
-  const triggerOcrScanDemo = (target: "CIRCULACION" | "SEGURO") => {
-    setIsScanning(true);
-    setScanTarget(target);
-    setOcrStep("align");
-    setOcrLogs(["Iniciando cámara de captura...", "Enfocando documento..."]);
-
-    setTimeout(() => { setOcrStep("scan"); setOcrLogs((prev) => [...prev, "Bordes del documento encontrados", "Leyendo código QR y barras holográficas..."]); }, 1000);
-    setTimeout(() => { setOcrStep("extract"); setOcrLogs((prev) => [...prev, "Procesando metadatos estructurados...", "Extrayendo Placa, Marca y VIN..."]); }, 2000);
-    setTimeout(() => {
-      setOcrStep("done");
-      setOcrLogs((prev) => [...prev, "[OK] Simulación completada"]);
-
-      if (target === "CIRCULACION") {
-        const demoVehicles = [
-          { brand: "Nissan", name: "Sentra", model: "2023", class: "Sedán - Confort", circExp: "2027-11-20", vin: "3N1CN81D7PL892103", plate: "741-XYZ", rent: 2600 },
-          { brand: "Toyota", name: "Prius", model: "2022", class: "Híbrido - Premium", circExp: "2028-04-15", vin: "JTDDKRFU9M3812049", plate: "852-MNO", rent: 2800 },
-          { brand: "Chevrolet", name: "Beat", model: "2020", class: "Hatchback - Económico", circExp: "2026-09-30", vin: "KL1TA54B9KC981023", plate: "963-JKL", rent: 2200 },
-          { brand: "Volkswagen", name: "Vento", model: "2021", class: "Sedán - Estándar", circExp: "2027-06-18", vin: "3VW2K4FX4LM819203", plate: "321-UWV", rent: 2400 },
-          { brand: "Hyundai", name: "Grand i10", model: "2022", class: "Hatchback - Compacto", circExp: "2028-02-10", vin: "MALAN51C7NM819203", plate: "456-RST", rent: 2300 },
-          { brand: "Kia", name: "Rio", model: "2023", class: "Sedán - Confort", circExp: "2027-12-05", vin: "3KPA24AD5PE819203", plate: "159-QWE", rent: 2500 },
-        ];
-        const idx = Math.floor(Math.random() * demoVehicles.length);
-        const choice = demoVehicles[idx];
-        setBrand(choice.brand);
-        setVehicleName(choice.name);
-        setModel(choice.model);
-        setClassType(choice.class);
-        setCirculationExpirationDate(choice.circExp);
-        setVin(choice.vin);
-        setPlateNumber(choice.plate);
-        setRentCost(choice.rent);
-      } else {
-        const demoInsurances = [{ date: "2027-06-15" }, { date: "2027-09-20" }, { date: "2026-12-10" }, { date: "2027-03-05" }, { date: "2028-01-18" }, { date: "2027-11-30" }];
-        const idx = Math.floor(Math.random() * demoInsurances.length);
-        setInsurancePolicyImg("base64_mock_insurance_policy_image_proof");
-        setInsuranceExpirationDate(demoInsurances[idx].date);
-      }
-
-      setTimeout(() => { setIsScanning(false); setScanTarget(null); }, 1000);
-    }, 3200);
-  };
-
   // --- Derived ---
   const filteredVehicles = vehicles.filter(
     (v) =>
@@ -679,7 +637,7 @@ export function useVehicles(options: UseVehiclesOptions) {
     toggleVehicleDetails, handleDeleteVehicle, handleEditVehicle,
     handleRenewDocument, submitRenewal, submitVerification,
     handleServiceOut, handleServiceReturn, handleReportWearPart, submitWearPart,
-    handleSave, resetForm, handleFileChange, triggerOcrScanDemo,
+    handleSave, resetForm, handleFileChange,
     startCamera, stopCamera,
     onOpenActionSheet, onAssignVehicle, onRefreshAlerts,
     loadData,
