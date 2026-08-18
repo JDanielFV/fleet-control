@@ -2,7 +2,7 @@ import { getSupabase } from "./index";
 import type { Vehicle } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedVehicles } from "./seed";
-import { VEHICLE_DATE_KEYS, genId, normalizeEmptyDates } from "./utils";
+import { VEHICLE_DATE_KEYS, genId, normalizeEmptyDates, isValidUuid } from "./utils";
 import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 
 export async function getVehicles(): Promise<Vehicle[]> {
@@ -24,7 +24,7 @@ export async function getArchivedVehicles(): Promise<Vehicle[]> {
     const { data, error } = await query.order("deleted_at", { ascending: false });
     if (!error) return data as Vehicle[];
   }
-  return ownerScoped(getLocalData("vehicles", seedVehicles)).filter((v) => v.deleted_at);
+  return ownerScoped(getLocalData("vehicles", seedVehicles)).filter((v) => !!v.deleted_at);
 }
 
 /**
@@ -52,11 +52,18 @@ function findDuplicateVehicle(fullVehicle: Vehicle): string | null {
 export async function saveVehicle(
   vehicle: Omit<Vehicle, "id" | "created_at"> & { id?: string; created_at?: string }
 ): Promise<Vehicle> {
+  const rawOwnerId = vehicle.owner_id ?? getOwnerId();
+  const owner_id = isValidUuid(rawOwnerId) ? rawOwnerId : null;
+
   const fullVehicle: Vehicle = normalizeEmptyDates(
     {
       ...vehicle,
       id: vehicle.id || genId(),
-      owner_id: vehicle.owner_id ?? getOwnerId() ?? undefined,
+      owner_id,
+      brand: vehicle.brand.trim(),
+      vehicle_name: vehicle.vehicle_name.trim(),
+      plate_number: vehicle.plate_number.toUpperCase().trim(),
+      vin: vehicle.vin?.toUpperCase().trim() || null,
       created_at: vehicle.created_at || new Date().toISOString(),
     },
     VEHICLE_DATE_KEYS

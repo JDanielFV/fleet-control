@@ -10,6 +10,47 @@ export function genId(): string {
   return Math.random().toString(36).substring(2, 11);
 }
 
+// Validate UUID v4 format
+export function isValidUuid(id: unknown): boolean {
+  if (typeof id !== "string") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
+}
+
+// Convert various date representations into valid Postgres date string (YYYY-MM-DD) or null
+export function normalizeDateString(val: unknown): string | null {
+  if (!val || typeof val !== "string") return null;
+  const s = val.trim();
+  if (!s || s === "undefined" || s === "null" || s === "—" || s === "-") return null;
+
+  // Already ISO format: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // DD/MM/YYYY or DD-MM-YYYY
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmy) {
+    const day = dmy[1].padStart(2, "0");
+    const month = dmy[2].padStart(2, "0");
+    const year = dmy[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // YYYY/MM/DD
+  const ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymd) {
+    const year = ymd[1];
+    const month = ymd[2].padStart(2, "0");
+    const day = ymd[3].padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+
+  return null;
+}
+
 // Postgres DATE columns reject empty strings ("invalid input syntax for type
 // date: \"\""). Normalize any empty-string date field to null before upsert so
 // forms that leave dates blank (e.g. permanent-license drivers) still save.
@@ -17,11 +58,11 @@ export function normalizeEmptyDates<T extends Record<string, unknown>>(
   obj: T,
   dateKeys: readonly string[]
 ): T {
-  const out = { ...obj };
+  const out = { ...obj } as Record<string, unknown>;
   for (const key of dateKeys) {
-    if (out[key] === "") (out as Record<string, unknown>)[key] = null;
+    out[key] = normalizeDateString(out[key]);
   }
-  return out;
+  return out as T;
 }
 
 export const DRIVER_DATE_KEYS = ["dob", "license_issue_date", "license_expiration_date"] as const;

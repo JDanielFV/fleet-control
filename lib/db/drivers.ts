@@ -2,7 +2,7 @@ import { getSupabase } from "./index";
 import type { Driver, Vehicle } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedDrivers } from "./seed";
-import { DRIVER_DATE_KEYS, genId, normalizeEmptyDates } from "./utils";
+import { DRIVER_DATE_KEYS, genId, normalizeEmptyDates, isValidUuid } from "./utils";
 import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 
 export async function getDrivers(): Promise<Driver[]> {
@@ -54,11 +54,25 @@ function findDuplicateDriver(fullDriver: Driver): string | null {
 export async function saveDriver(
   driver: Omit<Driver, "id" | "created_at"> & { id?: string; created_at?: string }
 ): Promise<Driver> {
+  const rawOwnerId = driver.owner_id ?? getOwnerId();
+  const owner_id = isValidUuid(rawOwnerId) ? rawOwnerId : null;
+
+  // Sanitize sex for Postgres CHECK (ine_sex = ANY (ARRAY['M', 'F', 'X']))
+  const validSex = driver.ine_sex === "F" ? "F" : driver.ine_sex === "X" ? "X" : "M";
+
   const fullDriver: Driver = normalizeEmptyDates(
     {
       ...driver,
       id: driver.id || genId(),
-      owner_id: driver.owner_id ?? getOwnerId() ?? undefined,
+      owner_id,
+      first_name: driver.first_name.trim(),
+      paternal_last_name: driver.paternal_last_name.trim(),
+      maternal_last_name: driver.maternal_last_name?.trim() || null,
+      curp: driver.curp.toUpperCase().trim(),
+      license_number: driver.license_number?.trim() || null,
+      ine_address: driver.ine_address?.trim() || null,
+      ine_elector_key: driver.ine_elector_key?.trim() || null,
+      ine_sex: validSex,
       created_at: driver.created_at || new Date().toISOString(),
     },
     DRIVER_DATE_KEYS
@@ -74,6 +88,9 @@ export async function saveDriver(
       console.error("Supabase saveDriver error:", error.message, error.details, error.hint);
       if (error.code === "23505") {
         throw new Error("Ya existe un chofer registrado con ese CURP, número de licencia o clave de elector.");
+      }
+      if (error.code === "23503") {
+        throw new Error("Error de sesión: el usuario no existe en la base de datos.");
       }
       throw new Error(error.message);
     }
