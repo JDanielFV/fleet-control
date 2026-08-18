@@ -352,7 +352,7 @@ export const EntityActionSheet = ({
       </div>
 
       {isLoading && (
-        <div className="absolute inset-0 bg-background/70 flex items-center justify-center z-[60]" aria-busy="true" aria-label="Cargando...">
+        <div className="absolute inset-0 bg-background/70 flex items-center justify-center z-[var(--z-loading)]" aria-busy="true" aria-label="Cargando...">
           <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent"></div>
         </div>
       )}
@@ -378,12 +378,12 @@ export const EntityActionSheet = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="fixed inset-0 bg-black/75 z-40 backdrop-blur-md"
+        className="fixed inset-0 bg-black/75 z-[var(--z-overlay)] backdrop-blur-md"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pointer-events-none modal-safe-area">
         <motion.div
           role="dialog"
           aria-modal="true"

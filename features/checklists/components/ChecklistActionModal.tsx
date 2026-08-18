@@ -26,10 +26,10 @@ export default function ChecklistActionModal({
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="fixed inset-0 bg-black/75 z-40 backdrop-blur-md"
+        className="fixed inset-0 bg-black/75 z-[var(--z-overlay)] backdrop-blur-md"
         onClick={onClose} aria-hidden="true"
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pointer-events-none modal-safe-area">
         <motion.div
           role="dialog" aria-modal="true"
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
