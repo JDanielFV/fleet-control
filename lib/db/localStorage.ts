@@ -132,9 +132,9 @@ export function mergePendingLocal<T extends { id: string }>(
   ownerId?: string | null
 ): T[] {
   const localAll = getLocalData(table, seed);
-  const local = ownerId
-    ? localAll.filter((l) => (l as { owner_id?: string | null }).owner_id === ownerId)
-    : [];
+  const local = !ownerId
+    ? localAll
+    : localAll.filter((l) => !(l as { owner_id?: string | null }).owner_id || (l as { owner_id?: string | null }).owner_id === ownerId);
   if (!remote) return local;
   const pending = getPendingIds(table);
   if (!pending.length) return remote;

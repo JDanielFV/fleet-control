@@ -4,12 +4,15 @@ import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendi
 import { seedDrivers } from "./seed";
 import { DRIVER_DATE_KEYS, genId, normalizeEmptyDates, isValidUuid } from "./utils";
 import { getOwnerId, ownerScoped, ownerEq } from "./owner";
+import { getSession } from "@/lib/session";
 
 export async function getDrivers(): Promise<Driver[]> {
-  const ownerId = getOwnerId();
+  const session = getSession();
+  const ownerId = session?.userId;
+  const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("drivers").select("*").is("deleted_at", null);
-    if (ownerId) query = query.eq("owner_id", ownerId);
+    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("drivers", data, seedDrivers, ownerId);
   }
@@ -17,10 +20,12 @@ export async function getDrivers(): Promise<Driver[]> {
 }
 
 export async function getArchivedDrivers(): Promise<Driver[]> {
-  const ownerId = getOwnerId();
+  const session = getSession();
+  const ownerId = session?.userId;
+  const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("drivers").select("*").not("deleted_at", "is", null);
-    if (ownerId) query = query.eq("owner_id", ownerId);
+    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
     const { data, error } = await query.order("deleted_at", { ascending: false });
     if (!error) return data as Driver[];
   }

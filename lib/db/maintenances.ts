@@ -4,12 +4,15 @@ import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendi
 import { seedMaintenances } from "./seed";
 import { genId } from "./utils";
 import { getOwnerId, ownerScoped } from "./owner";
+import { getSession } from "@/lib/session";
 
 export async function getMaintenances(): Promise<Maintenance[]> {
-  const ownerId = getOwnerId();
+  const session = getSession();
+  const ownerId = session?.userId;
+  const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("maintenances").select("*");
-    if (ownerId) query = query.eq("owner_id", ownerId);
+    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("maintenances", data, seedMaintenances, ownerId);
   }

@@ -1,18 +1,16 @@
-import type { Alert, Vehicle } from "./types";
+import type { Alert, Vehicle, Driver, Maintenance, Checklist } from "./types";
 import { getLocalData, setLocalData } from "./localStorage";
 import { getVerificationSchedule } from "./utils";
 import { estimateServiceDate } from "../utils";
 import { getOwnerId } from "./owner";
+import { computeUsageStats } from "../usageStats";
 
-export async function getAlerts(): Promise<Alert[]> {
-  const { getDrivers } = await import("./drivers");
-  const { getVehicles } = await import("./vehicles");
-  const { getMaintenances } = await import("./maintenances");
-  const { getChecklists } = await import("./checklists");
-
-  const drivers = await getDrivers();
-  const vehicles = await getVehicles();
-  const maintenances = await getMaintenances();
+export function computeAlerts(
+  drivers: Driver[],
+  vehicles: Vehicle[],
+  maintenances: Maintenance[],
+  checklists: Checklist[]
+): Alert[] {
   const alerts: Alert[] = [];
   const today = new Date();
 
@@ -133,7 +131,6 @@ export async function getAlerts(): Promise<Alert[]> {
   });
 
   // 5. Mileage-based maintenance alerts
-  const checklists = await getChecklists();
   for (const vehicle of vehicles) {
     if (!vehicle.next_service_mileage) continue;
 
@@ -148,7 +145,6 @@ export async function getAlerts(): Promise<Alert[]> {
 
     if (kmRemaining > 1000) continue;
 
-    const { computeUsageStats } = await import("../usageStats");
     const stats = computeUsageStats(vChecklists);
     const est = estimateServiceDate(latestMileage, vehicle.next_service_mileage, stats.monthlyAverage);
 
@@ -172,6 +168,22 @@ export async function getAlerts(): Promise<Alert[]> {
 
   const completed = getLocalData("completed_alerts", [] as string[]);
   return alerts.filter((a) => !completed.includes(a.id));
+}
+
+export async function getAlerts(): Promise<Alert[]> {
+  const { getDrivers } = await import("./drivers");
+  const { getVehicles } = await import("./vehicles");
+  const { getMaintenances } = await import("./maintenances");
+  const { getChecklists } = await import("./checklists");
+
+  const [drivers, vehicles, maintenances, checklists] = await Promise.all([
+    getDrivers(),
+    getVehicles(),
+    getMaintenances(),
+    getChecklists(),
+  ]);
+
+  return computeAlerts(drivers, vehicles, maintenances, checklists);
 }
 
 export async function dismissAlert(alertId: string): Promise<boolean> {

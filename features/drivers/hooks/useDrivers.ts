@@ -141,8 +141,10 @@ export function useDrivers(options: UseDriversOptions) {
 
   // --- Data loading ---
   const loadDrivers = useCallback(async () => {
-    const list = showArchived ? await getArchivedDrivers() : await getDrivers();
-    const vList = await getVehicles();
+    const [list, vList] = await Promise.all([
+      showArchived ? getArchivedDrivers() : getDrivers(),
+      getVehicles(),
+    ]);
     setDrivers(list);
     setVehicles(vList);
   }, [showArchived]);
@@ -161,18 +163,6 @@ export function useDrivers(options: UseDriversOptions) {
     })();
     return () => { isStale = true; };
   }, [showArchived]);
-
-  useEffect(() => {
-    let isStale = false;
-    (async () => {
-      const [list, vList] = await Promise.all([getDrivers(), getVehicles()]);
-      if (isStale) return;
-      setDrivers(list);
-      setVehicles(vList);
-      setIsLoading(false);
-    })();
-    return () => { isStale = true; };
-  }, [onRefreshAlerts]);
 
   // --- Handlers ---
 

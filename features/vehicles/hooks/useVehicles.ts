@@ -196,30 +196,7 @@ export function useVehicles(options: UseVehiclesOptions) {
       setIsLoading(false);
     })();
     return () => { isStale = true; };
-  }, [showArchived]);
-
-  useEffect(() => {
-    let isStale = false;
-    (async () => {
-      const [list, dList, maints, assigns, cls, rents] = await Promise.all([
-        getVehicles(),
-        getDrivers(),
-        getMaintenances(),
-        getAssignments(),
-        getChecklists(),
-        getWeeklyRentals(),
-      ]);
-      if (isStale) return;
-      setVehicles(list);
-      setDrivers(dList);
-      setMaintenances(maints);
-      setAssignments(assigns);
-      setChecklists(cls);
-      setWeeklyRentals(rents);
-      setIsLoading(false);
-    })();
-    return () => { isStale = true; };
-  }, [refreshTrigger]);
+  }, [showArchived, refreshTrigger]);
 
   // --- Handlers ---
 

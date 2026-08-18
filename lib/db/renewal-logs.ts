@@ -3,6 +3,7 @@ import type { RenewalLog } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { genId } from "./utils";
 import { getOwnerId, ownerScoped } from "./owner";
+import { getSession } from "@/lib/session";
 
 const EMPTY_SEED: RenewalLog[] = [];
 
@@ -28,10 +29,12 @@ export async function saveRenewalLog(log: Omit<RenewalLog, "id" | "created_at">)
 }
 
 export async function getRenewalLogs(vehicleId?: string): Promise<RenewalLog[]> {
-  const ownerId = getOwnerId();
+  const session = getSession();
+  const ownerId = session?.userId;
+  const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("renewal_logs").select("*");
-    if (ownerId) query = query.eq("owner_id", ownerId);
+    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
     if (vehicleId) query = query.eq("vehicle_id", vehicleId);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("renewal_logs", data, EMPTY_SEED, ownerId);

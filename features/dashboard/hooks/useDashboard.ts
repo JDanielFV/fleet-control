@@ -5,11 +5,12 @@ import { Driver, Vehicle, Checklist, WeeklyRental, Alert, User } from "@/lib/db"
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { getVerificationSchedule } from "@/lib/db";
 import { applyRentalPayment, getWeeklyRentals, saveWeeklyRental } from "@/lib/db/finances";
-import { dismissAlert, getAlerts } from "@/lib/db/alerts";
+import { dismissAlert, getAlerts, computeAlerts } from "@/lib/db/alerts";
 import { getVehicles, saveVehicle } from "@/lib/db/vehicles";
 import { getDrivers } from "@/lib/db/drivers";
 import { getAssignments } from "@/lib/db/assignments";
 import { getChecklists } from "@/lib/db/checklists";
+import { getMaintenances } from "@/lib/db/maintenances";
 import { getVehicleInventory, saveVehicleInventory } from "@/lib/db/inventory";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { getSession, syncSessionFromServer } from "@/lib/auth";
@@ -153,40 +154,43 @@ export function useDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Data loading
-  const loadAlerts = useCallback(async () => {
-    const list = await getAlerts();
-    setAlerts(list);
-  }, []);
-
-  const loadStats = useCallback(async () => {
-    const vList = await getVehicles();
-    const dList = await getDrivers();
-    const aList = await getAssignments();
-    const cList = await getChecklists();
-    const rList = await getWeeklyRentals();
-
-    setVehicles(vList);
-    setDrivers(dList);
-    setChecklists(cList);
-    setWeeklyRentals(rList);
-
-    const activeAss = aList.filter((x) => x.action_type === "ASSIGN");
-    const activeVehicles = new Set(activeAss.map((x) => x.vehicle_id));
-    setStats({ vehicles: vList.length, drivers: dList.length, assigned: activeVehicles.size });
-
-  }, []);
-
+  // Data loading in a single parallel batch (1 network roundtrip instead of sequential roundtrips)
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await Promise.all([loadAlerts(), loadStats()]);
+      const [vList, dList, aList, cList, rList, mList] = await Promise.all([
+        getVehicles(),
+        getDrivers(),
+        getAssignments(),
+        getChecklists(),
+        getWeeklyRentals(),
+        getMaintenances(),
+      ]);
+
+      setVehicles(vList);
+      setDrivers(dList);
+      setChecklists(cList);
+      setWeeklyRentals(rList);
+
+      const activeAss = aList.filter((x) => x.action_type === "ASSIGN");
+      const activeVehicles = new Set(activeAss.map((x) => x.vehicle_id));
+      setStats({ vehicles: vList.length, drivers: dList.length, assigned: activeVehicles.size });
+
+      const alertList = computeAlerts(dList, vList, mList, cList);
+      setAlerts(alertList);
     } catch (e) {
       console.error("Error loading dashboard data:", e);
     } finally {
       setIsLoading(false);
     }
-  }, [loadAlerts, loadStats]);
+  }, []);
+
+  const loadAlerts = useCallback(async () => {
+    const list = await getAlerts();
+    setAlerts(list);
+  }, []);
+
+  const loadStats = loadData;
 
   useEffect(() => { Promise.resolve().then(() => { void loadData(); }); }, [loadData, refreshTrigger]);
 
