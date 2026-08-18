@@ -34,7 +34,7 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside
-      className="hidden md:flex md:shrink-0 md:w-24 bg-card/95 backdrop-blur-md border-r border-border flex-col z-30 items-center"
+      className="hidden md:flex md:shrink-0 md:w-24 bg-card/95 backdrop-blur-md border-r border-border flex-col z-[var(--z-sidebar)] items-center"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       {/* Brand */}

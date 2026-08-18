@@ -258,7 +258,7 @@ export default function DriversSlice(props: DriversSliceProps) {
 
                                     {/* Condonation Dialog */}
                                     {condonationDialog && (
-                                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setCondonationDialog(null)}>
+                                      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50" onClick={() => setCondonationDialog(null)}>
                                         <div className="bg-background border border-border rounded-xl p-4 w-full max-w-xs mx-4 sm:w-64 sm:max-w-none sm:mx-0 shadow-xl" onClick={(e) => e.stopPropagation()}>
                                           <div className="flex items-center gap-2 mb-3"><Minus className="w-4 h-4 text-amber-400" /><span className="text-xs font-semibold text-foreground">Condonar Días</span></div>
                                           <p className="text-[10px] text-muted-foreground mb-3">Semana del {new Date(condonationDialog.weekStart + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}</p>
@@ -279,7 +279,7 @@ export default function DriversSlice(props: DriversSliceProps) {
 
                                     {/* Payment Dialog */}
                                     {paymentDialog && (
-                                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPaymentDialog(null)}>
+                                      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50" onClick={() => setPaymentDialog(null)}>
                                         <div className="bg-background border border-border rounded-xl p-4 w-full max-w-xs mx-4 sm:w-64 sm:max-w-none sm:mx-0 shadow-xl" onClick={(e) => e.stopPropagation()}>
                                           <div className="flex items-center gap-2 mb-3"><DollarSign className="w-4 h-4 text-green-400" /><span className="text-xs font-semibold text-foreground">Registrar Pago</span></div>
                                           <p className="text-[10px] text-muted-foreground mb-3">Semana del {new Date(paymentDialog.weekStart + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}</p>
