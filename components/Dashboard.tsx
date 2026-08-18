@@ -559,15 +559,20 @@ export default function Dashboard() {
       </Dialog>
 
       {/* Mobile Bottom Nav */}
-      <nav className="relative md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40">
+      <nav aria-label="Navegación principal" className="relative md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40">
         {mobileNavItems.map((tab) => {
           const Icon = tab.icon;
           const isSelected = ctx.activeTab === tab.id;
           return (
-            <button key={tab.id} onClick={() => ctx.handleTabChange(tab.id as TabId)}
+            <button key={tab.id} onClick={() => ctx.handleTabChange(tab.id as TabId)} aria-current={isSelected ? "page" : undefined}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-xs transition-all active:scale-95 cursor-pointer relative ${isSelected ? "text-primary font-bold" : "text-muted-foreground"}`}>
               <Icon className={`w-5 h-5 mb-0.5 transition-transform ${isSelected ? "scale-105" : ""}`} />
               <span>{tab.label}</span>
+              {tab.id === "dashboard" && ctx.alerts.length > 0 && (
+                <span className="absolute top-1 right-1 min-w-[14px] h-3.5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {ctx.alerts.length}
+                </span>
+              )}
               {isSelected && <motion.div layoutId="activeBottomIndicator" className="absolute top-0 w-8 h-[2.5px] bg-primary rounded-full" transition={{ type: "spring", stiffness: 380, damping: 30 }} />}
             </button>
           );
