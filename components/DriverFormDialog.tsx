@@ -288,6 +288,21 @@ export default function DriverFormDialog(props: DriversFormProps) {
                                       <Label htmlFor="matName" className="text-muted-foreground text-xs">Apellido Materno</Label>
                                       <Input id="matName" value={maternalLastName} onChange={(e) => setMaternalLastName(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" />
                                     </div>
+                                    <div className="min-w-0 md:col-span-2">
+                                      <Label htmlFor="mainCurp" className="text-muted-foreground text-xs font-bold">CURP *</Label>
+                                      <Input
+                                        id="mainCurp"
+                                        value={licenseCurp || ineCurp}
+                                        onChange={(e) => {
+                                          const val = e.target.value.toUpperCase().trim();
+                                          setLicenseCurp(val);
+                                          setIneCurp(val);
+                                        }}
+                                        placeholder="18 caracteres (ej. ABCD123456HDFRRN01)"
+                                        maxLength={18}
+                                        className="border-input bg-background rounded-xl w-full min-w-0 uppercase font-mono"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
 

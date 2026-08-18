@@ -382,8 +382,9 @@ export function useVehicles(options: UseVehiclesOptions) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!brand || !vehicleName || !plateNumber) {
-      alert("Por favor completa los campos obligatorios (*)");
+    if (!brand.trim() || !vehicleName.trim() || !plateNumber.trim()) {
+      scrollToSection("datos");
+      alert("Por favor completa los campos obligatorios: Marca, Vehículo y Placa.");
       return;
     }
 
@@ -459,6 +460,14 @@ export function useVehicles(options: UseVehiclesOptions) {
   // --- OCR ---
   const processOcrOnImageSource = async (imageSource: string, target: "CIRCULACION" | "SEGURO") => {
     setOcrStep("scan");
+    if (target === "CIRCULACION") {
+      if (renewingVehicle) setRenewPolicyImg(imageSource);
+      else setCirculationImg(imageSource);
+    } else if (target === "SEGURO") {
+      if (renewingVehicle) setRenewPolicyImg(imageSource);
+      else setInsurancePolicyImg(imageSource);
+    }
+
     setOcrLogs((prev) => [...prev, `[OCR] Iniciando reconocimiento para: ${target}`, "[OCR] Intentando transcripción en la nube con Gemini..."]);
 
     try {

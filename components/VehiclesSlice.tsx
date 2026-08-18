@@ -186,8 +186,8 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                       <div id="section-datos" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="min-w-0"><Label htmlFor="brand" className="text-muted-foreground text-xs">Marca</Label><Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} required placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                          <div className="min-w-0"><Label htmlFor="vName" className="text-muted-foreground text-xs">Vehículo / Submarca</Label><Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} required placeholder="ej. Versa" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                          <div className="min-w-0"><Label htmlFor="brand" className="text-muted-foreground text-xs">Marca *</Label><Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                          <div className="min-w-0"><Label htmlFor="vName" className="text-muted-foreground text-xs">Vehículo / Submarca *</Label><Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} placeholder="ej. Versa" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                           <div className="min-w-0"><Label htmlFor="model" className="text-muted-foreground text-xs">Modelo (Año)</Label><Input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="ej. 2022" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                           <div className="min-w-0"><Label htmlFor="classType" className="text-muted-foreground text-xs">Clase / Tipo</Label><Input id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} placeholder="ej. Sedán" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                         </div>
@@ -199,8 +199,8 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="min-w-0">
-                              <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa</Label>
-                              <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" required className="border-input bg-background rounded-xl w-full min-w-0" />
+                              <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa *</Label>
+                              <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" className="border-input bg-background rounded-xl w-full min-w-0" />
                               {isPlateLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1"><AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.</span>}
                             </div>
                             <div className="min-w-0">
@@ -214,7 +214,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                             <div className="min-w-0"><Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label><Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label><Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" required /></div>
+                            <div className="min-w-0"><Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label><Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" /></div>
                             <div className="min-w-0"><Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label><Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" /></div>
                           </div>
                           <div className="min-w-0"><Label htmlFor="color" className="text-muted-foreground text-xs">Color del Auto</Label><Input id="color" value={color} onChange={(e) => setColor(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. Rojo, Blanco, Gris" /></div>

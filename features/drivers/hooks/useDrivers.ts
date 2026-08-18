@@ -330,7 +330,9 @@ export function useDrivers(options: UseDriversOptions) {
     e.preventDefault();
     const effectiveCurp = (licenseCurp || ineCurp || suggestedCurp || "").toUpperCase().trim();
     if (!firstName.trim() || !paternalLastName.trim() || !effectiveCurp) {
-      alert("Por favor completa los campos requeridos: Nombre, Apellido Paterno y CURP.");
+      setShowManualFields(true);
+      scrollToSection("datos");
+      alert("Por favor completa los campos obligatorios: Nombre, Apellido Paterno y CURP.");
       return;
     }
 
@@ -414,6 +416,9 @@ export function useDrivers(options: UseDriversOptions) {
   // --- OCR ---
   const processOcrOnImageSource = async (imageSource: string, target: "INE" | "LICENCIA") => {
     setOcrStep("scan");
+    if (target === "INE") setIneImg(imageSource);
+    else if (target === "LICENCIA") setLicenseImg(imageSource);
+
     const initOcrMsg = `[OCR] Iniciando reconocimiento para ${target}...`;
     console.log(initOcrMsg);
     setOcrLogs((prev) => [...prev, initOcrMsg, "[OCR] Intentando transcripción en la nube con Gemini..."]);

@@ -38,8 +38,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Image must be a base64 string" }, { status: 400 });
     }
 
-    // Strip base64 metadata headers if present (e.g. data:image/jpeg;base64,)
-    const base64Data = image.replace(/^data:image\/[a-z]+;base64,/, "");
+    // Extract MIME type and pure base64 data
+    let mimeType = "image/jpeg";
+    let base64Data = image;
+
+    const dataUrlMatch = image.match(/^data:([^;]+);base64,([\s\S]+)$/);
+    if (dataUrlMatch) {
+      mimeType = dataUrlMatch[1].toLowerCase();
+      base64Data = dataUrlMatch[2];
+    } else {
+      base64Data = image.replace(/^data:[^;]+;base64,/, "");
+    }
+
+    if (mimeType === "image/jpg") mimeType = "image/jpeg";
+    const supportedMimes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
+    if (!supportedMimes.includes(mimeType)) {
+      mimeType = "image/jpeg";
+    }
 
     // Rough size check: base64 is ~4/3 of binary size.
     const approximateMb = (base64Data.length * 3) / 4 / 1024 / 1024;
@@ -114,7 +129,7 @@ No incluyas formateo de markdown (como \`\`\`json) en tu respuesta, devuelve est
                 { text: prompt },
                 {
                   inlineData: {
-                    mimeType: "image/jpeg",
+                    mimeType,
                     data: base64Data,
                   },
                 },
@@ -142,7 +157,8 @@ No incluyas formateo de markdown (como \`\`\`json) en tu respuesta, devuelve est
     }
 
     // Parse the JSON output returned by Gemini
-    const parsedData = JSON.parse(resultText.trim());
+    const cleanedText = resultText.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const parsedData = JSON.parse(cleanedText);
     // Never log the parsed document: it contains PII (CURP, INE, license).
     if (process.env.SUPABASE_JWT_SECRET) {
       const session = await getSessionFromRequest(request);
