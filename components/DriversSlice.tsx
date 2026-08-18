@@ -12,6 +12,7 @@ import LicenseRenewalDialogs from "@/components/LicenseRenewalDialogs";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
 import { resolveDocUrl } from "@/lib/db/storage";
 import { useDrivers } from "@/features/drivers/hooks/useDrivers";
+import { MobileCard, MobileActionButton } from "@/components/ui/MobileCard";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
@@ -72,8 +73,8 @@ export default function DriversSlice(props: DriversSliceProps) {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="w-full overflow-x-auto pb-6">
+      {/* Table (≥768px) */}
+      <div className="hidden md:block w-full overflow-x-auto pb-6">
         {isLoading ? (
           <DriversListSkeleton count={4} />
         ) : (
@@ -308,6 +309,95 @@ export default function DriversSlice(props: DriversSliceProps) {
               </tbody>
             </table>
           </>
+        )}
+      </div>
+
+      {/* Card list móvil (<768px) — misma data que la tabla */}
+      <div className="md:hidden space-y-3 pb-2">
+        {isLoading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/60 bg-card p-3.5 space-y-2.5 animate-pulse">
+              <div className="h-4 w-2/3 bg-muted rounded-full" />
+              <div className="h-3 w-1/2 bg-muted rounded-full" />
+              <div className="h-9 w-full bg-muted rounded-xl" />
+            </div>
+          ))
+        ) : filteredDrivers.length === 0 ? (
+          <p className="text-center py-10 text-muted-foreground italic text-sm">No se encontraron conductores.</p>
+        ) : (
+          filteredDrivers.map((driver) => {
+            const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
+            const licenseExpired = !driver.license_is_permanent && !!driver.license_expiration_date && new Date(driver.license_expiration_date) < new Date();
+            return (
+              <MobileCard
+                key={driver.id}
+                onClick={() => toggleDriverDetails(driver.id)}
+                statusClass={licenseExpired ? "border-l-4 border-l-red-500" : !assignedVehicle ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-transparent"}
+                header={
+                  <>
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className="relative w-10 h-10 rounded-full overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0 cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); if (driver.driver_photo_img) setPreviewImage(resolveDocUrl(driver.driver_photo_img)); }}
+                      >
+                        {driver.driver_photo_img ? <Image src={resolveDocUrl(driver.driver_photo_img)} alt="Foto" fill className="object-cover" /> : <User className="w-5 h-5 text-muted-foreground/60" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-base font-extrabold text-foreground leading-tight truncate">{driver.first_name} {driver.paternal_last_name}</span>
+                        <span className="block text-[11px] text-muted-foreground font-semibold mt-0.5 truncate">
+                          {assignedVehicle ? <span className="inline-flex items-center gap-1"><Car className="w-3 h-3" />{assignedVehicle.plate_number}</span> : "Sin auto asignado"}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${driver.license_is_permanent ? "bg-primary/10 text-primary" : licenseExpired ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-600"}`}>
+                      {driver.license_is_permanent ? "Permanente" : licenseExpired ? "Vencida" : "Vigente"}
+                    </span>
+                  </>
+                }
+                rows={[
+                  { label: "CURP", value: <span className="font-mono">{driver.curp}</span> },
+                  { label: "Licencia", value: <span className="font-mono">{driver.license_number || "—"}</span> },
+                  { label: "Vence", value: driver.license_is_permanent ? "Permanente" : <span className={licenseExpired ? "text-red-400 font-bold" : ""}>{driver.license_expiration_date || "—"}</span> },
+                ]}
+                actions={
+                  <div className="grid grid-cols-2 gap-2">
+                    {!assignedVehicle && onAssignDriver && (
+                      <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); onAssignDriver!(driver.id); }}>
+                        <ArrowLeftRight className="w-4 h-4" /> Asignar
+                      </MobileActionButton>
+                    )}
+                    {!driver.license_is_permanent && (
+                      <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}>
+                        <RefreshCcw className="w-4 h-4" /> Renovar
+                      </MobileActionButton>
+                    )}
+                    <MobileActionButton onClick={(e) => { e.stopPropagation(); exportDriverPdf(driver); }}>
+                      <Download className="w-4 h-4" /> Exportar
+                    </MobileActionButton>
+                    <MobileActionButton onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}>
+                      <Pencil className="w-4 h-4" /> Editar
+                    </MobileActionButton>
+                    <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}>
+                      <Trash2 className="w-4 h-4" /> Eliminar
+                    </MobileActionButton>
+                  </div>
+                }
+              >
+                {expandedDriverDetails[driver.id] && (
+                  <div className="pt-2 border-t border-border/40 space-y-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Clave Elector</span>
+                      <span className="text-xs font-semibold font-mono">{driver.ine_elector_key || "N/D"}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Domicilio INE</span>
+                      <span className="text-xs font-semibold text-right">{driver.ine_address || "N/D"}</span>
+                    </div>
+                  </div>
+                )}
+              </MobileCard>
+            );
+          })
         )}
       </div>
 
