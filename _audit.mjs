@@ -26,6 +26,10 @@ const VIEWPORTS = [
   { width: 390, height: 844, mobile: true },
   { width: 430, height: 932, mobile: true },
   { width: 768, height: 1024, mobile: true },
+  // Rango híbrido 768–1024 (sidebar visible + overlays): línea base para la
+  // decisión de breakpoints de la Fase 1 (ver docs/superpowers/plans/2026-08-18-breakpoints-phase1.md)
+  { width: 800, height: 900, mobile: true },
+  { width: 900, height: 900, mobile: false },
   { width: 1024, height: 768, mobile: false },
   { width: 1440, height: 900, mobile: false },
 ];
