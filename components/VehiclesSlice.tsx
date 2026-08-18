@@ -18,6 +18,7 @@ import ScannerViewfinder from "@/components/ScannerViewfinder";
 import VehicleHistory from "@/components/VehicleHistory";
 import { resolveDocUrl } from "@/lib/db/storage";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
+import { MobileCard, MobileActionButton } from "@/components/ui/MobileCard";
 
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
@@ -284,8 +285,8 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="w-full overflow-x-auto pb-6">
+      {/* Table (≥768px) */}
+      <div className="hidden md:block w-full overflow-x-auto pb-6">
         {isLoading ? (
           <VehiclesListSkeleton count={4} />
         ) : (
@@ -476,6 +477,86 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
               )}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* Card list móvil (<768px) — misma data que la tabla */}
+      <div className="md:hidden space-y-3 pb-2">
+        {isLoading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/60 bg-card p-3.5 space-y-2.5 animate-pulse">
+              <div className="h-4 w-2/3 bg-muted rounded-full" />
+              <div className="h-3 w-1/2 bg-muted rounded-full" />
+              <div className="h-9 w-full bg-muted rounded-xl" />
+            </div>
+          ))
+        ) : filteredVehicles.length === 0 ? (
+          <p className="text-center py-10 text-muted-foreground italic text-sm">No se encontraron vehículos.</p>
+        ) : (
+          filteredVehicles.map((vehicle) => {
+            const vehicleId = vehicle.vin?.slice(-6).toUpperCase() || "—";
+            const schedule = getVerificationSchedule(vehicle.plate_number);
+            const driverName = vehicle.active_driver_id ? getDriverName(drivers, vehicle.active_driver_id) : null;
+            const isInService = vehicle.status === "in_service";
+            return (
+              <MobileCard
+                key={vehicle.id}
+                onClick={() => toggleVehicleDetails(vehicle.id)}
+                statusClass={isInService ? "border-l-4 border-l-blue-500" : !vehicle.active_driver_id ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-transparent"}
+                header={
+                  <>
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-base font-extrabold text-foreground leading-tight">{vehicle.brand} {vehicle.vehicle_name} {vehicle.model}</span>
+                      <span className="block text-[11px] text-muted-foreground font-semibold mt-0.5 font-mono">{vehicle.plate_number} · {vehicleId}</span>
+                    </div>
+                    <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isInService ? "bg-blue-500/10 text-blue-500" : vehicle.active_driver_id ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-500"}`}>
+                      {isInService ? "Servicio" : vehicle.active_driver_id ? "Asignado" : "Disponible"}
+                    </span>
+                  </>
+                }
+                rows={[
+                  { label: "Chofer", value: driverName ? <span className="text-primary font-semibold">{driverName}</span> : <span className="text-amber-500 font-semibold">Sin chofer</span> },
+                ]}
+                actions={
+                  <div className="grid grid-cols-2 gap-2">
+                    {!vehicle.active_driver_id && onAssignVehicle && (
+                      <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); onAssignVehicle!(vehicle.id); }}>
+                        <ArrowLeftRight className="w-4 h-4" /> Asignar
+                      </MobileActionButton>
+                    )}
+                    <MobileActionButton onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}>
+                      <Pencil className="w-4 h-4" /> Editar
+                    </MobileActionButton>
+                    <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}>
+                      <Trash2 className="w-4 h-4" /> Eliminar
+                    </MobileActionButton>
+                  </div>
+                }
+              >
+                {expandedVehicleDetails[vehicle.id] && (
+                  <div className="pt-2 border-t border-border/40 space-y-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Estado</span>
+                      <span className={`text-xs font-bold ${isInService ? "text-amber-500" : "text-emerald-600"}`}>{isInService ? "En Servicio" : "Activo"}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Engomado</span>
+                      <span className="text-xs font-semibold flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{ backgroundColor: schedule.color === "Amarillo" ? "#eab308" : schedule.color === "Rosa" ? "#ec4899" : schedule.color === "Rojo" ? "#ef4444" : schedule.color === "Verde" ? "#22c55e" : "#3b82f6" }} />
+                        {schedule.color} · {schedule.months}
+                      </span>
+                    </div>
+                    {vehicle.next_service_mileage && (
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Próx. Servicio</span>
+                        <span className="text-xs font-semibold">{vehicle.next_service_mileage.toLocaleString()} km</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </MobileCard>
+            );
+          })
         )}
       </div>
 
