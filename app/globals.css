@@ -45,19 +45,21 @@
   --color-warning: #FFCC00;
   --color-critical: #FF3B30;
   --font-size-base: 22px;
+
+  /* Z-index scale — consistent stacking for fixed-position elements */
+  --z-sidebar: 30;
+  --z-nav: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-loading: 70;
+  --z-toast: 80;
 }
 
 /* Ensure mobile viewport layout uses full screen including safe areas */
 html, body {
   font-size: 16px;
   overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overscroll-behavior: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior: contain;
   height: 100%;
   height: -webkit-fill-available;
   min-height: 100%;
@@ -133,6 +135,14 @@ body::before {
   bottom: 0;
   left: 0;
   right: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================
+   MODAL SAFE AREA — applies safe-area insets to fixed modal overlays
+   ============================================ */
+.modal-safe-area {
+  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
