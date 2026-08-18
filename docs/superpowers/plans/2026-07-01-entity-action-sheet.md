@@ -10,12 +10,23 @@
 
 ---
 
+## Estado: ✅ implementado (2026-08)
+
+Este plan se completó con las siguientes desviaciones respecto al diseño original:
+
+- **Ubicación real**: el componente vive en `features/assignments/components/EntityActionSheet.tsx` (no `components/EntityActionSheet.tsx`), gestionado por `useDashboard` (`actionSheet` state) y renderizado en `components/Dashboard.tsx`.
+- **Primitivas**: `ActionItem.tsx` y `AssignmentSelector.tsx` están en `components/ui/`; el diálogo de confirmación se implementó como **`components/ui/confirm-dialog.tsx`** (hook `useConfirm()`) — no existe `ConfirmationDialog.tsx`.
+- **Capa de datos**: no hay objeto `db` legacy; se usan imports directos (`createAssignment`, `removeAssignment` desde `lib/db/assignments.ts`) y la disponibilidad se determina con `active_driver_id` (no `driver_id`/`vehicle_id`).
+- **Extra añadido**: tras asignar, la app abre automáticamente el **checklist** del auto con el vehículo parcheado con `active_driver_id` (fix del bug de vehículo desactualizado, ver `components/Dashboard.tsx` y `EntityActionSheet.tsx`).
+
+---
+
 ### Task 1: Database Extensions for Assignments
 
 **Files:**
 - Modify: `lib/db/index.ts`
 
-- [ ] **Step 1: Add `removeAssignment` method to the `db` object**
+- [x] **Step 1: Add `removeAssignment` method to the `db` object**
 ```typescript
 // Inside the db object in lib/db/index.ts
 async removeAssignment(assignmentId: string, reason: string): Promise<void> {
@@ -32,7 +43,7 @@ async removeAssignment(assignmentId: string, reason: string): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Add helper methods to fetch available entities**
+- [x] **Step 2: Add helper methods to fetch available entities**
 ```typescript
 // Add to db object
 async getAvailableVehicles(): Promise<Vehicle[]> {
@@ -45,7 +56,7 @@ async getAvailableDrivers(): Promise<Driver[]> {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 ```bash
 git add lib/db/index.ts
 git commit -m "feat(db): add removeAssignment and availability helpers"
@@ -57,9 +68,9 @@ git commit -m "feat(db): add removeAssignment and availability helpers"
 - Create: `components/ui/ActionItem.tsx`
 - Create: `components/ui/ConfirmationDialog.tsx`
 
-- [ ] **Step 1: Create `ActionItem.tsx`** (Simple Tailwind button with icon support)
-- [ ] **Step 2: Create `ConfirmationDialog.tsx`** (Overlay with Textarea for "Motivo" and Confirm/Cancel buttons)
-- [ ] **Step 3: Commit**
+- [x] **Step 1: Create `ActionItem.tsx`** (Simple Tailwind button with icon support)
+- [x] **Step 2: Create `ConfirmationDialog.tsx`** (Overlay with Textarea for "Motivo" and Confirm/Cancel buttons)
+- [x] **Step 3: Commit**
 ```bash
 git add components/ui/ActionItem.tsx components/ui/ConfirmationDialog.tsx
 git commit -m "feat(ui): add ActionItem and ConfirmationDialog primitives"
@@ -70,11 +81,11 @@ git commit -m "feat(ui): add ActionItem and ConfirmationDialog primitives"
 **Files:**
 - Create: `components/ui/AssignmentSelector.tsx`
 
-- [ ] **Step 1: Implement `AssignmentSelector`**
+- [x] **Step 1: Implement `AssignmentSelector`**
     - Props: `type: 'driver' | 'vehicle'`, `onSelect: (id: string) => void`.
     - Fetch data using `db.getAvailableVehicles()` or `db.getAvailableDrivers()`.
     - Render as a scrollable list of cards within the Bottom Sheet.
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 ```bash
 git add components/ui/AssignmentSelector.tsx
 git commit -m "feat(ui): add AssignmentSelector for picking available assets"
@@ -85,14 +96,14 @@ git commit -m "feat(ui): add AssignmentSelector for picking available assets"
 **Files:**
 - Create: `components/EntityActionSheet.tsx`
 
-- [ ] **Step 1: Implement logic to determine available actions**
-    - If `entityType === 'driver'` $\rightarrow$ check `vehicle_id` to show `Asignar` or `Retirar`.
-    - If `entityType === 'vehicle'` $\rightarrow$ check `driver_id` to show `Asignar`, `Retirar`, and `Hacer Checklist`.
-- [ ] **Step 2: Implement "Retirar" flow**
-    - Trigger $\rightarrow$ Show `ConfirmationDialog` $\rightarrow$ Validate Motivo $\rightarrow$ Call `db.removeAssignment`.
-- [ ] **Step 3: Implement "Asignar" flow**
-    - Trigger $\rightarrow$ Show `AssignmentSelector` $\rightarrow$ Call `db.saveAssignment`.
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Implement logic to determine available actions**
+    - If `entityType === 'driver'` → check `vehicle_id` to show `Asignar` or `Retirar`.
+    - If `entityType === 'vehicle'` → check `driver_id` to show `Asignar`, `Retirar`, and `Hacer Checklist`.
+- [x] **Step 2: Implement "Retirar" flow**
+    - Trigger → Show `ConfirmationDialog` → Validate Motivo → Call `db.removeAssignment`.
+- [x] **Step 3: Implement "Asignar" flow**
+    - Trigger → Show `AssignmentSelector` → Call `db.saveAssignment`.
+- [x] **Step 4: Commit**
 ```bash
 git add components/EntityActionSheet.tsx
 git commit -m "feat: implement EntityActionSheet logic and flows"
@@ -105,12 +116,12 @@ git commit -m "feat: implement EntityActionSheet logic and flows"
 - Modify: `components/DriversSlice.tsx`
 - Modify: `components/VehiclesSlice.tsx`
 
-- [ ] **Step 1: Add Bottom Sheet state to `Dashboard.tsx`**
+- [x] **Step 1: Add Bottom Sheet state to `Dashboard.tsx`**
     - `const [actionSheet, setActionSheet] = useState<{ open: boolean, entity: any, type: 'driver' | 'vehicle' } | null>(null);`
-- [ ] **Step 2: Add `EntityActionSheet` to the Dashboard render tree**
-- [ ] **Step 3: Update `DriversSlice` and `VehiclesSlice` cards**
+- [x] **Step 2: Add `EntityActionSheet` to the Dashboard render tree**
+- [x] **Step 3: Update `DriversSlice` and `VehiclesSlice` cards**
     - Replace default click handlers with `onClick={() => onOpenActionSheet(entity, 'driver'|'vehicle')}`.
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 ```bash
 git add components/Dashboard.tsx components/DriversSlice.tsx components/VehiclesSlice.tsx
 git commit -m "feat: integrate ActionSheet into Driver and Vehicle cards"
@@ -118,11 +129,11 @@ git commit -m "feat: integrate ActionSheet into Driver and Vehicle cards"
 
 ### Task 6: Final Verification
 
-- [ ] **Step 1: Test Driver $\rightarrow$ Assign Auto $\rightarrow$ Verify update in UI.**
-- [ ] **Step 2: Test Auto $\rightarrow$ Retirar Conductor $\rightarrow$ Enter Motivo $\rightarrow$ Verify update.**
-- [ ] **Step 3: Test Auto $\rightarrow$ Hacer Checklist $\rightarrow$ Verify navigation.**
-- [ ] **Step 4: Run `npm run build` to ensure no new lint errors.**
-- [ ] **Step 5: Final commit**
+- [x] **Step 1: Test Driver → Assign Auto → Verify update in UI.**
+- [x] **Step 2: Test Auto → Retirar Conductor → Enter Motivo → Verify update.**
+- [x] **Step 3: Test Auto → Hacer Checklist → Verify navigation.**
+- [x] **Step 4: Run `npm run build` to ensure no new lint errors.**
+- [x] **Step 5: Final commit**
 ```bash
 git commit -m "test: verify entity action sheet flows"
 ```

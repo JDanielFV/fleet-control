@@ -53,3 +53,15 @@ Implement a mobile-first interaction pattern where clicking a Driver or Vehicle 
 - Users can assign/unassign a vehicle in < 3 taps.
 - The "Motivo" is captured and stored (or logged) during removal.
 - Slices remain clean, acting primarily as viewers rather than heavy form managers.
+
+---
+
+## Implementation Status (2026-08)
+
+✅ **Implemented.** See `features/assignments/components/EntityActionSheet.tsx` (managed by `useDashboard` → `actionSheet` state, rendered in `components/Dashboard.tsx`) and the plan `2026-07-01-entity-action-sheet.md`.
+
+Deviations from this spec:
+- The confirmation dialog is `components/ui/confirm-dialog.tsx` (hook `useConfirm()`), not `ConfirmationDialog.tsx`.
+- Assignments use `createAssignment` / `removeAssignment` from `lib/db/assignments.ts` (no `db` facade, no `saveAssignment`). Availability is derived from `active_driver_id` (`getAvailableDrivers`/`getAvailableVehicles` in `lib/db/assignments.ts`), not `driver_id`/`vehicle_id` columns.
+- `Hacer Checklist` opens the `ChecklistSheet` overlay (not a navigation) — and after an assignment it opens automatically with the vehicle patched with the just-assigned `active_driver_id`.
+- On desktop (≥1024px) the sheet renders as an inline side panel instead of a bottom sheet; on mobile it's a slide-up overlay (see `isLargeScreen` in `useDashboard`).

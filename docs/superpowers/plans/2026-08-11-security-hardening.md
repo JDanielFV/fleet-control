@@ -26,42 +26,31 @@ Base: auditoría completa del proyecto (14k líneas TS, 8 migraciones SQL, 0 tes
 
 ---
 
-## Estado de ejecución (2026-08-11)
+## Estado de ejecución (2026-08-18)
 
-**Fase 0 completada** (CLI): `migration repair` → 8/8 migraciones registradas como aplicadas; `projects api-keys` confirma la `service_role` key. **Falta**: backup (pg_dump/PITR) y pegar las variables en Vercel + `.env.local`.
+> El plan está **implementado y desplegado**. Los únicos pendientes son refinamientos de arquitectura (Fase 4.2/4.3) y el trabajo móvil, que vive en su propio plan (`2026-08-14-mobile-breakpoints.md`).
 
-**Milestone A implementado en código (pendiente de deploy y de aplicar la migración):**
-- `lib/jwt.ts` (HS256 con Web Crypto, server-only) + emisión de JWT en `/api/auth/login`, `/api/webauthn/login` y `/api/webauthn/register`.
-- `lib/session.ts` + `lib/auth.ts`: la sesión guarda el JWT; `getSupabase()` en `lib/db/index.ts` lo adjunta como Bearer; los 11 módulos de datos usan el factory.
-- `lib/password-server.ts`: scrypt con salt por usuario + `upgrade-on-login` (los hashes SHA-256 existentes se re-hashean en el próximo login exitoso); `/api/admin/users` crea usuarios con scrypt.
-- `supabase/migrations/20260812000000_rls_owner_scoping.sql`: RLS por `owner_id = auth.uid()` en las 8 tablas de flota (anon queda sin acceso; service_role omite RLS). **NO aplicada todavía** — requiere las variables y un deploy conjunto.
-- Validación: `tsc` 0, `eslint` 0, `next build` OK. Backwards-compatible hasta que se aplique la migración (sin JWT secret, el login devuelve `token: null` y todo sigue con anon).
+| Fase | Estado | Notas |
+|---|---|---|
+| Fase 0 — Saneamiento y base segura | ✅ Completada | `migration repair` → 8/8 migraciones registradas; secretos en Vercel + `.env.local`. |
+| Fase 1 — RLS real | ✅ Desplegada | Migraciones `20260812000000` + `20260812100000` (+ fixup `20260813000000`) aplicadas; JWT custom emitido en login/passkey/registro; policies `owner_id = auth.uid()` y `users`/`registration_tokens` cerradas. |
+| Fase 2.1 — Cookie HttpOnly | ✅ Desplegada | `fleet_session` HttpOnly firmada; `GET /api/auth/me` y `POST /api/auth/logout`; espejo local (`lib/session.ts`) no autoritativo, `syncSessionFromServer()` corrige rol/cuenta desactivada. |
+| Fase 2.2 — Contraseñas | ✅ Desplegada | **scrypt** con salt por usuario (se eligió scrypt/Web Crypto sobre bcrypt/argon2 del plan) + `upgrade-on-login`; política mín. 8 caracteres en `lib/password-policy.ts`. |
+| Fase 2.3 — Rate limit | ✅ Desplegada | 5 intentos/15 min por email+IP con lockout de 15 min; el store ahora es **compartido** en la tabla `rate_limits` (global entre instancias serverless) con fallback en memoria. |
+| Fase 2.4 — WebAuthn hardening | ✅ Documentada | `NEXT_PUBLIC_RP_ID`/`NEXT_PUBLIC_RP_ORIGIN` explícitas (commit `4d980a3`); pasos de regeneración de passkey en README. |
+| Fase 3 — Tests y CI | ✅ Completada | Vitest (`tests/`: password-policy, rate-limit, jwt, password-server, tokens, storage-url) + CI en `.github/workflows/ci.yml` (`npm ci` → tsc → eslint → test). |
+| Fase 4.1 — Eliminar facade `db` | ✅ Completada | `lib/db/index.ts` solo re-exporta módulos; todos los componentes importan funciones directas (`saveChecklist`, `getVehicles`, …). |
+| Fase 4.2 — Dividir god components | 🟡 Parcial | `DriversSlice` 726→318 líneas (split, commit `a5c19b9`); `useDrivers` (~700) / `useVehicles` (~670) y `Dashboard` (526) siguen grandes. |
+| Fase 4.3 — Reducir doble vía | 🟡 Por diseño | El camino `localStorage` se conserva como **modo demo** (sin `.env.local`); la cola de pendientes sigue activa para sincronizar cambios offline. |
+| Fase 5 — Operación y documentación | ✅ Completada | README actualizado (variables, migraciones, passkeys, OCR, móvil); `git tag` por release pendiente de adoptar. |
 
-**Pendiente para aplicar Milestone A:** 1) backup; 2) `SUPABASE_JWT_SECRET` (Dashboard → Settings → API) y `SUPABASE_SERVICE_ROLE_KEY` en Vercel + `.env.local`; 3) redeploy; 4) `supabase db push`; 5) probar login + aislamiento; 6) los usuarios con sesión previa deben cerrar/abrir sesión una vez (sus sesiones viejas no traen JWT).
-
-**Milestone B implementado en código (pendiente de deploy y de aplicar la migración):**
-- `POST /api/auth/register` (nueva): valida el token de invitación (`{ step: "validate" }` o registro completo), crea el usuario con **scrypt**, consume el token (un solo uso) y emite el JWT de sesión. El primer usuario del sistema se crea como `admin` (decidido server-side por `count === 0`); el resto como `owner`.
-- `GET /api/auth/status` (nueva): sustituye `db.getUserCount()` y la creación del setup token del primer arranque (service-role).
-- Las rutas de auth (`/api/auth/login`, `/api/webauthn/login`, `/api/webauthn/register`) y `getAdminClient()` ahora exigen `SUPABASE_SERVICE_ROLE_KEY` (vía `getServiceRoleClient()` en `lib/admin-server.ts`) — el anon key ya no puede leer `users`.
-- `LoginPage`/`UserForm`: el registro y la validación de token pasan por las APIs (con fallback a localStorage en modo demo). `UsersSlice` usa `adminGetUsers`/`adminDeleteUser`/`adminCreateRegistrationToken`. `lib/db/users.ts` y `lib/db/tokens.ts` quedan solo-localStorage (modo demo).
-- `supabase/migrations/20260812100000_rls_users_registration_tokens.sql`: cierra RLS en `users` (self-access por `auth.uid() = id`) y `registration_tokens` (sin policies; solo service_role), eliminando las policies públicas y revocando `anon`.
-- Validación: `tsc` 0, `eslint` 0, `next build` OK.
-
-**Fase 2.1 completada — sesión en cookie HttpOnly (en código, pendiente de deploy):**
-- `lib/session-server.ts` (nueva): cookie `fleet_session` HttpOnly + SameSite=Lax firmada como JWT con `SUPABASE_JWT_SECRET` (set/get/clear). `lib/jwt.ts` ganó `verifyJwt` (HS256 + exp).
-- Guard de admin por cookie: `requireSystemAdminFromRequest()` en `lib/admin-server.ts` reemplaza el header `x-admin-user-id`; las 3 rutas admin (`users`, `tokens`, `data`) lo usan. `lib/admin.ts` ya no envía header de identidad.
-- Rutas de auth fijan la cookie: `/api/auth/login`, `/api/webauthn/login` (verify) y `/api/webauthn/register` (verify) y `/api/auth/register`.
-- Nuevas rutas `GET /api/auth/me` (lee la cookie server-side y reminta JWT; invalida sesiones de usuarios desactivados) y `POST /api/auth/logout` (limpia la cookie).
-- Cliente: `lib/session.ts` quedó como espejo (memoria + localStorage) con `syncSessionFromServer()`; `useDashboard` y `LoginPage` restauran la sesión vía `/api/auth/me`. El rol viene de la cookie, nunca del cliente.
-- Bug corregido: el paso verify de `/api/webauthn/login` descartaba la respuesta con la cookie y retornaba un `NextResponse` nuevo — ahora retorna la respuesta construida.
-
-**Fase 2.3 completada — rate-limit y lockout en login (en código, pendiente de deploy):**
-- `lib/rate-limit.ts` (nueva): ventana deslizante en memoria, **máx 5 fallos por email+IP en 15 min**, bloqueo temporal de 15 min tras el 5º fallo, mensaje genérico (`LOGIN_LOCKED_MESSAGE`, 429 + `Retry-After`). IP desde `x-forwarded-for`/`x-real-ip`.
-- Conectado en `/api/auth/login` (check antes de validar credenciales, fallo → cuenta, éxito → resetea) y en el paso `verify` de `/api/webauthn/login` (fallos de verificación cuentan, éxito resetea).
-- Nota: el store es por-proceso (per-instance en serverless); suficiente para este proyecto, un store compartido (tabla Supabase/Redis) lo haría global.
-- Validación: `tsc` 0, `eslint` 0, prueba empírica del limiter (5 fallos → bloqueo 900 s → reset OK).
-
-**Milestone B (pendiente):** aplicar todo junto con Milestone A en el mismo release: migraciones `20260812000000` + `20260812100000` + código nuevo + variables (`SUPABASE_JWT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`) + redeploy.
+**Trabajo posterior al plan (08-13 → 08-17):**
+- `20260813000010_secure_document_storage`: bucket `documentos` privado + URLs firmadas vía `GET /api/doc?path=...`.
+- `20260813000020_integrity_and_credits`: RPC `apply_rental_payment` / `apply_payment` / `adjust_driver_credit` (pagos atómicos, crédito del chofer).
+- `20260813000030_push_subscriptions`: notificaciones push (VAPID).
+- OCR con Gemini (`gemini-3.5-flash-lite`, PDF/PNG, límite 20/hora) — ver README.
+- Auditoría móvil Playwright (`_audit.mjs`) + plan `2026-08-14-mobile-breakpoints.md`.
+- Guardas de idempotencia en botones de guardar; queries del dashboard en paralelo; saneamiento de campos de chofer/auto.
 
 ---
 

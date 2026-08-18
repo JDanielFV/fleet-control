@@ -59,7 +59,9 @@ Hallazgos confirmados con métricas:
 - Desktop ≥1024px: sin incidencias → confirma que la regla de no tocar escritorio es viable.
 - Tooling: se añadió `playwright` como devDependency (el repo ya tenía `_shot.mjs` que lo importaba); script reutilizable `_audit.mjs` + `_audit-seed.mjs`.
 
-**Siguiente**: Fase 1 (consistencia de breakpoints) y Fase 2 (card lists, un slice por commit).
+**Avance de Fase 1 (documentación)**: la sección **"Móvil y Responsividad"** del `README.md` ya documenta la navegación dual, los **breakpoints canónicos** y el estado de esta auditoría — el entregable de documentación de Fase 1 está cubierto.
+
+**Siguiente**: Fase 1 (consistencia de breakpoints en código: unificar el corte `md`/`lg`) y Fase 2 (card lists móviles, un slice por commit).
 
 ## Fases
 

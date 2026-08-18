@@ -1,6 +1,17 @@
 # Fleet Control Mobile-First Management App
 
-This is a premium, mobile-first management system built with **Next.js 16 (App Router)**, **Tailwind CSS v4**, **Radix UI/Shadcn primitives**, and **Supabase**.
+Sistema premium de control de flotas, mobile-first, construido con **Next.js 16 (App Router)**, **Tailwind CSS v4**, **Radix UI/Shadcn primitives** y **Supabase**.
+
+---
+
+## Estado actual (2026-08)
+
+- **Auth y multi-tenant completos**: login con correo + passkey (WebAuthn) o contraseña, sesión en cookie HttpOnly firmada, roles `admin` / `owner` con RLS por `owner_id`.
+- **OCR real con Gemini**: lectura de INE, licencia, tarjeta de circulación y póliza vía `POST /api/ocr` (modelo `gemini-3.5-flash-lite`), con límite de uso y parsing difuso (reparación de CURP/clave de elector).
+- **Offline-first híbrido**: cada entidad se lee de Supabase y cae a `localStorage` (modo demo) si no hay credenciales o si la red falla; los cambios locales se sincronizan con cola de pendientes.
+- **PWA instalable**: manifest, service worker, splash screens iOS y meta tags apple.
+- **Móvil-first**: navegación inferior en teléfonos, sidebar en escritorio, safe areas iOS; auditoría de responsividad con Playwright (`_audit.mjs`).
+- **Últimos cambios**: guardas de idempotencia y estados de carga visibles en todos los botones de guardar; queries del dashboard en paralelo; saneamiento de campos de chofer/auto; soporte PDF/PNG en OCR.
 
 ---
 
@@ -10,8 +21,12 @@ This is a premium, mobile-first management system built with **Next.js 16 (App R
 > - **RLS habilitada** en las 8 tablas de flota (`owner_id = auth.uid()`) y cerradas `users` / `registration_tokens` al anon key.
 > - Login con **correo + passkey (WebAuthn)** o **contraseña** (scrypt con salt por usuario).
 > - La sesión vive en una **cookie HttpOnly firmada** (JWT HS256 con `SUPABASE_JWT_SECRET`): el cliente no puede forjar el rol.
-> - **Rate-limit** en login: máx. 5 intentos por email+IP en 15 min con bloqueo temporal.
+> - **Sesión rodante**: la cookie y el espejo local expiran de forma continua a 24 h desde la última actividad.
+> - **Rate-limit en login**: máx. 5 intentos por email+IP en 15 min con bloqueo temporal de 15 min. El contador global vive en la tabla `rate_limits` (compartida entre instancias serverless); sin Supabase cae a un store en memoria.
+> - **Política de contraseñas**: mínimo 8 caracteres (validada en servidor y cliente desde `lib/password-policy.ts`).
+> - **OCR limitado**: 20 llamadas por hora por usuario (tabla `rate_limits`); solo usuarios autenticados cuando hay `SUPABASE_JWT_SECRET`.
 > - Registro, login y panel `/admin` operan server-side con la `service_role` key (omite RLS).
+> - **Headers de seguridad**: CSP con nonce por petición, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy` y `Permissions-Policy` inyectados desde `proxy.ts`.
 > - Sin Supabase configurado, la app corre en **modo demo** con `localStorage` (sin RLS).
 
 ---
@@ -22,43 +37,137 @@ Este proyecto fue desarrollado bajo una arquitectura de **Vertical Slices** y un
 
 ### Slice 1: Infraestructura y Base UI
 - Configuración de dependencias base y helpers de Shadcn (`lib/utils.ts`).
-- Contenedor mobile-first adaptativo con barra de navegación inferior integrada.
+- Contenedor mobile-first adaptativo con barra de navegación inferior integrada (`md:hidden`) y sidebar de escritorio (`hidden md:flex`).
 - Componentes base de Radix UI (`Dialog`, `Select`, `Switch`, `Card`, `Button`, `Input`, `Label`) estilizados en conformidad estricta a la prohibición de crear componentes desde cero.
+- PWA: manifest (`app/manifest.ts`), service worker (`public/sw.js`), splash screens y meta tags apple en `app/layout.tsx`.
 
 ### Slice 2: Registro de Conductores e Inteligencia OCR
-- Captura digital de INE y Licencia de Conducir.
+- Captura digital de INE, Licencia de Conducir, fotografía del chofer y comprobante de domicilio.
+- **OCR con Gemini** (server-side, `app/api/ocr/route.ts`): recibe la imagen en base64 y el tipo de documento (`INE`, `LICENCIA`, `CIRCULACION`, `SEGURO`), y devuelve un JSON estructurado.
+  - Formatos soportados: JPEG, PNG, WebP, HEIC/HEIF y **PDF**; máximo 4 MB.
+  - Modelo `gemini-3.5-flash-lite` con prompt estructurado (sin markdown, JSON plano).
+  - *Fallback* client-side (`lib/ocr.ts`): parsing difuso con reparación de caracteres confundidos (O/0, I/1, etc.), cálculo teórico de CURP y extracción de fecha de nacimiento desde la CURP.
 - **Motores de Validación Cruzada**:
   - Validación cruzada de **CURP** (la CURP leída de la INE debe coincidir exactamente con la de la licencia).
   - Validación cruzada de **Fecha de Nacimiento** (las fechas deben coincidir entre ambos documentos).
 - Interruptor de **Licencia Permanente**: deshabilita avisos de renovación.
-- Simulación OCR que procesa campos críticos y genera avisos en caso de discrepancias detectadas.
+- Cámara gestionada por `components/useOcrScanner.ts` (WebRTC, timeout de 15 s, manejo de permisos y estados de progreso por paso).
 
 ### Slice 3: Inventario de Autos y Placa-Métrica de Verificación
-- Formulario de captura de tarjeta de circulación y póliza de seguro.
+- Formulario de captura de tarjeta de circulación, póliza de seguro (primera página + páginas adicionales), VIN/NIV, placa, clase, color, fechas de vigencia y costo de renta semanal.
 - **Cronograma de Verificación Vehicular de México** integrado. Basado en el último dígito numérico de la placa, calcula dinámicamente el mes límite y color de engomado de verificación:
   - **5 o 6** (Amarillo): Feb-Mar / Ago-Sep
   - **7 o 8** (Rosa): Mar-Abr / Sep-Oct
   - **3 o 4** (Rojo): Apr-May / Oct-Nov
   - **1 o 2** (Verde): May-Jun / Nov-Dic
   - **9 o 0** (Azul): Jun-Jul / Dec-Jan
+- Evidencia de verificación: foto (`verification_img`) y marca de completado (`verification_completed`).
 - Alertas de vencimiento de seguro integradas directamente al subir la imagen de la póliza.
+- **Inventario del vehículo** (`components/InventoryWizard.tsx`): wizard de fotos por ángulo (frente, lateral, interior, etc.) + checklist de artículos/equipamiento (gato, llanta de refacción, herramientas, etc.), persistido por vehículo.
+- Estados del auto: `active` / `in_service` con fechas de retiro y regreso a servicio, y **kilometraje de próximo servicio** (`next_service_mileage`) para alertas basadas en odómetro.
 
 ### Slice 4: Bitácora de Asignación y Checklists Semanales
 - Permite la asignación y retiro de autos de conductores documentando el motivo, con opción de anulación/sobreescritura por parte del administrador.
+- Al completar una asignación, la app abre automáticamente el checklist del auto con el chofer ya resuelto (vehículo parcheado con `active_driver_id` — ver nota de fix en git history).
 - Checklist de entrega y de inicio de semana:
   - Registro de kilometraje.
   - Registro de nivel de gasolina usando **octavos de entero** (`1/8` a `8/8`).
   - Lista de chequeo del estado del auto (Luces, llantas, frenos, carrocería, papelería).
-  - Registro escrito de irregularidades.
+  - Registro escrito de irregularidades con foto opcional de evidencia.
+- Checklist autogenerado los lunes (`autoGenerateMondayChecklists`).
 
 ### Slice 5: Contabilidad y Balance General de Renta
-- Configuración de renta estándar semanal por conductor.
-- Historial de cobros semanales con acumulación de deuda anterior.
-- Soporte para pagos parciales con cálculo en tiempo real de deuda acumulada y desglose histórico de abonos.
+- Configuración de renta estándar semanal por conductor (prorrateo si la asignación ocurre a mitad de semana; re-asignación crea la renta de la semana siguiente).
+- Historial de cobros semanales con acumulación de deuda anterior y **pagos parciales** con desglose histórico de abonos (`payments_log`).
+- **Pagos atómicos server-side**: los handlers usan los RPC `apply_rental_payment` / `apply_payment` / `adjust_driver_credit` (migración `20260813000020`), que calculan deuda, condonación y saldo de crédito dentro de una transacción.
+- **Crédito del chofer**: si un pago excede la deuda, el sobrante se convierte en crédito aplicable a la siguiente renta.
+- **Condonación por servicio**: días del auto en taller se condonan de la renta (botón de condonación por día/semana).
+- Botón **Cobrar Renta** desde el modal de acciones del checklist (`ChecklistActionModal`).
 
 ### Slice 6: Registro de Taller y Consola de Alertas Unificada
 - Bitácora de mantenimientos con costo, descripción y próxima fecha recomendada de servicio.
-- Tablero de avisos unificado: consolida alertas de licencias de conducir vencidas, seguros próximos a expirar, verificaciones vehiculares vigentes y mantenimiento programado.
+- Alertas basadas en **kilometraje**: si el auto tiene `next_service_mileage`, se alerta al acercarse/superar el umbral con fecha estimada según el promedio mensual de uso (`lib/usageStats.ts`).
+- Tablero de avisos unificado: consolida alertas de licencias de conducir vencidas, seguros próximos a expirar, verificaciones vehiculares vigentes, mantenimiento programado y kilometraje.
+- Registro de renovaciones (`renewal_logs`) para circulación y seguro.
+
+---
+
+## Rutas y API
+
+| Ruta | Descripción |
+|---|---|
+| `/` | Login / Dashboard principal (tabs: Check Lists, Choferes, Autos, Usuarios) |
+| `/admin` | Panel de administración externo (solo el system admin): gestión de usuarios, tokens de invitación y auditoría |
+| `POST /api/auth/register` | Registro server-side con token de invitación (valida + crea usuario) |
+| `POST /api/auth/login` | Login con contraseña o passkey (emite cookie HttpOnly + JWT) |
+| `POST /api/auth/logout` | Cierre de sesión (limpia la cookie) |
+| `GET /api/auth/me` | Re-sincroniza el espejo local con la cookie autoritativa |
+| `GET /api/auth/status` | Estado de registro inicial (primer usuario / setup token) |
+| `POST /api/webauthn/register` · `POST /api/webauthn/login` | Ceremonias WebAuthn (passkeys) |
+| `POST /api/ocr` | OCR con Gemini (ver sección OCR) |
+| `GET /api/doc?path=...` | URLs firmadas para documentos del bucket privado `documentos` |
+| `POST /api/finances/payments` | Pago atómico vía RPC (por chofer o por rental) |
+| `GET/POST /api/finances/credits` | Lectura/ajuste de crédito del chofer |
+| `POST /api/push` · `POST /api/push/send` | Suscripción y envío de notificaciones push (VAPID) |
+| `GET/POST/PATCH/DELETE /api/admin/users` | Gestión de usuarios (panel admin, service role) |
+| `POST /api/admin/tokens` | Creación de tokens de invitación |
+| `GET/POST /api/admin/data` | Datos de auditoría del panel admin |
+
+La capa de datos (`lib/db/*`) expone funciones por entidad (`getDrivers`, `saveVehicle`, `createAssignment`, `saveChecklist`, `getWeeklyRentals`, `getVehicleInventory`, etc.) que siempre intentan Supabase primero y caen a `localStorage` + cola de pendientes (`lib/db/localStorage.ts`).
+
+---
+
+## OCR con Gemini (detalle)
+
+1. El cliente captura el documento con la cámara (`useOcrScanner`) y envía la imagen base64 + tipo de documento a `POST /api/ocr`.
+2. El servidor valida sesión (si `SUPABASE_JWT_SECRET` está definido) y el **límite de 20 llamadas/hora** por usuario.
+3. Envía la imagen a `gemini-3.5-flash-lite` con un prompt estructurado que devuelve JSON plano.
+4. El JSON parseado autocompleta el formulario (INE/licencia/circulación/póliza según el target).
+5. Si no hay `GEMINI_API_KEY`, el endpoint responde `412` y la UI cae al parser client-side (`lib/ocr.ts`) para texto ya extraído.
+
+> **Privacidad**: la respuesta de Gemini (CURP, INE, licencia — PII) nunca se loguea en el servidor.
+
+---
+
+## Móvil y Responsividad
+
+La app es **mobile-first** con doble navegación:
+- **Teléfonos (<768px)**: bottom nav con 4 tabs + logout, safe areas iOS (`env(safe-area-inset-*)`), tipografía base 16px.
+- **Tablet/Desktop (≥768px)**: sidebar de iconos, tipografía 22px.
+- **Paneles inline vs overlay**: los sheets (action sheet, buzón de alertas) usan `isLargeScreen` (≥1024px) para decidir entre panel lateral inline y overlay.
+
+**Breakpoints canónicos** (Tailwind v4 default, ya en uso):
+
+| Prefijo | Ancho | Uso previsto |
+|---|---|---|
+| (base) | <640px | Teléfonos: card lists, bottom nav, overlays |
+| `sm` | ≥640px | Ajustes finos (hero, acciones) |
+| `md` | ≥768px | Tablas vuelven a aparecer; sidebar visible; tipografía 22px |
+| `lg` | ≥1024px | Desktop completo: paneles inline (buzón/action sheet) |
+| `xl` | ≥1280px | Contenido `max-w-7xl` centrado |
+
+**Estado de la auditoría móvil** (plan en `docs/superpowers/plans/2026-08-14-mobile-breakpoints.md`):
+- ✅ **Fase 0 completada**: auditoría automatizada con Playwright (`_audit.mjs`) en 6 viewports (375→1440), capturas en `docs/superpowers/screens/before/` e inventario en `docs/superpowers/screens/before/INVENTORY.md`.
+- ⏳ **Pendiente**: Fase 1 (consistencia de breakpoints), Fase 2 (card lists móviles para las tablas), Fases 3–6 (touch targets ≥40px, diálogos, navegación y QA).
+
+Regla de oro: todo cambio móvil se hace con prefijos `sm:`/`md:`/`lg:` — el layout de escritorio (≥1024px) no se toca.
+
+---
+
+## Tooling de Auditoría (Playwright)
+
+- `_audit.mjs` — levanta las vistas en 6 viewports, siembra sesión + datos demo en localStorage (modo demo, nunca toca Supabase), captura screenshots y mide overflow horizontal / targets <40px / tablas anchas.
+- `_audit-seed.mjs` — datos demo (choferes, autos, usuarios) para sembrar la sesión.
+- `_shot.mjs` — capturas ad-hoc de una vista.
+- Reporte JSON en `docs/superpowers/screens/before/metrics.json`.
+
+Uso (servidor en modo demo en el puerto 3100):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= \
+SUPABASE_SERVICE_ROLE_KEY= SUPABASE_JWT_SECRET= npm run dev -- -p 3100
+node _audit.mjs
+```
 
 ---
 
@@ -86,6 +195,19 @@ Este proyecto fue desarrollado bajo una arquitectura de **Vertical Slices** y un
    npx tsc --noEmit  # typecheck
    npx eslint .      # lint
    ```
+
+---
+
+## Testing y CI
+
+- **Vitest** (`npm test`): tests unitarios en `tests/` con alias `@` y setup en `tests/setup.ts`.
+  - `password-policy.test.ts` — política de contraseñas.
+  - `rate-limit.test.ts` — rate limit de login (ventana, lockout, reset).
+  - `jwt.test.ts` — firma/verificación del JWT de sesión.
+  - `password-server.test.ts` — hash scrypt y verificación.
+  - `tokens.test.ts` — tokens de invitación.
+  - `storage-url.test.ts` — resolución de URLs de almacenamiento.
+- **CI** (`.github/workflows/ci.yml`): en push a `main` y PRs corre `npm ci` → `tsc --noEmit` → `eslint` → `npm test` (Node 22).
 
 ---
 
@@ -148,6 +270,12 @@ supabase migration list                     # verificar que local == remoto
 ```bash
 npx web-push generate-vapid-keys
 ```
+
+---
+
+## Documentación adicional
+
+El índice completo de la documentación del proyecto (planes, specs e inventarios) vive en [`docs/README.md`](docs/README.md).
 
 ---
 
