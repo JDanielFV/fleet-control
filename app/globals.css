@@ -126,6 +126,17 @@ body::before {
 }
 
 /* ============================================
+   FIXED BOTTOM NAV — safe-area aware (viewport-fit: cover)
+   ============================================ */
+.nav-bottom-fixed {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================
    INPUT WIDTH RESET — prevent native iOS date inputs from exceeding their container
    ============================================ */
 input[type="date"],

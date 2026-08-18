@@ -103,7 +103,7 @@ export default function Dashboard() {
       <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} pushEnabled={pushEnabled} onTogglePush={handleTogglePush} />
 
       <div className="flex-1 flex overflow-hidden">
-        <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
+        <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div key={ctx.activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }} className="w-full flex-1 flex flex-col overflow-hidden">
@@ -558,8 +558,8 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Mobile Bottom Nav */}
-      <nav aria-label="Navegación principal" className="relative md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 pb-[env(safe-area-inset-bottom,0px)] h-[calc(56px+env(safe-area-inset-bottom,0px))] shrink-0 z-40">
+      {/* Mobile Bottom Nav — fixed to viewport for iOS safe area */}
+      <nav aria-label="Navegación principal" className="nav-bottom-fixed md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 h-14 z-40" style={{ height: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}>
         {mobileNavItems.map((tab) => {
           const Icon = tab.icon;
           const isSelected = ctx.activeTab === tab.id;
