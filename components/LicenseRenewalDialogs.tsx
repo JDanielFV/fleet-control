@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import Image from "next/image";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, Loader2 } from "lucide-react";
 import type { useDrivers } from "@/features/drivers/hooks/useDrivers";
 
 type DriversFormProps = ReturnType<typeof useDrivers>;
@@ -15,6 +15,7 @@ type DriversFormProps = ReturnType<typeof useDrivers>;
 export default function LicenseRenewalDialogs(props: DriversFormProps) {
   const {
     isScanning,
+    isRenewing,
     renewingDriver,
     stopCamera,
     setRenewingDriver,
@@ -72,7 +73,19 @@ export default function LicenseRenewalDialogs(props: DriversFormProps) {
             </label>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => { setIsRenewOpen(false); setRenewingDriver(null); }} className="flex-1 rounded-xl border-border">Cancelar</Button>
-              <Button onClick={submitLicenseRenewal} disabled={!renewNumber} className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50">Guardar</Button>
+              <Button
+                onClick={submitLicenseRenewal}
+                disabled={!renewNumber || isRenewing}
+                className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRenewing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                  </span>
+                ) : (
+                  "Guardar"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>

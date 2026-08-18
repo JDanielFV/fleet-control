@@ -3,7 +3,7 @@ import { Vehicle, Checklist } from "@/lib/db";
 import { saveChecklist } from "@/lib/db/checklists";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Check, CheckCircle, Camera, X } from "lucide-react";
+import { Check, CheckCircle, Camera, X, Loader2 } from "lucide-react";
 
 interface ChecklistSheetProps {
   isOpen: boolean;
@@ -85,6 +85,7 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
   };
 
   const handleSubmit = async () => {
+    if (isLoading) return;
     if (!assignedDriver) {
       alert("Este auto no tiene un chofer asignado. Asigna uno antes de registrar el checklist.");
       return;
@@ -283,9 +284,15 @@ export const ChecklistSheet = ({ isOpen, onClose, vehicle, onComplete }: Checkli
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading}
-                    className="flex-1 px-4 py-2.5 bg-primary text-white font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-primary text-white font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
-                    {isLoading ? "Guardando..." : "Guardar"}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                      </>
+                    ) : (
+                      "Guardar"
+                    )}
                   </button>
                 </div>
               </div>

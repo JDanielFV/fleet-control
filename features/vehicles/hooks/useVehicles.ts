@@ -234,6 +234,11 @@ export function useVehicles(options: UseVehiclesOptions) {
     setIsOpen(true);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [isSavingWearPart, setIsSavingWearPart] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const handleRenewDocument = (v: Vehicle, target: "CIRCULACION" | "SEGURO" | "VERIFICACION") => {
     if (target === "VERIFICACION") {
       setVerifVehicle(v);
@@ -249,51 +254,67 @@ export function useVehicles(options: UseVehiclesOptions) {
   };
 
   const submitRenewal = async () => {
-    if (!renewingVehicle) return;
-    const patch: Partial<Vehicle> = {};
-    let prevExpiration: string | null = null;
-    if (renewTarget === "CIRCULACION") {
-      prevExpiration = renewingVehicle.circulation_expiration_date;
-      patch.circulation_expiration_date = renewExpirationDate;
-    } else if (renewTarget === "SEGURO") {
-      prevExpiration = renewingVehicle.insurance_expiration_date;
-      patch.insurance_expiration_date = renewExpirationDate;
-      if (renewPolicyImg) patch.insurance_policy_img = renewPolicyImg;
-    } else if (renewTarget === "VERIFICACION") {
-      patch.verification_expiration_date = renewExpirationDate;
+    if (!renewingVehicle || isRenewing) return;
+    setIsRenewing(true);
+    try {
+      const patch: Partial<Vehicle> = {};
+      let prevExpiration: string | null = null;
+      if (renewTarget === "CIRCULACION") {
+        prevExpiration = renewingVehicle.circulation_expiration_date;
+        patch.circulation_expiration_date = renewExpirationDate;
+      } else if (renewTarget === "SEGURO") {
+        prevExpiration = renewingVehicle.insurance_expiration_date;
+        patch.insurance_expiration_date = renewExpirationDate;
+        if (renewPolicyImg) patch.insurance_policy_img = renewPolicyImg;
+      } else if (renewTarget === "VERIFICACION") {
+        patch.verification_expiration_date = renewExpirationDate;
+      }
+      await saveVehicle({ ...renewingVehicle, ...patch });
+      if (renewTarget === "CIRCULACION" || renewTarget === "SEGURO") {
+        await saveRenewalLog({
+          vehicle_id: renewingVehicle.id,
+          type: renewTarget,
+          previous_expiration: prevExpiration,
+          new_expiration: renewExpirationDate,
+        });
+      }
+      setIsRenewOpen(false);
+      setRenewingVehicle(null);
+      setRenewTarget(null);
+      setRenewExpirationDate("");
+      setRenewPolicyImg("");
+      loadData();
+      onRefreshAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Error al renovar documento");
+    } finally {
+      setIsRenewing(false);
     }
-    await saveVehicle({ ...renewingVehicle, ...patch });
-    if (renewTarget === "CIRCULACION" || renewTarget === "SEGURO") {
-      await saveRenewalLog({
-        vehicle_id: renewingVehicle.id,
-        type: renewTarget,
-        previous_expiration: prevExpiration,
-        new_expiration: renewExpirationDate,
-      });
-    }
-    setIsRenewOpen(false);
-    setRenewingVehicle(null);
-    setRenewTarget(null);
-    setRenewExpirationDate("");
-    setRenewPolicyImg("");
-    loadData();
-    onRefreshAlerts();
   };
 
   const submitVerification = async () => {
-    if (!verifVehicle) return;
-    const imgUrl = verifImg ? await uploadDocumentImage(verifImg, "verification") : null;
-    const nextDate = getNextVerificationDate(verifVehicle.plate_number);
-    await saveVehicle({
-      ...verifVehicle,
-      verification_completed: true,
-      verification_img: imgUrl || verifImg,
-      verification_expiration_date: nextDate,
-    });
-    setVerifOpen(false);
-    setVerifVehicle(null);
-    loadData();
-    onRefreshAlerts();
+    if (!verifVehicle || isVerifying) return;
+    setIsVerifying(true);
+    try {
+      const imgUrl = verifImg ? await uploadDocumentImage(verifImg, "verification") : null;
+      const nextDate = getNextVerificationDate(verifVehicle.plate_number);
+      await saveVehicle({
+        ...verifVehicle,
+        verification_completed: true,
+        verification_img: imgUrl || verifImg,
+        verification_expiration_date: nextDate,
+      });
+      setVerifOpen(false);
+      setVerifVehicle(null);
+      loadData();
+      onRefreshAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Error al registrar verificación");
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleServiceOut = async (vehicle: Vehicle) => {
@@ -343,22 +364,32 @@ export function useVehicles(options: UseVehiclesOptions) {
   };
 
   const submitWearPart = async () => {
-    if (!wearPartVehicleState || !wearPartName.trim()) return;
-    await saveMaintenance({
-      vehicle_id: wearPartVehicleState.id,
-      cost: parseFloat(wearPartCost) || 0,
-      description: `[REEMPLAZO PIEZA] ${wearPartName.trim()}`,
-      maintenance_date: wearPartDate,
-      next_maintenance_date: null,
-    });
-    setWearPartOpen(false);
-    setWearPartVehicleState(null);
-    loadData();
-    onRefreshAlerts();
+    if (!wearPartVehicleState || !wearPartName.trim() || isSavingWearPart) return;
+    setIsSavingWearPart(true);
+    try {
+      await saveMaintenance({
+        vehicle_id: wearPartVehicleState.id,
+        cost: parseFloat(wearPartCost) || 0,
+        description: `[REEMPLAZO PIEZA] ${wearPartName.trim()}`,
+        maintenance_date: wearPartDate,
+        next_maintenance_date: null,
+      });
+      setWearPartOpen(false);
+      setWearPartVehicleState(null);
+      loadData();
+      onRefreshAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Error al guardar reemplazo");
+    } finally {
+      setIsSavingWearPart(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+
     if (!brand.trim() || !vehicleName.trim() || !plateNumber.trim()) {
       scrollToSection("datos");
       alert("Por favor completa los campos obligatorios: Marca, Vehículo y Placa.");
@@ -374,46 +405,54 @@ export function useVehicles(options: UseVehiclesOptions) {
     if (plateExists) { alert(`Error: Ya existe un auto registrado con las placas "${formattedPlate}".`); return; }
     if (vinExists) { alert(`Error: Ya existe un auto registrado con el número de serie (VIN) "${formattedVin}".`); return; }
 
-    const circUrl = circulationImg ? await uploadDocumentImage(circulationImg, "circulation") : null;
-    const insUrl = insurancePolicyImg ? await uploadDocumentImage(insurancePolicyImg, "insurance") : null;
+    setIsSaving(true);
+    try {
+      const circUrl = circulationImg ? await uploadDocumentImage(circulationImg, "circulation") : null;
+      const insUrl = insurancePolicyImg ? await uploadDocumentImage(insurancePolicyImg, "insurance") : null;
 
-    const insPagesUrls: string[] = [];
-    for (const page of insurancePolicyFiles) {
-      const url = await uploadDocumentImage(page, "insurance");
-      insPagesUrls.push(url);
+      const insPagesUrls: string[] = [];
+      for (const page of insurancePolicyFiles) {
+        const url = await uploadDocumentImage(page, "insurance");
+        insPagesUrls.push(url);
+      }
+
+      await saveVehicle({
+        id: editingVehicleId || undefined,
+        brand,
+        vehicle_name: vehicleName,
+        model,
+        class_type: classType,
+        color: color.trim() || null,
+        circulation_expiration_date: circulationExpirationDate,
+        circulation_img: circUrl,
+        vin: formattedVin,
+        plate_number: formattedPlate,
+        insurance_policy_img: insUrl || insurancePolicyImg,
+        insurance_policy_pages: JSON.stringify(insPagesUrls.length > 0 ? insPagesUrls : (insurancePolicyImg ? [insurancePolicyImg] : [])),
+        insurance_policy_number: insurancePolicyNumber,
+        insurance_expiration_date: insuranceExpirationDate,
+        verification_expiration_date: verificationExpirationDate,
+        verification_img: null,
+        verification_completed: false,
+        status: editingVehicleId ? (vehicles.find((v) => v.id === editingVehicleId)?.status ?? "active") : "active",
+        service_out_date: editingVehicleId ? (vehicles.find((v) => v.id === editingVehicleId)?.service_out_date ?? null) : null,
+        service_return_date: editingVehicleId ? (vehicles.find((v) => v.id === editingVehicleId)?.service_return_date ?? null) : null,
+        active_driver_id: editingVehicleId ? vehicles.find((v) => v.id === editingVehicleId)?.active_driver_id ?? null : null,
+        rent_cost: Number(rentCost),
+        next_service_mileage: nextServiceMileage ? parseInt(nextServiceMileage) : null,
+      });
+
+      resetForm();
+      setEditingVehicleId(null);
+      setIsOpen(false);
+      loadData();
+      onRefreshAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Error al guardar vehículo: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsSaving(false);
     }
-
-    await saveVehicle({
-      id: editingVehicleId || undefined,
-      brand,
-      vehicle_name: vehicleName,
-      model,
-      class_type: classType,
-      color: color.trim() || null,
-      circulation_expiration_date: circulationExpirationDate,
-      circulation_img: circUrl,
-      vin: formattedVin,
-      plate_number: formattedPlate,
-      insurance_policy_img: insUrl || insurancePolicyImg,
-      insurance_policy_pages: JSON.stringify(insPagesUrls.length > 0 ? insPagesUrls : (insurancePolicyImg ? [insurancePolicyImg] : [])),
-      insurance_policy_number: insurancePolicyNumber,
-      insurance_expiration_date: insuranceExpirationDate,
-      verification_expiration_date: verificationExpirationDate,
-      verification_img: null,
-      verification_completed: false,
-      status: editingVehicleId ? (vehicles.find((v) => v.id === editingVehicleId)?.status ?? "active") : "active",
-      service_out_date: editingVehicleId ? (vehicles.find((v) => v.id === editingVehicleId)?.service_out_date ?? null) : null,
-      service_return_date: editingVehicleId ? (vehicles.find((v) => v.id === editingVehicleId)?.service_return_date ?? null) : null,
-      active_driver_id: editingVehicleId ? vehicles.find((v) => v.id === editingVehicleId)?.active_driver_id ?? null : null,
-      rent_cost: Number(rentCost),
-      next_service_mileage: nextServiceMileage ? parseInt(nextServiceMileage) : null,
-    });
-
-    resetForm();
-    setEditingVehicleId(null);
-    setIsOpen(false);
-    loadData();
-    onRefreshAlerts();
   };
 
   const resetForm = () => {
@@ -595,6 +634,7 @@ export function useVehicles(options: UseVehiclesOptions) {
     previewImage, setPreviewImage,
     renewTarget, renewExpirationDate, setRenewExpirationDate, renewPolicyImg,
     isScanning, scanner, activeSection, scrollToSection,
+    isSaving, isRenewing, isSavingWearPart, isVerifying,
 
     // Wear part
     wearPartOpen, setWearPartOpen, wearPartVehicleState, setWearPartVehicleState,

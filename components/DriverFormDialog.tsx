@@ -10,7 +10,7 @@ import { Stepper } from "@/components/ui/stepper";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Image from "next/image";
-import { User, Camera, FolderOpen, Sparkles, Trash2, ChevronDown } from "lucide-react";
+import { User, Camera, FolderOpen, Sparkles, Trash2, ChevronDown, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MEXICAN_STATES } from "@/lib/ocr";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ export default function DriverFormDialog(props: DriversFormProps) {
     activeSection,
     scrollToSection,
     isScanning,
+    isSaving,
     scanner,
     handleSave,
     driverPhotoImg,
@@ -369,8 +370,18 @@ export default function DriverFormDialog(props: DriversFormProps) {
                       </div>
                     </div>
 
-                    <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0" disabled={isScanning}>
-                      Guardar Conductor
+                    <Button
+                      type="submit"
+                      className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={isScanning || isSaving}
+                    >
+                      {isSaving ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Guardando Conductor...
+                        </span>
+                      ) : (
+                        "Guardar Conductor"
+                      )}
                     </Button>
                   </form>
                 )}

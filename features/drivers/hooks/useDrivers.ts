@@ -271,24 +271,35 @@ export function useDrivers(options: UseDriversOptions) {
     setIsOpen(true);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
+
   const handleRenewLicense = (d: Driver) => {
     setRenewingDriver(d);
     startCamera("LICENCIA");
   };
 
   const submitLicenseRenewal = async () => {
-    if (!renewingDriver) return;
-    await saveDriver({
-      ...renewingDriver,
-      license_number: renewNumber,
-      license_issue_date: renewIssueDate,
-      license_expiration_date: renewIsPermanent ? "" : renewExpirationDate,
-      license_is_permanent: renewIsPermanent,
-    });
-    setIsRenewOpen(false);
-    setRenewingDriver(null);
-    loadDrivers();
-    onRefreshAlerts();
+    if (!renewingDriver || isRenewing) return;
+    setIsRenewing(true);
+    try {
+      await saveDriver({
+        ...renewingDriver,
+        license_number: renewNumber,
+        license_issue_date: renewIssueDate,
+        license_expiration_date: renewIsPermanent ? "" : renewExpirationDate,
+        license_is_permanent: renewIsPermanent,
+      });
+      setIsRenewOpen(false);
+      setRenewingDriver(null);
+      loadDrivers();
+      onRefreshAlerts();
+    } catch (err) {
+      console.error(err);
+      alert("Error al renovar licencia: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsRenewing(false);
+    }
   };
 
   const handleCondonation = async (rental: WeeklyRental, days: number) => {
@@ -318,6 +329,8 @@ export function useDrivers(options: UseDriversOptions) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+
     const effectiveCurp = (licenseCurp || ineCurp || suggestedCurp || "").toUpperCase().trim();
     if (!firstName.trim() || !paternalLastName.trim() || !effectiveCurp) {
       setShowManualFields(true);
@@ -339,6 +352,7 @@ export function useDrivers(options: UseDriversOptions) {
       return;
     }
 
+    setIsSaving(true);
     try {
       const [ineUrl, licenseUrl, photoUrl, addressUrl] = await Promise.all([
         ineImg ? uploadDocumentImage(ineImg, "ine") : Promise.resolve(null),
@@ -375,6 +389,8 @@ export function useDrivers(options: UseDriversOptions) {
     } catch (err: unknown) {
       console.error(err);
       alert("Error al guardar chofer: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -622,6 +638,8 @@ export function useDrivers(options: UseDriversOptions) {
     paymentDialog,
     setPaymentDialog,
     weeklyRentals,
+    isSaving,
+    isRenewing,
 
     // Form state
     firstName, setFirstName,

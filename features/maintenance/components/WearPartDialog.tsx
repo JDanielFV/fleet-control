@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface WearPartDialogProps {
@@ -34,7 +34,7 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
   }, [open, vehicle]);
 
   const handleSubmit = async () => {
-    if (!vehicle || !partName.trim()) return;
+    if (!vehicle || !partName.trim() || isLoading) return;
     setIsLoading(true);
     try {
       await saveMaintenance({
@@ -142,9 +142,15 @@ export default function WearPartDialog({ open, onClose, vehicle, onComplete }: W
             <Button
               onClick={handleSubmit}
               disabled={!partName.trim() || isLoading}
-              className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50 active:scale-95 transition-transform"
+              className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform"
             >
-              {isLoading ? "Guardando..." : "Guardar"}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                </span>
+              ) : (
+                "Guardar"
+              )}
             </Button>
           </motion.div>
         </motion.div>

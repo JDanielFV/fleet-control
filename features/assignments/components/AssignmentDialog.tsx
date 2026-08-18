@@ -5,7 +5,7 @@ import { type Driver, type Vehicle } from "@/lib/db";
 import { createAssignment } from "@/lib/db/assignments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { User, Car, ArrowLeftRight, CheckCircle2 } from "lucide-react";
+import { User, Car, ArrowLeftRight, CheckCircle2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface AssignmentDialogProps {
@@ -39,7 +39,7 @@ export default function AssignmentDialog({ open, onClose, onComplete, onAssign, 
   const availableVehicles = vehicles.filter((v) => !v.active_driver_id);
 
   const handleAssign = async () => {
-    if (!selectedDriver || !selectedVehicle) return;
+    if (!selectedDriver || !selectedVehicle || isLoading) return;
     setIsLoading(true);
     try {
       await createAssignment(selectedVehicle, selectedDriver, "ASSIGN", "Asignación desde panel de checklists");
@@ -154,9 +154,15 @@ export default function AssignmentDialog({ open, onClose, onComplete, onAssign, 
             <Button
               onClick={handleAssign}
               disabled={!selectedDriver || !selectedVehicle || isLoading}
-              className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50"
+              className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Asignando..." : "Asignar"}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Asignando...
+                </span>
+              ) : (
+                "Asignar"
+              )}
             </Button>
           </div>
         )}

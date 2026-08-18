@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
-import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle } from "lucide-react";
+import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
@@ -41,12 +41,10 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
   isScanning,
   scanner,
   handleSave,
-  circulationImg,
-  setCirculationImg,
-  startCamera,
-  circFileRef,
-  handleFileChange,
-  insFileRef,
+  isSaving,
+  isRenewing,
+  isSavingWearPart,
+  isVerifying,
   brand,
   setBrand,
   vehicleName,
@@ -55,40 +53,52 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
   setModel,
   classType,
   setClassType,
+  circulationExpirationDate,
+  setCirculationExpirationDate,
+  vin,
+  setVin,
   plateNumber,
   setPlateNumber,
   isPlateLengthInvalid,
-  vin,
-  setVin,
   isVinLengthInvalid,
-  circulationExpirationDate,
-  setCirculationExpirationDate,
+  insurancePolicyImg,
+  setInsurancePolicyImg,
+  insurancePolicyFiles,
   insuranceExpirationDate,
   setInsuranceExpirationDate,
+  circulationImg,
+  setCirculationImg,
+  circFileRef,
+  insFileRef,
+  handleFileChange,
+  startCamera,
   rentCost,
   setRentCost,
   nextServiceMileage,
   setNextServiceMileage,
   color,
   setColor,
-  insurancePolicyFiles,
-  search,
-  setSearch,
-  setShowArchived,
-  showArchived,
+  insurancePolicyNumber,
+  setInsurancePolicyNumber,
+  verificationExpirationDate,
+  setVerificationExpirationDate,
   isLoading,
   filteredVehicles,
+  expandedVehicleDetails,
   toggleVehicleDetails,
-  drivers,
-  onAssignVehicle,
+  search,
+  setSearch,
+  showArchived,
+  setShowArchived,
   handleEditVehicle,
   handleDeleteVehicle,
-  expandedVehicleDetails,
   handleServiceOut,
-  handleReportWearPart,
   handleServiceReturn,
+  handleReportWearPart,
   handleRenewDocument,
   setPreviewImage,
+  drivers,
+  onAssignVehicle,
   maintenances,
   assignments,
   checklists,
@@ -242,7 +252,19 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                       </div>
                     </div>
 
-                    <Button type="submit" className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0" disabled={isScanning}>Guardar Vehículo</Button>
+                    <Button
+                      type="submit"
+                      className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={isScanning || isSaving}
+                    >
+                      {isSaving ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Guardando Vehículo...
+                        </span>
+                      ) : (
+                        "Guardar Vehículo"
+                      )}
+                    </Button>
                   </form>
                 )}
               </AnimatePresence>
@@ -500,7 +522,19 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => { setIsRenewOpen(false); setRenewingVehicle(null); }} className="flex-1 rounded-xl border-border">Cancelar</Button>
-              <Button onClick={submitRenewal} disabled={!renewExpirationDate} className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50">Guardar</Button>
+              <Button
+                onClick={submitRenewal}
+                disabled={!renewExpirationDate || isRenewing}
+                className="flex-1 rounded-xl bg-primary text-white font-bold hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRenewing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                  </span>
+                ) : (
+                  "Guardar"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -529,7 +563,19 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
             <div><Label className="text-muted-foreground text-xs">Fecha de reparación</Label><Input type="date" value={wearPartDate} onChange={(e) => setWearPartDate(e.target.value)} className="mt-1.5 border-input bg-background rounded-xl" /></div>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => { setWearPartOpen(false); setWearPartVehicleState(null); }} className="flex-1 rounded-xl border-border">Cancelar</Button>
-              <Button onClick={submitWearPart} disabled={!wearPartName.trim()} className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50">Reportar</Button>
+              <Button
+                onClick={submitWearPart}
+                disabled={!wearPartName.trim() || isSavingWearPart}
+                className="flex-1 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingWearPart ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                  </span>
+                ) : (
+                  "Reportar"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -571,7 +617,19 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
             )}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => { setVerifOpen(false); setVerifVehicle(null); }} className="flex-1 rounded-xl border-border">Cancelar</Button>
-              <Button onClick={submitVerification} disabled={!verifImg} className="flex-1 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 disabled:opacity-50">Marcar como Verificada</Button>
+              <Button
+                onClick={submitVerification}
+                disabled={!verifImg || isVerifying}
+                className="flex-1 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isVerifying ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                  </span>
+                ) : (
+                  "Marcar como Verificada"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
