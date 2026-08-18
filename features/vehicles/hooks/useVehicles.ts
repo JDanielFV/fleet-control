@@ -559,8 +559,9 @@ export function useVehicles(options: UseVehiclesOptions) {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, target: "CIRCULACION" | "SEGURO") => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const rawFiles = e.target.files;
+    if (!rawFiles || rawFiles.length === 0) return;
+    const files = Array.from(rawFiles);
     e.target.value = "";
     setIsScanning(true);
     setScanTarget(target);
@@ -571,9 +572,10 @@ export function useVehicles(options: UseVehiclesOptions) {
       const dataUrls: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const dataUrl = await new Promise<string>((resolve) => {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Error al leer archivo"));
           reader.readAsDataURL(file);
         });
         dataUrls.push(dataUrl);
