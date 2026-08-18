@@ -6,53 +6,10 @@
     "mainOverflow": false,
     "mainClientWidth": 375,
     "mainScrollWidth": 375,
-    "tablesWiderThanViewport": [
-      {
-        "width": 672,
-        "cols": 9,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 6,
-    "smallTargets": [
-      {
-        "tag": "BUTTON",
-        "h": 30,
-        "w": 30,
-        "text": "Exportar checklists "
-      },
-      {
-        "tag": "BUTTON",
-        "h": 30,
-        "w": 30,
-        "text": "8"
-      },
-      {
-        "tag": "INPUT",
-        "h": 16,
-        "w": 301,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 71,
-        "text": "Chofer"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 60,
-        "text": "Auto"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 76,
-        "text": "Asignar"
-      }
-    ],
-    "searchBarHeight": 70,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": 114,
     "label": "checklists",
     "viewport": 375
   },
@@ -63,76 +20,9 @@
     "mainOverflow": false,
     "mainClientWidth": 375,
     "mainScrollWidth": 375,
-    "tablesWiderThanViewport": [
-      {
-        "width": 723,
-        "cols": 7,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 32,
-    "smallTargets": [
-      {
-        "tag": "INPUT",
-        "h": 20,
-        "w": 220,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 25,
-        "w": 63,
-        "text": "Archivo"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 196,
-        "text": "Renovar licencia\nExp"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Renovar licencia"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Exportar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 196,
-        "text": "Exportar\nEditar\nElim"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Exportar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      }
-    ],
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": 44,
     "label": "drivers",
     "viewport": 375
@@ -144,76 +34,9 @@
     "mainOverflow": false,
     "mainClientWidth": 375,
     "mainScrollWidth": 375,
-    "tablesWiderThanViewport": [
-      {
-        "width": 417,
-        "cols": 5,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 22,
-    "smallTargets": [
-      {
-        "tag": "INPUT",
-        "h": 20,
-        "w": 196,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 25,
-        "w": 63,
-        "text": "Archivo"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      }
-    ],
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": 44,
     "label": "vehicles",
     "viewport": 375
@@ -239,53 +62,10 @@
     "mainOverflow": false,
     "mainClientWidth": 390,
     "mainScrollWidth": 390,
-    "tablesWiderThanViewport": [
-      {
-        "width": 672,
-        "cols": 9,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 6,
-    "smallTargets": [
-      {
-        "tag": "BUTTON",
-        "h": 30,
-        "w": 30,
-        "text": "Exportar checklists "
-      },
-      {
-        "tag": "BUTTON",
-        "h": 30,
-        "w": 30,
-        "text": "8"
-      },
-      {
-        "tag": "INPUT",
-        "h": 16,
-        "w": 316,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 71,
-        "text": "Chofer"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 60,
-        "text": "Auto"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 76,
-        "text": "Asignar"
-      }
-    ],
-    "searchBarHeight": 70,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": 114,
     "label": "checklists",
     "viewport": 390
   },
@@ -296,76 +76,9 @@
     "mainOverflow": false,
     "mainClientWidth": 390,
     "mainScrollWidth": 390,
-    "tablesWiderThanViewport": [
-      {
-        "width": 723,
-        "cols": 7,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 32,
-    "smallTargets": [
-      {
-        "tag": "INPUT",
-        "h": 20,
-        "w": 235,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 25,
-        "w": 63,
-        "text": "Archivo"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 196,
-        "text": "Renovar licencia\nExp"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Renovar licencia"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Exportar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 196,
-        "text": "Exportar\nEditar\nElim"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Exportar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      }
-    ],
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": 44,
     "label": "drivers",
     "viewport": 390
@@ -377,76 +90,9 @@
     "mainOverflow": false,
     "mainClientWidth": 390,
     "mainScrollWidth": 390,
-    "tablesWiderThanViewport": [
-      {
-        "width": 417,
-        "cols": 5,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 22,
-    "smallTargets": [
-      {
-        "tag": "INPUT",
-        "h": 20,
-        "w": 211,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 25,
-        "w": 63,
-        "text": "Archivo"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      }
-    ],
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": 44,
     "label": "vehicles",
     "viewport": 390
@@ -472,53 +118,10 @@
     "mainOverflow": false,
     "mainClientWidth": 430,
     "mainScrollWidth": 430,
-    "tablesWiderThanViewport": [
-      {
-        "width": 672,
-        "cols": 9,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 6,
-    "smallTargets": [
-      {
-        "tag": "BUTTON",
-        "h": 30,
-        "w": 30,
-        "text": "Exportar checklists "
-      },
-      {
-        "tag": "BUTTON",
-        "h": 30,
-        "w": 30,
-        "text": "8"
-      },
-      {
-        "tag": "INPUT",
-        "h": 16,
-        "w": 356,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 71,
-        "text": "Chofer"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 60,
-        "text": "Auto"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 28,
-        "w": 76,
-        "text": "Asignar"
-      }
-    ],
-    "searchBarHeight": 70,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": 114,
     "label": "checklists",
     "viewport": 430
   },
@@ -529,76 +132,9 @@
     "mainOverflow": false,
     "mainClientWidth": 430,
     "mainScrollWidth": 430,
-    "tablesWiderThanViewport": [
-      {
-        "width": 723,
-        "cols": 7,
-        "visible": true
-      }
-    ],
-    "smallTargetCount": 32,
-    "smallTargets": [
-      {
-        "tag": "INPUT",
-        "h": 20,
-        "w": 275,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 25,
-        "w": 63,
-        "text": "Archivo"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 196,
-        "text": "Renovar licencia\nExp"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Renovar licencia"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Exportar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 196,
-        "text": "Exportar\nEditar\nElim"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Exportar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      }
-    ],
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": 44,
     "label": "drivers",
     "viewport": 430
@@ -611,69 +147,8 @@
     "mainClientWidth": 430,
     "mainScrollWidth": 430,
     "tablesWiderThanViewport": [],
-    "smallTargetCount": 22,
-    "smallTargets": [
-      {
-        "tag": "INPUT",
-        "h": 20,
-        "w": 251,
-        "text": ""
-      },
-      {
-        "tag": "BUTTON",
-        "h": 25,
-        "w": 63,
-        "text": "Archivo"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Eliminar"
-      },
-      {
-        "tag": "DIV",
-        "h": 36,
-        "w": 116,
-        "text": "Editar\nEliminar"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 36,
-        "w": 36,
-        "text": "Editar"
-      }
-    ],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": 44,
     "label": "vehicles",
     "viewport": 430
@@ -691,6 +166,62 @@
     "searchBarHeight": null,
     "label": "users",
     "viewport": 430
+  },
+  {
+    "docOverflow": false,
+    "docScrollWidth": 667,
+    "innerWidth": 667,
+    "mainOverflow": false,
+    "mainClientWidth": 667,
+    "mainScrollWidth": 667,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": 48,
+    "label": "checklists",
+    "viewport": 667
+  },
+  {
+    "docOverflow": false,
+    "docScrollWidth": 667,
+    "innerWidth": 667,
+    "mainOverflow": false,
+    "mainClientWidth": 667,
+    "mainScrollWidth": 667,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": 44,
+    "label": "drivers",
+    "viewport": 667
+  },
+  {
+    "docOverflow": false,
+    "docScrollWidth": 667,
+    "innerWidth": 667,
+    "mainOverflow": false,
+    "mainClientWidth": 667,
+    "mainScrollWidth": 667,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": 44,
+    "label": "vehicles",
+    "viewport": 667
+  },
+  {
+    "docOverflow": false,
+    "docScrollWidth": 667,
+    "innerWidth": 667,
+    "mainOverflow": false,
+    "mainClientWidth": 667,
+    "mainScrollWidth": 667,
+    "tablesWiderThanViewport": [],
+    "smallTargetCount": 0,
+    "smallTargets": [],
+    "searchBarHeight": null,
+    "label": "users",
+    "viewport": 667
   },
   {
     "docOverflow": false,
@@ -764,18 +295,18 @@
     "smallTargets": [
       {
         "tag": "INPUT",
-        "h": 27,
+        "h": 28,
         "w": 373,
         "text": ""
       },
       {
         "tag": "BUTTON",
-        "h": 27,
+        "h": 28,
         "w": 70,
         "text": "Archivo"
       }
     ],
-    "searchBarHeight": 60,
+    "searchBarHeight": 61,
     "label": "vehicles",
     "viewport": 768
   },
@@ -838,18 +369,18 @@
     "smallTargets": [
       {
         "tag": "INPUT",
-        "h": 27,
+        "h": 28,
         "w": 438,
         "text": ""
       },
       {
         "tag": "BUTTON",
-        "h": 27,
+        "h": 28,
         "w": 70,
         "text": "Archivo"
       }
     ],
-    "searchBarHeight": 60,
+    "searchBarHeight": 61,
     "label": "drivers",
     "viewport": 800
   },
@@ -1049,18 +580,18 @@
     "smallTargets": [
       {
         "tag": "INPUT",
-        "h": 27,
+        "h": 28,
         "w": 607,
         "text": ""
       },
       {
         "tag": "BUTTON",
-        "h": 27,
+        "h": 28,
         "w": 70,
         "text": "Archivo"
       }
     ],
-    "searchBarHeight": 60,
+    "searchBarHeight": 61,
     "label": "vehicles",
     "viewport": 1024
   },
@@ -1138,18 +669,18 @@
     "smallTargets": [
       {
         "tag": "INPUT",
-        "h": 27,
+        "h": 28,
         "w": 1001,
         "text": ""
       },
       {
         "tag": "BUTTON",
-        "h": 27,
+        "h": 28,
         "w": 70,
         "text": "Archivo"
       }
     ],
-    "searchBarHeight": 60,
+    "searchBarHeight": 61,
     "label": "vehicles",
     "viewport": 1440
   },
@@ -1175,21 +706,8 @@
     "mainClientWidth": null,
     "mainScrollWidth": null,
     "tablesWiderThanViewport": [],
-    "smallTargetCount": 2,
-    "smallTargets": [
-      {
-        "tag": "BUTTON",
-        "h": 32,
-        "w": 168,
-        "text": "Passkey"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 32,
-        "w": 168,
-        "text": "Contraseña"
-      }
-    ],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": null,
     "label": "login",
     "viewport": 375
@@ -1202,21 +720,8 @@
     "mainClientWidth": null,
     "mainScrollWidth": null,
     "tablesWiderThanViewport": [],
-    "smallTargetCount": 2,
-    "smallTargets": [
-      {
-        "tag": "BUTTON",
-        "h": 32,
-        "w": 188,
-        "text": "Passkey"
-      },
-      {
-        "tag": "BUTTON",
-        "h": 32,
-        "w": 188,
-        "text": "Contraseña"
-      }
-    ],
+    "smallTargetCount": 0,
+    "smallTargets": [],
     "searchBarHeight": null,
     "label": "login",
     "viewport": 430

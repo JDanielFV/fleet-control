@@ -25,6 +25,9 @@ const VIEWPORTS = [
   { width: 375, height: 667, mobile: true },
   { width: 390, height: 844, mobile: true },
   { width: 430, height: 932, mobile: true },
+  // Landscape móvil corto (<500px de alto): verificación de la Fase 5
+  // (pb-20 del main y sheets con max-h-[90vh]) — ver docs/superpowers/plans/2026-08-14-mobile-breakpoints.md
+  { width: 667, height: 375, mobile: true },
   { width: 768, height: 1024, mobile: true },
   // Rango híbrido 768–1024 (sidebar visible + overlays): línea base para la
   // decisión de breakpoints de la Fase 1 (ver docs/superpowers/plans/2026-08-18-breakpoints-phase1.md)
