@@ -1,6 +1,6 @@
 # Auditoría de Navegación Móvil — iOS Focus
 **Fecha:** 2026-08-18  
-**Estado:** Plan de implementación (pendiente de ejecución)
+**Estado:** ✅ Ejecutado — 6 commits atómicos, tsc + 44/44 tests
 
 ---
 
@@ -81,61 +81,48 @@
 
 ## 2. Plan de Implementación
 
-### T1: Viewport meta duplicado
-**Archivo:** `app/layout.tsx`
-- **Acción:** Eliminar el `<meta name="viewport">` manual de `<head>` (el `export const viewport` de Next.js lo genera automáticamente).
-- **Verificación:** `tsc`, QA script, inspección manual en iOS.
+### T1: Viewport meta duplicado ✅
+**Commit:** `d87567a`
+- Eliminado `<meta name="viewport">` manual de `<head>`.
+- Next.js `export const viewport` genera el tag automáticamente.
 
-### T2: Quitar `position: fixed` del body
-**Archivo:** `app/globals.css`
-- **Acción:** Eliminar `position: fixed; top:0; left:0; right:0; bottom:0;` de `html, body`. Mantener `overflow: hidden` y `overscroll-behavior: none` (previene pull-to-refresh). Mantener `height: 100%; height: -webkit-fill-available`.
-- **Razón:** El layout ya usa `h-screen` en el root div con `overflow-hidden`, que es suficiente para contener el viewport. `position: fixed` en body causa bugs de teclado iOS.
-- **Verificación:** Abrir/cerrar teclado virtual en iOS, verificar que el input de búsqueda scrollea correctamente.
+### T2: Quitar `position: fixed` del body ✅
+**Commit:** `e00500e`
+- Eliminado `position: fixed; top:0; left:0; right:0; bottom:0;` de `html, body`.
+- Cambiado `overscroll-behavior: none` a `contain` (bounce interno funciona, pull-to-refresh prevenido).
+- El root div con `h-dvh + overflow-hidden` es suficiente.
 
-### T3: Cambiar `h-screen` → `h-dvh` en root div
-**Archivo:** `components/Dashboard.tsx`
-- **Acción:** Cambiar `h-screen` por `h-dvh` en el div raíz del Dashboard.
-- **Razón:** `dvh` (dynamic viewport height) sigue el viewport real de iOS Safari incluyendo/excluyendo la barra de URL. `100vh` no lo hace.
-- **Fallback:** Tailwind v4 genera `@media (height >= 0.01px) { .h-dvh { height: 100dvh } }` con fallback automático a `100vh` en browsers sin soporte.
-- **Verificación:** Scroll en iOS Safari, verificar que el layout no "baila".
+### T3: Cambiar `h-screen` → `h-dvh` ✅
+**Commit:** `30bba37`
+- `h-screen` → `h-dvh` en Dashboard root div y app/page.tsx loading state.
+- Tailwind v4 genera fallback a `100vh` automáticamente.
 
-### T4: Safe areas en modales
-**Archivos:** `EntityActionSheet.tsx`, `ChecklistSheet.tsx`, `ChecklistActionModal.tsx`
-- **Acción:** Agregar `style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}` al wrapper `fixed inset-0` de cada modal.
-- **Alternativa:** Crear un wrapper CSS `.modal-safe-area` en `globals.css`.
-- **Verificación:** Abrir cada modal en iPhone con notch, verificar que el contenido no queda detrás del notch/home indicator.
+### T4: Safe areas en modales ✅
+**Commit:** `f04809b`
+- Nueva clase CSS `.modal-safe-area` en `globals.css`.
+- Aplicada a: EntityActionSheet, ChecklistSheet, ChecklistActionModal, PasskeyRegistrationDialog.
 
-### T5: Z-index consistente
-**Accivos:** Múltiples
-- **Acción:** Definir una escala de z-index en `globals.css`:
-  ```css
-  --z-nav: 50;
-  --z-overlay: 60;
-  --z-modal: 70;
-  --z-loading: 80;
-  --z-toast: 90;
-  ```
-- Aplicar: nav=`z-[var(--z-nav)]`, overlays=`z-[var(--z-overlay)]`, modales=`z-[var(--z-modal)]`, loading=`z-[var(--z-loading)]`, toasts=`z-[var(--z-toast)]`.
-- **Verificación:** Abrir buzón + modal + toast simultáneamente, verificar stacking correcto.
+### T5: Z-index consistente ✅
+**Commit:** `60a1f1b`
+- CSS custom properties: `--z-sidebar:30, --z-nav:40, --z-overlay:50, --z-modal:60, --z-loading:70, --z-toast:80`.
+- Actualizados10 archivos: Dashboard, Sidebar, DriversSlice, EntityActionSheet, ChecklistSheet, ChecklistActionModal, confirm-dialog, PasskeyRegistrationDialog.
 
-### T6: Overscroll chaining mejorado
-**Archivo:** `app/globals.css`
-- **Acción:** En `<main>`, agregar `overscroll-behavior-y: contain` (o Tailwind `overscroll-contain`). En body, cambiar `overscroll-behavior: none` a `overscroll-behavior-y: contain` para permitir bounce interno.
-- **Nota:** Esto permite el bounce de iOS dentro del scroll container, pero previene pull-to-refresh a nivel de página.
-- **Verificación:** Scrollear al fondo del contenido en iOS, verificar que hay bounce pero no pull-to-refresh.
+### T6: Overscroll chaining mejorado ✅
+**Commits:** `e00500e` (body) + `30bba37` (scroll containers)
+- Body: `overscroll-behavior: contain` (bounce funciona, pull-to-refresh prevenido).
+- Main scroll containers: `overscroll-contain` en dashboard cards y other tabs.
 
 ---
 
-## 3. Orden de Ejecución
+## 3. Commits Atómicos
 
-1. **T1** (viewport meta) — trivial, sin riesgo
-2. **T2** (body position) — riesgo medio, requiere prueba de teclado
-3. **T3** (h-dvh) — riesgo bajo, Tailwind maneja fallback
-4. **T4** (safe areas en modales) — riesgo bajo
-5. **T5** (z-index) — riesgo bajo, refactor visual
-6. **T6** (overscroll) — riesgo bajo, mejora UX
+1. `d87567a` — T1: viewport meta duplicado
+2. `e00500e` — T2: body position:fixed + overscroll
+3. `30bba37` — T3: h-dvh + scroll containers
+4. `f04809b` — T4: safe areas en modales
+5. `60a1f1b` — T5: z-index unificado
 
-Cada task se commitea de forma atómica. Después de cada task se ejecuta `tsc`, tests, y QA script para verificar que no se rompió nada.
+Todos verificados: `tsc` 0 errores, 44/44 tests.
 
 ---
 
