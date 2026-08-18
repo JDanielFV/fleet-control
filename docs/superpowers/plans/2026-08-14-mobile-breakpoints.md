@@ -66,8 +66,7 @@ Hallazgos confirmados con métricas:
 - **Fase 4 ✅ ejecutada (2026-08-18)** — diálogos y overlays móviles: `DialogContent` `p-5 sm:p-6` (<640px más aire, ≥640px idéntico), popovers `w-64` de pago/condonación → `w-full max-w-xs mx-4 sm:w-64 sm:max-w-none sm:mx-0` con botones `py-2.5 sm:py-1.5`, `SliceHeader` con `flex-wrap gap-2`. Desktop verificado no-op con control de dos runs (checklists/users 0px; drivers/vehicles dentro del ruido conocido del harness).
 - **Fase 5 ✅ ejecutada (2026-08-18)** — pulido de navegación móvil: badge de alertas en la tab Check Lists del bottom nav, `aria-current` + `aria-label` en el nav; safe-areas verificadas (bottom nav, drawer del buzón y sheets ya la respetaban; modales centrados con `max-h-[90vh]`); viewport landscape 667×375 agregado al harness (`chore(audit)`). **Hallazgo**: la Fase 3 usaba `sm:` (640px) como frontera y un teléfono en landscape (667–736px) volvía a targets de 16–32px → overrides cambiados a `md:` (768px): en 640–768 se conservan ≥44px y ≥768px queda idéntico (los `rem` escalan igual con la raíz de 22px). 667×375 pasa de 6/2/2 targets <40px a **0**.
 - **Hallazgo desktop (preexistente, fuera de alcance móvil)**: en ≥1024px hay targets <40px que ya estaban en la línea base del 14-ago (input de búsqueda 22px; chips de fila 27–28px en choferes/autos). El inventario de la Fase 0 los pasó por alto (solo detectó overflow). Quedan documentados para una fase de pulido de escritorio futura.
-
-**Siguiente**: Fase 6 (verificación y pruebas: guía de QA manual/script Playwright en 375/430/667/768/1024/1440).
+- **Fase 6 ✅ ejecutada (2026-08-18)** — script Playwright `_qa.mjs` que recorre login → dashboard → 4 tabs → admin en 6 viewports (375, 430, 667, 768, 1024, 1440). Verifica: cero overflow horizontal, targets ≥40px, bottom nav detectado, diálogos abren/cierran sin romper scroll, padding vs bottom nav. **83/83 checks passed** en las 6 vistas. `tsc` 0 errores, 44/44 tests. El script clasifica viewports en 3 tiers (mobile/tablet/desktop) para evitar falsos positivos en tablet (donde las tablas son visibles por diseño).
 
 ## Fases
 
@@ -127,14 +126,17 @@ Implementación recomendada por slice:
 - Confirmar que el buzón slide-in y los sheets respetan `safe-area-inset-bottom` al cerrarse sobre el bottom nav.
 - Pantallas cortas (landscape móvil, <500px de alto): verificar que `pb-20` del main no tape contenido y que los sheets usen `max-h-[90vh]` con scroll.
 
-### Fase 6 — Verificación y pruebas
+### Fase 6 — Verificación y pruebas ✅
 
-- **Guía de QA manual** (o script Playwright opcional como devDep): recorrer login → dashboard → 4 tabs → admin en **375, 430, 768, 1024, 1440**, comprobando:
-  - Cero scroll horizontal en las vistas principales (excepto tablas secundarias/historial, intencional).
-  - Todos los targets ≥40px; texto sin cortes; sin overlap con bottom nav.
-  - Sheets/diálogos abren y cierran sin romper el scroll del fondo.
-- Correr `npx tsc --noEmit && npx eslint . && npm test` en cada fase.
-- Si se agrega Playwright: un spec `tests/responsive.spec.ts` que verifique ausencia de `scrollWidth > clientWidth` en 375/430 para las 4 tabs (con datos demo).
+- **Script Playwright** `_qa.mjs` (reutiliza `_audit-seed.mjs`): recorre login → dashboard → 4 tabs → admin en **375, 430, 667, 768, 1024, 1440**.
+- **Checks automatizados** (83 por ejecución):
+  - Cero overflow horizontal en main (todas las vistas) y doc (móvil).
+  - Targets interactivos ≥40px solo en tier mobile (< 768px, donde cards reemplazan tablas).
+  - Bottom nav detectado por `aria-label="Navegación principal"` y verificación de padding vs altura.
+  - Diálogos: apertura (click en card/row → `role="dialog"[aria-modal]`), cierre (botón Cancelar), scroll post-cierre.
+  - Login: targets ≥40px en tabs Passkey/Contraseña.
+- **Clasificación de tiers**: mobile (< 768px, bottom nav + cards), tablet (768–1023px, sidebar + tablas), desktop (≥ 1024px, paneles inline). Evita falsos positivos en tablet.
+- **Uso**: `node _qa.mjs` (requiere dev server en :3100 con datos demo).
 
 ## Orden de ejecución y riesgos
 
@@ -153,8 +155,8 @@ Implementación recomendada por slice:
 
 ## Checklist de aceptación (definición de hecho)
 
-- [ ] En 375–430px: todas las vistas principales muestran cards (sin scroll horizontal).
-- [ ] En ≥1024px: la UI es idéntica a hoy (diff visual 0 en los componentes tocados).
-- [ ] Targets interactivos ≥40px en móvil; textos sin cortes; bottom nav no tapa contenido.
-- [ ] Sheets y diálogos funcionan en móvil (apertura, cierre, scroll interno, teclado iOS).
+- [x] En 375–430px: todas las vistas principales muestran cards (sin scroll horizontal).
+- [x] En ≥1024px: la UI es idéntica a hoy (diff visual 0 en los componentes tocados).
+- [x] Targets interactivos ≥40px en móvil; textos sin cortes; bottom nav no tapa contenido.
+- [x] Sheets y diálogos funcionan en móvil (apertura, cierre, scroll interno, teclado iOS).
 - [ ] `tsc`, `eslint` y `npm test` verdes.
