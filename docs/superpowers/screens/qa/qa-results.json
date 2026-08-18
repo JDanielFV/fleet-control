@@ -1,0 +1,666 @@
+[
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "checklists",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "checklists",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "checklists",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "checklists",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "checklists",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "drivers",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "drivers",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "drivers",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "drivers",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "drivers",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "vehicles",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "vehicles",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "vehicles",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "vehicles",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "vehicles",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "users",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "users",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "users",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "users",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "users",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "dialog",
+    "name": "dialog_skipped",
+    "ok": true,
+    "detail": "no clickable rows/cards found"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "scroll_bottom",
+    "name": "no_overflow_at_bottom",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 375,
+    "label": "iPhone SE",
+    "tab": "login",
+    "name": "login_targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "checklists",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "checklists",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "checklists",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "checklists",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "checklists",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "drivers",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "drivers",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "drivers",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "drivers",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "drivers",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "vehicles",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "vehicles",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "vehicles",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "vehicles",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "vehicles",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "users",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "users",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "users",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "users",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "users",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "dialog",
+    "name": "dialog_skipped",
+    "ok": true,
+    "detail": "no clickable rows/cards found"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "scroll_bottom",
+    "name": "no_overflow_at_bottom",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 430,
+    "label": "iPhone 15 Pro Max",
+    "tab": "login",
+    "name": "login_targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "checklists",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "checklists",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "checklists",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "checklists",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "checklists",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "drivers",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "drivers",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "drivers",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "drivers",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "drivers",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "vehicles",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "vehicles",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "vehicles",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "vehicles",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "vehicles",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "users",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "users",
+    "name": "no_doc_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "users",
+    "name": "targets_ge_40",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "users",
+    "name": "has_bottom_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "users",
+    "name": "content_not_behind_nav",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "dialog",
+    "name": "dialog_skipped",
+    "ok": true,
+    "detail": "no clickable rows/cards found"
+  },
+  {
+    "vp": 667,
+    "label": "Landscape móvil",
+    "tab": "scroll_bottom",
+    "name": "no_overflow_at_bottom",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 768,
+    "label": "Tablet",
+    "tab": "checklists",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 768,
+    "label": "Tablet",
+    "tab": "drivers",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 768,
+    "label": "Tablet",
+    "tab": "vehicles",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 768,
+    "label": "Tablet",
+    "tab": "users",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 768,
+    "label": "Tablet",
+    "tab": "dialog",
+    "name": "dialog_skipped",
+    "ok": true,
+    "detail": "no clickable rows/cards found"
+  },
+  {
+    "vp": 1024,
+    "label": "Desktop",
+    "tab": "checklists",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1024,
+    "label": "Desktop",
+    "tab": "drivers",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1024,
+    "label": "Desktop",
+    "tab": "vehicles",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1024,
+    "label": "Desktop",
+    "tab": "users",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1024,
+    "label": "Desktop",
+    "tab": "dialog",
+    "name": "dialog_skipped",
+    "ok": true,
+    "detail": "no clickable rows/cards found"
+  },
+  {
+    "vp": 1440,
+    "label": "Desktop grande",
+    "tab": "checklists",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1440,
+    "label": "Desktop grande",
+    "tab": "drivers",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1440,
+    "label": "Desktop grande",
+    "tab": "vehicles",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1440,
+    "label": "Desktop grande",
+    "tab": "users",
+    "name": "no_main_overflow",
+    "ok": true,
+    "detail": "OK"
+  },
+  {
+    "vp": 1440,
+    "label": "Desktop grande",
+    "tab": "dialog",
+    "name": "dialog_skipped",
+    "ok": true,
+    "detail": "no clickable rows/cards found"
+  }
+]
