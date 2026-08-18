@@ -64,8 +64,10 @@ Hallazgos confirmados con métricas:
 - **Fase 2 ✅ ejecutada** — ver `2026-08-18-card-lists-phase2.md` (card lists en dashboard/choferes/autos; cero scroll horizontal en 375–430px).
 - **Fase 3 ✅ ejecutada** — touch targets ≥44px en móvil (inputs de búsqueda, toggle Archivo, quick actions, Export/buzón, tabs del login): `targets<40 = 0` en todas las vistas 375/390/430px.
 - **Fase 4 ✅ ejecutada (2026-08-18)** — diálogos y overlays móviles: `DialogContent` `p-5 sm:p-6` (<640px más aire, ≥640px idéntico), popovers `w-64` de pago/condonación → `w-full max-w-xs mx-4 sm:w-64 sm:max-w-none sm:mx-0` con botones `py-2.5 sm:py-1.5`, `SliceHeader` con `flex-wrap gap-2`. Desktop verificado no-op con control de dos runs (checklists/users 0px; drivers/vehicles dentro del ruido conocido del harness).
+- **Fase 5 ✅ ejecutada (2026-08-18)** — pulido de navegación móvil: badge de alertas en la tab Check Lists del bottom nav, `aria-current` + `aria-label` en el nav; safe-areas verificadas (bottom nav, drawer del buzón y sheets ya la respetaban; modales centrados con `max-h-[90vh]`); viewport landscape 667×375 agregado al harness (`chore(audit)`). **Hallazgo**: la Fase 3 usaba `sm:` (640px) como frontera y un teléfono en landscape (667–736px) volvía a targets de 16–32px → overrides cambiados a `md:` (768px): en 640–768 se conservan ≥44px y ≥768px queda idéntico (los `rem` escalan igual con la raíz de 22px). 667×375 pasa de 6/2/2 targets <40px a **0**.
+- **Hallazgo desktop (preexistente, fuera de alcance móvil)**: en ≥1024px hay targets <40px que ya estaban en la línea base del 14-ago (input de búsqueda 22px; chips de fila 27–28px en choferes/autos). El inventario de la Fase 0 los pasó por alto (solo detectó overflow). Quedan documentados para una fase de pulido de escritorio futura.
 
-**Siguiente**: Fase 5 (pulido de navegación móvil: badge de alertas en el bottom nav, safe-areas, pantallas cortas).
+**Siguiente**: Fase 6 (verificación y pruebas: guía de QA manual/script Playwright en 375/430/667/768/1024/1440).
 
 ## Fases
 
