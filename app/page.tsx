@@ -18,7 +18,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen bg-background">
+      <div className="flex items-center justify-center h-dvh w-screen bg-background">
         <div className="animate-pulse text-muted-foreground text-sm">Cargando...</div>
       </div>
     );

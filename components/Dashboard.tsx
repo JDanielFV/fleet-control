@@ -99,11 +99,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="relative flex flex-col md:flex-row h-screen w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
+    <div className="relative flex flex-col md:flex-row h-dvh w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
       <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} pushEnabled={pushEnabled} onTogglePush={handleTogglePush} />
 
       <div className="flex-1 flex overflow-hidden">
-        <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
+        <main id="main-content" className="relative z-[10] flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div key={ctx.activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }} className="w-full flex-1 flex flex-col overflow-hidden">
@@ -150,7 +150,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Checklist Table */}
-                    <div className="flex-1 overflow-y-auto pr-1">
+                    <div className="flex-1 overflow-y-auto pr-1 overscroll-contain">
                       <div className="hidden md:block w-full overflow-x-auto pb-6">
                         <table className="w-full text-xs border-collapse">
                           <thead>
@@ -274,7 +274,7 @@ export default function Dashboard() {
               )}
 
               {ctx.activeTab !== "dashboard" && (
-                <div className="flex-1 overflow-y-auto pr-1">
+                <div className="flex-1 overflow-y-auto pr-1 overscroll-contain">
                   {ctx.activeTab === "drivers" && <DriversSlice onRefreshAlerts={ctx.triggerRefresh} searchQuery={ctx.globalSearch} onOpenActionSheet={ctx.openActionSheet} autoOpen={ctx.autoOpenDriver} onAutoOpenConsumed={() => ctx.setAutoOpenDriver(false)} weeklyRentals={ctx.weeklyRentals} onAssignDriver={(driverId) => { ctx.setAssignmentPreselect(driverId, null); ctx.setAssignmentDialogOpen(true); }} />}
                   {ctx.activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={ctx.triggerRefresh} searchQuery={ctx.globalSearch} onOpenActionSheet={ctx.openActionSheet} autoOpen={ctx.autoOpenVehicle} onAutoOpenConsumed={() => ctx.setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { ctx.setAssignmentPreselect(null, vehicleId); ctx.setAssignmentDialogOpen(true); }} externalWearPartVehicle={ctx.wearPartVehicle} refreshTrigger={ctx.refreshTrigger} />}
                   {ctx.activeTab === "users" && <UsersSlice />}
@@ -358,10 +358,10 @@ export default function Dashboard() {
             {ctx.isBuzonOpen && (
               <>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="fixed inset-0 bg-black/75 z-40 backdrop-blur-md" onClick={() => ctx.setIsBuzonOpen(false)} />
+                  className="fixed inset-0 bg-black/75 z-[var(--z-overlay)] backdrop-blur-md" onClick={() => ctx.setIsBuzonOpen(false)} />
                 <motion.div role="dialog" aria-modal="true" aria-labelledby="buzon-title-mobile"
                   initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  className="fixed bottom-0 top-0 right-0 z-50 bg-card border-l border-border w-full sm:w-[440px] h-screen shadow-2xl flex flex-col overflow-hidden"
+                  className="fixed bottom-0 top-0 right-0 z-[var(--z-modal)] bg-card border-l border-border w-full sm:w-[440px] h-dvh shadow-2xl flex flex-col overflow-hidden"
                   style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
                   <div className="flex items-center justify-between px-6 py-5 border-b border-border/40 shrink-0">
                     <div>
@@ -559,7 +559,7 @@ export default function Dashboard() {
       </Dialog>
 
       {/* Mobile Bottom Nav — fixed to viewport for iOS safe area */}
-      <nav aria-label="Navegación principal" className="nav-bottom-fixed md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 h-14 z-40" style={{ height: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}>
+      <nav aria-label="Navegación principal" className="nav-bottom-fixed md:hidden border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-around w-full px-2 h-14 z-[var(--z-nav)]" style={{ height: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}>
         {mobileNavItems.map((tab) => {
           const Icon = tab.icon;
           const isSelected = ctx.activeTab === tab.id;
