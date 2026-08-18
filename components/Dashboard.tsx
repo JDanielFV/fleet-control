@@ -23,9 +23,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
+import { MobileCard, MobileActionButton } from "@/components/ui/MobileCard";
 import { Bell, User, Car, ArrowLeftRight, CheckCircle, AlertTriangle, Sparkles, Shield, ShieldAlert, Search, X, BarChart3, Download, DollarSign, LogOut } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useDashboard, type TabId } from "@/features/dashboard/hooks/useDashboard";
+
+/** Estado de la fila según vencimientos del auto (compartido por tabla y cards móviles). */
+function getRowStatus(v: Vehicle): "in_service" | "red" | "yellow" | "green" {
+  if (v.status === "in_service") return "in_service";
+  const dates = [v.circulation_expiration_date, v.insurance_expiration_date, v.verification_expiration_date].filter(Boolean) as string[];
+  const today = new Date();
+  for (const d of dates) {
+    const diff = Math.ceil((new Date(d).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff <= 0) return "red";
+    if (diff <= 30) return "yellow";
+  }
+  return "green";
+}
 
 export default function Dashboard() {
   const ctx = useDashboard();
@@ -137,7 +151,7 @@ export default function Dashboard() {
 
                     {/* Checklist Table */}
                     <div className="flex-1 overflow-y-auto pr-1">
-                      <div className="w-full overflow-x-auto pb-6">
+                      <div className="hidden md:block w-full overflow-x-auto pb-6">
                         <table className="w-full text-xs border-collapse">
                           <thead>
                             <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
@@ -167,17 +181,6 @@ export default function Dashboard() {
                                 const totalPending = driverRentals.reduce((acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount), 0);
                                 const driverChecklists = ctx.checklists.filter((c) => { const v = ctx.vehicles.find((vv) => vv.id === c.vehicle_id); return v?.active_driver_id === driver.id; });
                                 const usageStats = computeUsageStats(driverChecklists);
-                                const today = new Date();
-                                const getRowStatus = (v: Vehicle): "in_service" | "red" | "yellow" | "green" => {
-                                  if (v.status === "in_service") return "in_service";
-                                  const dates = [v.circulation_expiration_date, v.insurance_expiration_date, v.verification_expiration_date].filter(Boolean) as string[];
-                                  for (const d of dates) {
-                                    const diff = Math.ceil((new Date(d).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                                    if (diff <= 0) return "red";
-                                    if (diff <= 30) return "yellow";
-                                  }
-                                  return "green";
-                                };
                                 const rowStatus = getRowStatus(assignedVehicle);
                                 const rowColorClass = rowStatus === "in_service" ? "bg-blue-500/5 border-l-4 border-l-blue-500"
                                   : rowStatus === "red" ? "bg-red-500/5 border-l-4 border-l-red-500"
@@ -207,6 +210,63 @@ export default function Dashboard() {
                             )}
                           </tbody>
                         </table>
+                      </div>
+
+                      {/* Card list móvil (<768px) — misma data que la tabla */}
+                      <div className="md:hidden space-y-3 pb-2">
+                        {(() => {
+                          const assignedDrivers = ctx.filteredDriversList.filter((d) => ctx.vehicles.some((v) => v.active_driver_id === d.id));
+                          if (assignedDrivers.length === 0) {
+                            return <p className="text-center py-10 text-muted-foreground italic text-sm">No se encontraron choferes que coincidan con la búsqueda.</p>;
+                          }
+                          return assignedDrivers.map((driver) => {
+                            const assignedVehicle = ctx.vehicles.find((v) => v.active_driver_id === driver.id)!;
+                            const vChecklists = ctx.checklists.filter((c) => c.vehicle_id === assignedVehicle.id);
+                            const sortedChecks = sortByDateDesc(vChecklists, "created_at");
+                            const latestKm = sortedChecks[0]?.mileage;
+                            const prevKm = sortedChecks[1]?.mileage;
+                            const vehicleId = assignedVehicle.vin?.slice(-6).toUpperCase() || "—";
+                            const driverRentals = ctx.weeklyRentals.filter((r) => r.driver_id === driver.id && r.status !== "PAID");
+                            const totalPending = driverRentals.reduce((acc, r) => acc + Math.max(0, r.rent_amount - r.paid_amount), 0);
+                            const driverChecklists = ctx.checklists.filter((c) => { const v = ctx.vehicles.find((vv) => vv.id === c.vehicle_id); return v?.active_driver_id === driver.id; });
+                            const usageStats = computeUsageStats(driverChecklists);
+                            const rowStatus = getRowStatus(assignedVehicle);
+                            const borderClass = rowStatus === "in_service" ? "border-l-4 border-l-blue-500"
+                              : rowStatus === "red" ? "border-l-4 border-l-red-500"
+                              : rowStatus === "yellow" ? "border-l-4 border-l-amber-500"
+                              : "border-l-4 border-l-transparent";
+                            return (
+                              <MobileCard
+                                key={driver.id}
+                                onClick={() => ctx.openActionModal(assignedVehicle)}
+                                statusClass={borderClass}
+                                header={
+                                  <>
+                                    <div className="min-w-0 flex-1">
+                                      <span className="block text-base font-extrabold text-foreground leading-tight">{driver.first_name} {driver.paternal_last_name}</span>
+                                      <span className="block text-[11px] text-muted-foreground font-semibold mt-0.5">{assignedVehicle.brand} {assignedVehicle.vehicle_name} · <span className="font-mono">{assignedVehicle.plate_number}</span></span>
+                                    </div>
+                                    <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${rowStatus === "in_service" ? "bg-blue-500/10 text-blue-500" : rowStatus === "red" ? "bg-red-500/10 text-red-500" : rowStatus === "yellow" ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"}`}>
+                                      {rowStatus === "in_service" ? "Servicio" : rowStatus === "red" ? "Vencido" : rowStatus === "yellow" ? "Por vencer" : "Al día"}
+                                    </span>
+                                  </>
+                                }
+                                rows={[
+                                  { label: "ID Auto", value: <span className="font-mono">{vehicleId}</span> },
+                                  { label: "Km Anterior", value: prevKm != null ? prevKm.toLocaleString() : "—" },
+                                  { label: "Km Nuevo", value: <span className="font-bold text-foreground">{latestKm != null ? latestKm.toLocaleString() : "—"}</span> },
+                                  { label: "Renta", value: `$${assignedVehicle.rent_cost.toLocaleString()}` },
+                                  { label: "Pendiente", value: <span className="font-bold text-red-400">${totalPending.toLocaleString()}</span> },
+                                ]}
+                                actions={
+                                  <MobileActionButton variant="primary" onClick={(e) => { e.stopPropagation(); ctx.openStatsDialog(driver, usageStats); }}>
+                                    <BarChart3 className="w-4 h-4" /> Ver estadísticas
+                                  </MobileActionButton>
+                                }
+                              />
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   </div>
