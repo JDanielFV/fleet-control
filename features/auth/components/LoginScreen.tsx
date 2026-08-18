@@ -214,7 +214,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <button
             type="button"
             onClick={() => switchMode("passkey")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 md:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               mode === "passkey" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
             }`}
           >
@@ -223,7 +223,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           <button
             type="button"
             onClick={() => switchMode("password")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 md:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               mode === "password" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
             }`}
           >

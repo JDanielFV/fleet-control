@@ -66,9 +66,9 @@ export default function DriversSlice(props: DriversSliceProps) {
         <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
         <input type="text" placeholder="Search" value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden py-3 sm:py-0" />
+          className="flex-1 bg-transparent border-none text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-hidden py-3 md:py-0" />
         <button type="button" onClick={() => setShowArchived(!showArchived)}
-          className={`text-[11px] font-bold px-2.5 py-3.5 sm:py-1 rounded-lg transition-all cursor-pointer shrink-0 ${showArchived ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+          className={`text-[11px] font-bold px-2.5 py-3.5 md:py-1 rounded-lg transition-all cursor-pointer shrink-0 ${showArchived ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
           {showArchived ? "Activos" : "Archivo"}
         </button>
       </div>
