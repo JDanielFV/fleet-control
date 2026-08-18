@@ -63,8 +63,9 @@ Hallazgos confirmados con métricas:
 - **Fase 1 ✅ ejecutada** — ver `2026-08-18-breakpoints-phase1.md` (breakpoints documentados, single source of truth del panel inline, viewports 800/900 en el harness, diff visual 0 en desktop).
 - **Fase 2 ✅ ejecutada** — ver `2026-08-18-card-lists-phase2.md` (card lists en dashboard/choferes/autos; cero scroll horizontal en 375–430px).
 - **Fase 3 ✅ ejecutada** — touch targets ≥44px en móvil (inputs de búsqueda, toggle Archivo, quick actions, Export/buzón, tabs del login): `targets<40 = 0` en todas las vistas 375/390/430px.
+- **Fase 4 ✅ ejecutada (2026-08-18)** — diálogos y overlays móviles: `DialogContent` `p-5 sm:p-6` (<640px más aire, ≥640px idéntico), popovers `w-64` de pago/condonación → `w-full max-w-xs mx-4 sm:w-64 sm:max-w-none sm:mx-0` con botones `py-2.5 sm:py-1.5`, `SliceHeader` con `flex-wrap gap-2`. Desktop verificado no-op con control de dos runs (checklists/users 0px; drivers/vehicles dentro del ruido conocido del harness).
 
-**Siguiente**: Fase 4 (diálogos y overlays móviles: `w-64` de pago/condonación, padding de `DialogContent` en <400px) y Fase 5 (pulido de navegación móvil).
+**Siguiente**: Fase 5 (pulido de navegación móvil: badge de alertas en el bottom nav, safe-areas, pantallas cortas).
 
 ## Fases
 

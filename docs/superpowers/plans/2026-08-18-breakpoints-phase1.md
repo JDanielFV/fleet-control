@@ -58,7 +58,7 @@ La base 22px en `md`+ escala los anchos en `rem` (no los `px` fijos). Inventario
 | `DialogContent` base `max-w-lg` (`ui/dialog.tsx:37`) | 512px | **704px** | Centrado en overlay `fixed inset-0` → cabe en ≥1024. OK, verificar visual. |
 | `max-w-md` (diálogos de formularios) | 448px | **616px** | Ídem. OK. |
 | `max-w-sm` (confirm/checklist action modal) | 384px | **528px** | Ídem. OK. |
-| `w-64` (popovers pago/condonación, `DriversSlice.tsx:261,282`) | 256px | **352px** | Angosto en móvil (defecto P4 conocido) pero **no rompe** en desktop. Fix diferido a Fase 4. |
+| `w-64` (popovers pago/condonación, `DriversSlice.tsx:261,282`) | 256px | **352px** | Angosto en móvil (defecto P4 conocido) pero **no rompe** en desktop. ✅ **Fix aplicado en Fase 4** (2026-08-18): `w-full max-w-xs mx-4 sm:w-64 sm:max-w-none sm:mx-0`. |
 | `lg:w-[400px] xl:w-[440px]` (aside) | fijo px | fijo px | Contenido `text-xs` (16.5px @22px) cabe. OK. |
 | `sm:w-[440px]` (drawer buzón móvil) | fijo px | fijo px | Solo <1024px. OK. |
 | `max-w-[240px]`/`max-w-[260px]` (empty state) | fijo px | fijo px | OK. |
