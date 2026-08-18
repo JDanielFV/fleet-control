@@ -120,9 +120,9 @@ export default function Dashboard() {
                         <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2">{ctx.stats.vehicles} vehículos · {ctx.stats.assigned} activos · {ctx.alerts.length} {ctx.alerts.length === 1 ? "alerta" : "alertas"} pendientes</p>
                       </div>
                       <div className="flex items-center gap-2 self-end sm:self-auto">
-                        <button onClick={ctx.exportChecklistCsv} className="p-2 sm:p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0" aria-label="Exportar checklists a CSV" title="Exportar CSV"><Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-                        <button onClick={() => ctx.setIsBuzonOpen(true)} className="md:hidden relative p-2 sm:p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0" aria-label={`Abrir buzón de alertas. ${ctx.alerts.length} alertas activas`}>
-                          <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <button onClick={ctx.exportChecklistCsv} className="p-3.5 sm:p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0" aria-label="Exportar checklists a CSV" title="Exportar CSV"><Download className="w-4 h-4" /></button>
+                        <button onClick={() => ctx.setIsBuzonOpen(true)} className="md:hidden relative p-3.5 sm:p-2.5 rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs border-none shrink-0" aria-label={`Abrir buzón de alertas. ${ctx.alerts.length} alertas activas`}>
+                          <Bell className="w-4 h-4" />
                           {ctx.alerts.length > 0 && <span className="absolute -top-1 -right-1 min-w-[14px] sm:min-w-[16px] h-3 sm:h-4 px-1 bg-red-500 text-white text-[10px] sm:text-[11px] font-black rounded-full flex items-center justify-center">{ctx.alerts.length}</span>}
                         </button>
                       </div>
@@ -132,19 +132,19 @@ export default function Dashboard() {
                     <div className="bg-[#ECECEC] rounded-2xl min-h-12 px-3 sm:px-4 flex items-center gap-2 w-full shrink-0 shadow-inner border border-border/40 focus-within:ring-4 focus-within:ring-primary/20 transition-all flex-wrap sm:flex-nowrap py-2 sm:py-0">
                       <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                       <input type="text" placeholder="Buscar chofer por nombre o placas..." value={ctx.globalSearch} onChange={(e) => ctx.setGlobalSearch(e.target.value)}
-                        className="flex-1 bg-transparent border-none text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-hidden min-w-0 w-full sm:w-auto" />
+                        className="flex-1 bg-transparent border-none text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-hidden min-w-0 w-full sm:w-auto py-3.5 sm:py-0" />
                       {ctx.globalSearch && (
-                        <button onClick={() => ctx.setGlobalSearch("")} className="text-[11px] font-bold text-muted-foreground hover:text-foreground shrink-0 px-2 cursor-pointer">Limpiar</button>
+                        <button onClick={() => ctx.setGlobalSearch("")} className="text-[11px] font-bold text-muted-foreground hover:text-foreground shrink-0 px-2 py-3.5 sm:py-0 cursor-pointer">Limpiar</button>
                       )}
                       <div className="flex items-center gap-1.5 shrink-0 pl-0 sm:pl-2 border-l-0 sm:border-l border-border/40 w-full sm:w-auto justify-end">
-                        <button onClick={() => { ctx.setAutoOpenDriver(true); ctx.handleTabChange("drivers"); }} className="inline-flex items-center gap-1 px-2.5 h-7 sm:px-3 sm:h-8 rounded-lg bg-primary text-white text-[10px] sm:text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
-                          <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Chofer
+                        <button onClick={() => { ctx.setAutoOpenDriver(true); ctx.handleTabChange("drivers"); }} className="inline-flex items-center gap-1 px-3 h-11 sm:px-3 sm:h-8 rounded-lg bg-primary text-white text-[10px] sm:text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
+                          <User className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> Chofer
                         </button>
-                        <button onClick={() => { ctx.setAutoOpenVehicle(true); ctx.handleTabChange("vehicles"); }} className="inline-flex items-center gap-1 px-2.5 h-7 sm:px-3 sm:h-8 rounded-lg bg-primary text-white text-[10px] sm:text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
-                          <Car className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Auto
+                        <button onClick={() => { ctx.setAutoOpenVehicle(true); ctx.handleTabChange("vehicles"); }} className="inline-flex items-center gap-1 px-3 h-11 sm:px-3 sm:h-8 rounded-lg bg-primary text-white text-[10px] sm:text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
+                          <Car className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> Auto
                         </button>
-                        <button onClick={() => ctx.setAssignmentDialogOpen(true)} className="inline-flex items-center gap-1 px-2.5 h-7 sm:px-3 sm:h-8 rounded-lg bg-emerald-500 text-white text-[10px] sm:text-[11px] font-bold hover:bg-emerald-600 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
-                          <ArrowLeftRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Asignar
+                        <button onClick={() => ctx.setAssignmentDialogOpen(true)} className="inline-flex items-center gap-1 px-3 h-11 sm:px-3 sm:h-8 rounded-lg bg-emerald-500 text-white text-[10px] sm:text-[11px] font-bold hover:bg-emerald-600 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
+                          <ArrowLeftRight className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> Asignar
                         </button>
                       </div>
                     </div>
