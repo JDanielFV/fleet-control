@@ -393,7 +393,7 @@ export default function Dashboard() {
 
       {/* Assignment Dialog */}
       <AssignmentDialog open={ctx.assignmentDialogOpen} onClose={() => { ctx.setAssignmentDialogOpen(false); ctx.setAssignmentPreselect(null, null); }}
-        onComplete={ctx.triggerRefresh} onAssign={(vehicleId) => { const v = ctx.vehicles.find((vv) => vv.id === vehicleId); if (v) ctx.openChecklistSheet(v); }}
+        onComplete={ctx.triggerRefresh} onAssign={(vehicleId, driverId) => { const v = ctx.vehicles.find((vv) => vv.id === vehicleId); if (v) ctx.openChecklistSheet({ ...v, active_driver_id: driverId }); }}
         drivers={ctx.drivers} vehicles={ctx.vehicles} preselectDriver={ctx.assignmentPreselectDriver} preselectVehicle={ctx.assignmentPreselectVehicle} />
 
       {/* Action Modal */}

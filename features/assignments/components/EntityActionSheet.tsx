@@ -111,7 +111,7 @@ export const EntityActionSheet = ({
         await createAssignment(resolvedVehicle.id, targetId, "ASSIGN", "Asignación rápida desde Action Sheet");
         onActionComplete?.();
         if (onVehicleAssigned) {
-          onVehicleAssigned(resolvedVehicle);
+          onVehicleAssigned({ ...resolvedVehicle, active_driver_id: targetId });
         }
       }
       setView("main");
