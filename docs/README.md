@@ -12,6 +12,7 @@
 | `plans/2026-08-14-mobile-breakpoints.md` | Plan maestro de auditoría y mejora de responsividad móvil | 🟡 Fase 0 ✅ (auditoría Playwright); Fases 1–6 pendientes |
 | `plans/2026-08-18-breakpoints-phase1.md` | Plan de ejecución de la Fase 1 (consistencia de breakpoints sin tocar desktop) | ✅ Ejecutado — T1/T2/T4/T5 ✅, T3 sin incidencias; 1 error eslint preexistente pendiente |
 | `plans/2026-08-18-card-lists-phase2.md` | Plan de ejecución de la Fase 2 (card lists móviles para las tablas) | ✅ Ejecutado — cards en dashboard/choferes/autos; desktop intacto verificado |
+| Fase 3 — Touch targets (plan maestro 2026-08-14) | Targets táctiles ≥44px en móvil (búsquedas, toggles, quick actions, tabs login) | ✅ Ejecutado — targets<40 = **0** en todas las vistas 375/390/430px; desktop intacto |
 | `screens/before/INVENTORY.md` | Inventario de incidencias de responsividad — línea base "antes" (capturas + `metrics.json`) | ✅ Línea base congelada (comparar en Fase 6) |
 
 ## Convenciones

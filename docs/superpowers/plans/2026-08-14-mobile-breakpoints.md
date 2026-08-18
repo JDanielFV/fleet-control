@@ -59,9 +59,12 @@ Hallazgos confirmados con métricas:
 - Desktop ≥1024px: sin incidencias → confirma que la regla de no tocar escritorio es viable.
 - Tooling: se añadió `playwright` como devDependency (el repo ya tenía `_shot.mjs` que lo importaba); script reutilizable `_audit.mjs` + `_audit-seed.mjs`.
 
-**Avance de Fase 1 (documentación)**: la sección **"Móvil y Responsividad"** del `README.md` ya documenta la navegación dual, los **breakpoints canónicos** y el estado de esta auditoría — el entregable de documentación de Fase 1 está cubierto.
+**Avance (2026-08-18)**:
+- **Fase 1 ✅ ejecutada** — ver `2026-08-18-breakpoints-phase1.md` (breakpoints documentados, single source of truth del panel inline, viewports 800/900 en el harness, diff visual 0 en desktop).
+- **Fase 2 ✅ ejecutada** — ver `2026-08-18-card-lists-phase2.md` (card lists en dashboard/choferes/autos; cero scroll horizontal en 375–430px).
+- **Fase 3 ✅ ejecutada** — touch targets ≥44px en móvil (inputs de búsqueda, toggle Archivo, quick actions, Export/buzón, tabs del login): `targets<40 = 0` en todas las vistas 375/390/430px.
 
-**Siguiente**: Fase 1 (consistencia de breakpoints en código: unificar el corte `md`/`lg`) y Fase 2 (card lists móviles, un slice por commit).
+**Siguiente**: Fase 4 (diálogos y overlays móviles: `w-64` de pago/condonación, padding de `DialogContent` en <400px) y Fase 5 (pulido de navegación móvil).
 
 ## Fases
 
