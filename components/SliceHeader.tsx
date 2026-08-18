@@ -14,7 +14,7 @@ interface SliceHeaderProps {
  */
 export default function SliceHeader({ title, action }: SliceHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-1 mb-2">
+    <div className="flex items-center justify-between flex-wrap gap-2 px-1 mb-2">
       <h1 className="text-[26px] font-bold tracking-tight text-foreground leading-none">{title}</h1>
       {action ? <div className="flex items-center gap-2">{action}</div> : null}
     </div>
