@@ -102,7 +102,7 @@ export default function Dashboard() {
     <div className="relative flex flex-col md:flex-row h-screen w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
       <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} pushEnabled={pushEnabled} onTogglePush={handleTogglePush} />
 
-      <div className="flex-1 flex h-full overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         <main id="main-content" className="relative z-10 flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-20 md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div key={ctx.activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
