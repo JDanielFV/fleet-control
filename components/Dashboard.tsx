@@ -152,18 +152,18 @@ export default function Dashboard() {
                     {/* Checklist Table */}
                     <div className="flex-1 overflow-y-auto pr-1 overscroll-contain">
                       <div className="hidden md:block w-full overflow-x-auto pb-6">
-                        <table className="w-full text-xs border-collapse">
+                        <table className="w-full text-xs border-collapse" aria-label="Checklists de choferes">
                           <thead>
                             <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
-                              <th className="text-left py-2.5 px-2 whitespace-nowrap">Chofer</th>
-                              <th className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
-                              <th className="text-left py-2.5 px-2 whitespace-nowrap">Placa</th>
-                              <th className="text-left py-2.5 px-2 whitespace-nowrap">ID Auto</th>
-                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Km Anterior</th>
-                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Km Nuevo</th>
-                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Renta</th>
-                              <th className="text-right py-2.5 px-2 whitespace-nowrap">Pendiente</th>
-                              <th className="text-center py-2.5 px-2 whitespace-nowrap">Stats</th>
+                              <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Chofer</th>
+                              <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
+                              <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Placa</th>
+                              <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">ID Auto</th>
+                              <th scope="col" className="text-right py-2.5 px-2 whitespace-nowrap">Km Anterior</th>
+                              <th scope="col" className="text-right py-2.5 px-2 whitespace-nowrap">Km Nuevo</th>
+                              <th scope="col" className="text-right py-2.5 px-2 whitespace-nowrap">Renta</th>
+                              <th scope="col" className="text-right py-2.5 px-2 whitespace-nowrap">Pendiente</th>
+                              <th scope="col" className="text-center py-2.5 px-2 whitespace-nowrap">Stats</th>
                             </tr>
                           </thead>
                           <tbody>

@@ -290,14 +290,14 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
         {isLoading ? (
           <VehiclesListSkeleton count={4} />
         ) : (
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-xs border-collapse" aria-label="Lista de vehículos">
             <thead>
               <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
-                <th className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
-                <th className="text-left py-2.5 px-2 whitespace-nowrap">Placa</th>
-                <th className="text-left py-2.5 px-2 whitespace-nowrap">ID</th>
-                <th className="text-left py-2.5 px-2 whitespace-nowrap">Chofer</th>
-                <th className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
+                <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
+                <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Placa</th>
+                <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">ID</th>
+                <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Chofer</th>
+                <th scope="col" className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -328,7 +328,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
 
                   return (
                     <React.Fragment key={vehicle.id}>
-                      <tr role="button" tabIndex={0} onClick={() => toggleVehicleDetails(vehicle.id)}
+                      <tr role="button" tabIndex={0} aria-expanded={!!expandedVehicleDetails[vehicle.id]} onClick={() => toggleVehicleDetails(vehicle.id)}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleVehicleDetails(vehicle.id); } }}
                         className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${filteredVehicles.indexOf(vehicle) % 2 === 0 ? "bg-card" : "bg-muted/5"}`}>
                         <td className="py-2.5 px-2"><span className="font-bold text-foreground">{`${vehicle.brand} ${vehicle.vehicle_name} ${vehicle.model}`}</span></td>

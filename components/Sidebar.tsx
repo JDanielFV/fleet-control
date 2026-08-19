@@ -53,6 +53,7 @@ export default function Sidebar({
             <button
               key={item.id}
               onClick={() => onChange(item.id)}
+              aria-current={isSelected ? "page" : undefined}
               className={cn(
                 "relative w-full flex flex-col items-center gap-1 py-2.5 rounded-xl text-[10px] font-semibold transition-all active:scale-[0.97] cursor-pointer",
                 isSelected

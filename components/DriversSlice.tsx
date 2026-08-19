@@ -79,16 +79,16 @@ export default function DriversSlice(props: DriversSliceProps) {
           <DriversListSkeleton count={4} />
         ) : (
           <>
-            <table className="w-full text-xs border-collapse">
+            <table className="w-full text-xs border-collapse" aria-label="Lista de conductores">
               <thead>
                 <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40">
-                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Foto</th>
-                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Nombre</th>
-                  <th className="text-left py-2.5 px-2 whitespace-nowrap">CURP</th>
-                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Licencia</th>
-                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Vence</th>
-                  <th className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
-                  <th className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
+                  <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Foto</th>
+                  <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Nombre</th>
+                  <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">CURP</th>
+                  <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Licencia</th>
+                  <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Vence</th>
+                  <th scope="col" className="text-left py-2.5 px-2 whitespace-nowrap">Auto</th>
+                  <th scope="col" className="text-right py-2.5 px-2 whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,7 +99,7 @@ export default function DriversSlice(props: DriversSliceProps) {
                     const assignedVehicle = vehicles.find((v) => v.active_driver_id === driver.id);
                     return (
                       <React.Fragment key={driver.id}>
-                        <tr role="button" tabIndex={0} onClick={() => toggleDriverDetails(driver.id)}
+                        <tr role="button" tabIndex={0} aria-expanded={!!expandedDriverDetails[driver.id]} onClick={() => toggleDriverDetails(driver.id)}
                           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDriverDetails(driver.id); } }}
                           className={`border-b border-border/20 hover:bg-muted/30 transition-colors cursor-pointer ${filteredDrivers.indexOf(driver) % 2 === 0 ? "bg-card" : "bg-muted/5"}`}>
                           <td className="py-2.5 px-2">
