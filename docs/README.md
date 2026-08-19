@@ -16,8 +16,10 @@
 | Fase 4 — Diálogos móviles (plan maestro 2026-08-14) | Padding `DialogContent` <640px, popovers `w-64` de pago/condonación, `SliceHeader` con wrap | ✅ Ejecutado — desktop no-op verificado con control de dos runs |
 | Fase 5 — Navegación móvil (plan maestro 2026-08-14) | Badge de alertas en bottom nav, `aria-current`, safe-areas, viewport landscape 667×375 | ✅ Ejecutado — targets<40 = **0** también en 667×375; desktop intacto |
 | Fase 6 — QA Playwright (plan maestro 2026-08-14) | Script `_qa.mjs`: 83 checks en 6 viewports (login, dashboard, tabs, dialog flow, bottom nav, overflow) | ✅ 83/83 passed; tiers mobile/tablet/desktop |
-| `plans/2026-08-18-mobile-nav-audit.md` | Auditoría de navegación móvil (iOS focus): viewport duplicado, body fixed, h-dvh, safe areas en modales, z-index, overscroll | 📋 Plan listo para ejecutar |
+| `plans/2026-08-18-mobile-nav-audit.md` | Auditoría de navegación móvil (iOS focus): viewport duplicado, body fixed, h-dvh, safe areas en modales, z-index, overscroll | ✅ Ejecutado — 6 commits atómicos, tsc + 44/44 tests |
+| `plans/2026-08-18-desktop-audit.md` | Auditoría de escritorio: touch targets <40px en tablas, input de búsqueda, aria en sidebar/tablas, right panel | 📋 Plan listo para ejecutar |
 | `screens/before/INVENTORY.md` | Inventario de incidencias de responsividad — línea base "antes" (capturas + `metrics.json`) | ✅ Línea base congelada (comparar en Fase 6) |
+| `screens/qa/` | Screenshots de referencia del QA Playwright (`_qa.mjs`) — 6 viewports × 4-6 vistas | ✅ 38 capturas generadas (Fase 6) |
 
 ## Convenciones
 
