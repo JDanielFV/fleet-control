@@ -1,6 +1,6 @@
 # Auditoría de Escritorio — fleet-control
 **Fecha:** 2026-08-18  
-**Estado:** 📋 Plan preparado — pendiente de ejecución
+**Estado:** ✅ Ejecutado — 3 commits atómicos, tsc + 44/44 tests
 
 ---
 
@@ -41,7 +41,7 @@ Los botones de acción en las tablas de choferes y autos usan `Button variant="g
 | DriversSlice | Pagar (historial) | ~24px | Target < 40px |
 | DriversSlice | Condonar (historial) | ~24px | Target < 40px |
 
-**Fix propuesto:** Subir `size="sm"` de `h-10` a `h-11` (44px) en `button.tsx`, o crear un size `"md"` intermedio `h-10` (40px) y usarlo en las tablas. Los botones inline de historial de pagos necesitan aumentar su `py-` y `min-h`.
+**Fix aplicado:** h-9 → h-11 (36→44px), h-7 → h-10 (28→40px), h-6 → h-9 (24→36px), payment buttons py-0.5 → py-1.5.
 
 ---
 
@@ -55,7 +55,7 @@ El input de búsqueda del dashboard:
 ```
 En desktop (`md:`) el `py-0` deja el input con solo el padding inherente del input ≈ 22px de alto.
 
-**Fix propuesto:** Cambiar `md:py-0` a `md:py-2` o `md:h-10` para dar al menos 40px de alto.
+**Fix aplicado:** `md:py-0` → `md:py-2.5` (~44px en desktop).
 
 ---
 
@@ -70,7 +70,7 @@ Los botones de navegación del sidebar tienen `aria-label` implícito por el tex
 - No hay `aria-current="page"` en la tab activa del sidebar
 - El botón de logout podría tener `aria-label="Cerrar sesión"` más prominente
 
-**Fix propuesto:** Agregar `aria-current="page"` al tab activo del sidebar (consistente con el bottom nav que ya lo tiene).
+**Fix aplicado:** `aria-current="page"` agregado al tab activo del sidebar.
 
 ---
 
@@ -83,7 +83,7 @@ Las tablas usan `<th>` pero:
 - No hay `aria-label` en la tabla misma
 - Las filas expandibles (`expandedDriverDetails`) usan `motion.tr` sin `aria-expanded`
 
-**Fix propuesto:** Agregar `scope="col"` a cada `<th>`, `aria-label="Lista de choferes"` / `"Lista de vehículos"` / `"Checklists"` a las tablas, y `aria-expanded={expanded}` a las filas expandibles.
+**Fix aplicado:** `scope="col"` en todos los `<th>`, `aria-label` en tablas, `aria-expanded` en filas expandibles.
 
 ---
 
@@ -119,7 +119,7 @@ El right panel (≥1024px) que muestra el buzón o action sheet inline:
 - No tiene `role="complementary"` o `aria-label`
 - El botón de cerrar tiene `aria-label="Cerrar buzón"` ✅ pero no hay Escape handler
 
-**Fix propuesto:** Agregar `role="complementary" aria-label="Panel de detalles"` al aside.
+**Fix aplicado:** `role="complementary" aria-label="Panel de detalles"` en el aside.
 
 ---
 
@@ -178,12 +178,11 @@ Agregar `role="complementary" aria-label="Panel de detalles"` al `<aside>` del r
 
 ---
 
-## 3. Commits estimados
+## 3. Commits Atómicos
 
-1. `fix(a11y): desktop touch targets ≥40px in table actions` — T1 + T2
-2. `fix(a11y): add aria-current, scope, aria-expanded to desktop tables/sidebar` — T3
-3. `fix(a11y): add role and aria-label to right panel` — T4
-4. `docs: desktop audit plan executed` — update docs
+1. `465d709` — T1+T2: touch targets ≥40px + search input
+2. `a9a08b1` — T3: aria-current, scope, aria-expanded, table labels
+3. `5db18e6` — T4: right panel role + aria-label
 
 ---
 
