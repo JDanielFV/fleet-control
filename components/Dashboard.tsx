@@ -286,7 +286,7 @@ export default function Dashboard() {
 
         {/* Right panel */}
         {ctx.isLargeScreen && (ctx.isBuzonOpen || ctx.actionSheet?.open) && (
-          <aside className="lg:flex lg:w-[400px] xl:w-[440px] shrink-0 border-l border-border bg-card/30 h-full flex-col overflow-hidden">
+          <aside role="complementary" aria-label="Panel de detalles" className="lg:flex lg:w-[400px] xl:w-[440px] shrink-0 border-l border-border bg-card/30 h-full flex-col overflow-hidden">
             <AnimatePresence mode="wait">
               {ctx.isBuzonOpen ? (
                 <motion.div key="buzon-inline" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
