@@ -131,26 +131,26 @@ export default function DriversSlice(props: DriversSliceProps) {
                             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }} role="button" tabIndex={-1}>
                               {!assignedVehicle && onAssignDriver && (
                                 <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onAssignDriver!(driver.id); }}
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5" title="Asignar auto">
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-11 px-2.5" title="Asignar auto">
                                   <ArrowLeftRight className="w-3 h-3" /><span className="sr-only">Asignar auto</span>
                                 </Button>
                               )}
                               {!driver.license_is_permanent && (
                                 <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5" title="Renovar licencia">
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-11 px-2.5" title="Renovar licencia">
                                   <RefreshCcw className="w-3 h-3" /><span className="sr-only">Renovar licencia</span>
                                 </Button>
                               )}
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); exportDriverPdf(driver); }}
-                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1 h-9 px-2.5" title="Exportar datos del chofer">
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs gap-1 h-11 px-2.5" title="Exportar datos del chofer">
                                 <Download className="w-3 h-3" /><span className="sr-only">Exportar</span>
                               </Button>
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}
-                                className="text-muted-foreground hover:text-primary text-xs gap-1 h-9 px-2.5">
+                                className="text-muted-foreground hover:text-primary text-xs gap-1 h-11 px-2.5">
                                 <Pencil className="w-3 h-3" /><span className="sr-only">Editar</span>
                               </Button>
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5">
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-11 px-2.5">
                                 <Trash2 className="w-3 h-3" /><span className="sr-only">Eliminar</span>
                               </Button>
                             </div>
@@ -240,11 +240,11 @@ export default function DriversSlice(props: DriversSliceProps) {
                                                 <td className="py-1.5 text-right">
                                                   <div className="flex items-center justify-end gap-1">
                                                     <button onClick={(e) => { e.stopPropagation(); setPaymentDialog({ rentalId: r.id, weekStart: r.week_start, amount: 0 }); }}
-                                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors text-[10px] font-medium">
+                                                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors text-[10px] font-medium">
                                                       <DollarSign className="w-2.5 h-2.5" />Pagar
                                                     </button>
                                                     <button onClick={(e) => { e.stopPropagation(); setCondonationDialog({ rentalId: r.id, weekStart: r.week_start, days: 0 }); }}
-                                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors text-[10px] font-medium">
+                                                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors text-[10px] font-medium">
                                                       <Plus className="w-2.5 h-2.5" />Cond.
                                                     </button>
                                                   </div>

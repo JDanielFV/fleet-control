@@ -341,14 +341,14 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }} role="button" tabIndex={-1}>
                             {!vehicle.active_driver_id && onAssignVehicle && (
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onAssignVehicle!(vehicle.id); }}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5" title="Asignar a chofer">
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-11 px-2.5" title="Asignar a chofer">
                                 <ArrowLeftRight className="w-3 h-3" /><span className="sr-only">Asignar a chofer</span>
                               </Button>
                             )}
                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditVehicle(vehicle); }}
-                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-9 px-2.5"><Pencil className="w-3 h-3" /><span className="sr-only">Editar</span></Button>
+                              className="text-muted-foreground hover:text-primary text-xs gap-1 h-11 px-2.5"><Pencil className="w-3 h-3" /><span className="sr-only">Editar</span></Button>
                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteVehicle(vehicle.id); }}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-9 px-2.5"><Trash2 className="w-3 h-3" /><span className="sr-only">Eliminar</span></Button>
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs gap-1 h-11 px-2.5"><Trash2 className="w-3 h-3" /><span className="sr-only">Eliminar</span></Button>
                           </div>
                         </td>
                       </tr>
@@ -365,13 +365,13 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                     {vehicle.status === "active" ? (
                                       <>
                                         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleServiceOut(vehicle); }}
-                                          className="text-[11px] h-7 px-2.5 rounded-lg border-amber-500/40 text-amber-600 hover:bg-amber-500/10 gap-1"><Wrench className="w-3 h-3" /> Retirar a Servicio</Button>
+                                          className="text-[11px] h-10 px-2.5 rounded-lg border-amber-500/40 text-amber-600 hover:bg-amber-500/10 gap-1"><Wrench className="w-3 h-3" /> Retirar a Servicio</Button>
                                         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleReportWearPart(vehicle); }}
-                                          className="text-[11px] h-7 px-2.5 rounded-lg border-border gap-1"><AlertTriangle className="w-3 h-3" /> Pieza de Desgaste</Button>
+                                          className="text-[11px] h-10 px-2.5 rounded-lg border-border gap-1"><AlertTriangle className="w-3 h-3" /> Pieza de Desgaste</Button>
                                       </>
                                     ) : (
                                       <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleServiceReturn(vehicle); }}
-                                        className="text-[11px] h-7 px-2.5 rounded-lg border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 gap-1"><ArrowLeftRight className="w-3 h-3" /> Regresar a Chofer</Button>
+                                        className="text-[11px] h-10 px-2.5 rounded-lg border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 gap-1"><ArrowLeftRight className="w-3 h-3" /> Regresar a Chofer</Button>
                                     )}
                                   </div>
                                 </div>
@@ -410,7 +410,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                   <div className="bg-muted/20 rounded-xl border border-border/60 p-3 space-y-2">
                                     <div className="flex items-center justify-between">
                                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Circulación</span>
-                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }} className="text-[10px] h-6 px-1.5 gap-0.5 text-muted-foreground hover:text-primary"><RefreshCcw className="w-2.5 h-2.5" /> Renovar</Button>
+                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "CIRCULACION"); }} className="text-[10px] h-9 px-2 gap-1 text-muted-foreground hover:text-primary"><RefreshCcw className="w-3 h-3" /> Renovar</Button>
                                     </div>
                                     <div className="flex items-start gap-2.5">
                                       {vehicle.circulation_img ? (
@@ -430,7 +430,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                   <div className="bg-muted/20 rounded-xl border border-border/60 p-3 space-y-2">
                                     <div className="flex items-center justify-between">
                                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Seguro</span>
-                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }} className="text-[10px] h-6 px-1.5 gap-0.5 text-muted-foreground hover:text-primary"><RefreshCcw className="w-2.5 h-2.5" /> Renovar</Button>
+                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "SEGURO"); }} className="text-[10px] h-9 px-2 gap-1 text-muted-foreground hover:text-primary"><RefreshCcw className="w-3 h-3" /> Renovar</Button>
                                     </div>
                                     <div className="flex items-start gap-2.5">
                                       {vehicle.insurance_policy_img ? (
@@ -450,7 +450,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                   <div className="bg-muted/20 rounded-xl border border-border/60 p-3 space-y-2">
                                     <div className="flex items-center justify-between">
                                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Verificación</span>
-                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "VERIFICACION"); }} className="text-[10px] h-6 px-1.5 gap-0.5 text-muted-foreground hover:text-primary"><RefreshCcw className="w-2.5 h-2.5" /> Renovar</Button>
+                                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRenewDocument(vehicle, "VERIFICACION"); }} className="text-[10px] h-9 px-2 gap-1 text-muted-foreground hover:text-primary"><RefreshCcw className="w-3 h-3" /> Renovar</Button>
                                     </div>
                                     <div className="text-[10px] space-y-0.5">
                                       <div><span className="text-muted-foreground/70">Vence: </span><strong className={vehicle.verification_expiration_date && new Date(vehicle.verification_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>{vehicle.verification_expiration_date || "—"}</strong></div>

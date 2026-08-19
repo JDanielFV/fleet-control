@@ -132,9 +132,9 @@ export default function Dashboard() {
                     <div className="bg-[#ECECEC] rounded-2xl min-h-12 px-3 sm:px-4 flex items-center gap-2 w-full shrink-0 shadow-inner border border-border/40 focus-within:ring-4 focus-within:ring-primary/20 transition-all flex-wrap sm:flex-nowrap py-2 sm:py-0">
                       <Search className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                       <input type="text" placeholder="Buscar chofer por nombre o placas..." value={ctx.globalSearch} onChange={(e) => ctx.setGlobalSearch(e.target.value)}
-                        className="flex-1 bg-transparent border-none text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-hidden min-w-0 w-full sm:w-auto py-3.5 md:py-0" />
+                        className="flex-1 bg-transparent border-none text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-hidden min-w-0 w-full sm:w-auto py-3.5 md:py-2.5" />
                       {ctx.globalSearch && (
-                        <button onClick={() => ctx.setGlobalSearch("")} className="text-[11px] font-bold text-muted-foreground hover:text-foreground shrink-0 px-2 py-3.5 md:py-0 cursor-pointer">Limpiar</button>
+                        <button onClick={() => ctx.setGlobalSearch("")} className="text-[11px] font-bold text-muted-foreground hover:text-foreground shrink-0 px-2 py-3.5 md:py-2.5 cursor-pointer">Limpiar</button>
                       )}
                       <div className="flex items-center gap-1.5 shrink-0 pl-0 sm:pl-2 border-l-0 sm:border-l border-border/40 w-full sm:w-auto justify-end">
                         <button onClick={() => { ctx.setAutoOpenDriver(true); ctx.handleTabChange("drivers"); }} className="inline-flex items-center gap-1 px-3 h-11 sm:px-3 md:h-8 rounded-lg bg-primary text-white text-[10px] md:text-[11px] font-bold hover:bg-primary/90 transition-all cursor-pointer active:scale-95 shadow-sm border-none">
