@@ -4,18 +4,17 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Driver, Vehicle, Checklist, WeeklyRental, Alert, User } from "@/lib/db";
 import { formatDate, sortByDateDesc } from "@/lib/utils";
 import { getVerificationSchedule } from "@/lib/db";
-import { applyRentalPayment, getWeeklyRentals, saveWeeklyRental } from "@/lib/db/finances";
-import { dismissAlert, getAlerts, computeAlerts } from "@/lib/db/alerts";
-import { getVehicles, saveVehicle } from "@/lib/db/vehicles";
-import { getDrivers } from "@/lib/db/drivers";
-import { getAssignments } from "@/lib/db/assignments";
-import { getChecklists } from "@/lib/db/checklists";
-import { getMaintenances } from "@/lib/db/maintenances";
+import { applyRentalPayment, saveWeeklyRental } from "@/lib/db/finances";
+import { dismissAlert } from "@/lib/db/alerts";
+import { saveVehicle } from "@/lib/db/vehicles";
+import { getWeeklyRentals } from "@/lib/db/finances";
 import { getVehicleInventory, saveVehicleInventory } from "@/lib/db/inventory";
 import { uploadDocumentImage } from "@/lib/db/storage";
 import { getSession, syncSessionFromServer } from "@/lib/auth";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useDataStore } from "./useDataStore";
+import { useRealtimeSync } from "./useRealtimeSync";
 
 export type TabId = "dashboard" | "drivers" | "vehicles" | "users";
 
@@ -36,20 +35,20 @@ function toUserView(s: { userId: string; email: string | null; displayName: stri
 }
 
 export function useDashboard() {
+  // ── Centralized data store ──────────────────────────────────────────
+  const store = useDataStore();
+  useRealtimeSync(store);
+
+  // Destructure store data for convenience
+  const { vehicles, drivers, checklists, weeklyRentals, maintenances, assignments, alerts, stats, isLoading, setAlerts, realtimeStatus } = store;
+
+  // ── UI state (not in store) ─────────────────────────────────────────
   const [session, setSession] = useState<User | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [stats, setStats] = useState({ vehicles: 0, drivers: 0, assigned: 0 });
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
-  const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [globalSearch, setGlobalSearch] = useState("");
   const [currentTime, setCurrentTime] = useState("");
   const [isLargeScreen, setIsLargeScreen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isBuzonOpen, setIsBuzonOpen] = useState(false);
 
   // Dialog states
@@ -121,9 +120,7 @@ export function useDashboard() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Session restore: mirror for instant render, then re-sync with the
-  // authoritative HttpOnly cookie (role changes, deactivated accounts,
-  // server-side logout take effect here — the mirror is never trusted).
+  // Session restore
   useEffect(() => {
     Promise.resolve().then(() => {
       const s = getSession();
@@ -154,45 +151,10 @@ export function useDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Data loading in a single parallel batch (1 network roundtrip instead of sequential roundtrips)
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [vList, dList, aList, cList, rList, mList] = await Promise.all([
-        getVehicles(),
-        getDrivers(),
-        getAssignments(),
-        getChecklists(),
-        getWeeklyRentals(),
-        getMaintenances(),
-      ]);
-
-      setVehicles(vList);
-      setDrivers(dList);
-      setChecklists(cList);
-      setWeeklyRentals(rList);
-
-      const activeAss = aList.filter((x) => x.action_type === "ASSIGN");
-      const activeVehicles = new Set(activeAss.map((x) => x.vehicle_id));
-      setStats({ vehicles: vList.length, drivers: dList.length, assigned: activeVehicles.size });
-
-      const alertList = computeAlerts(dList, vList, mList, cList);
-      setAlerts(alertList);
-    } catch (e) {
-      console.error("Error loading dashboard data:", e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const loadAlerts = useCallback(async () => {
-    const list = await getAlerts();
-    setAlerts(list);
-  }, []);
-
-  const loadStats = loadData;
-
-  useEffect(() => { Promise.resolve().then(() => { void loadData(); }); }, [loadData, refreshTrigger]);
+  // Reload function — calls store.reloadAll which re-fetches all 6 datasets
+  const triggerRefresh = useCallback(() => {
+    void store.reloadAll();
+  }, [store.reloadAll]);
 
   // Derived
   const filteredDriversList = useMemo(() => {
@@ -220,10 +182,6 @@ export function useDashboard() {
     setActiveTab(tab);
     setGlobalSearch("");
   };
-
-  const triggerRefresh = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-  }, []);
 
   const openActionSheet = (entity: Driver | Vehicle, type: "driver" | "vehicle") => {
     if (type === "driver") {
@@ -332,7 +290,7 @@ export function useDashboard() {
   const handleDismissAlert = async (id: string, title: string) => {
     if (await showConfirm({ title: "Completar Alerta", message: `¿Deseas marcar la alerta "${title}" como completada?`, confirmLabel: "Completar", variant: "default" })) {
       await dismissAlert(id);
-      loadAlerts();
+      store.reloadAll();
     }
   };
 
@@ -399,10 +357,13 @@ export function useDashboard() {
   };
 
   return {
-    // State
-    session, isSessionLoading, activeTab, alerts, stats, vehicles, drivers, weeklyRentals, checklists,
-    globalSearch, setGlobalSearch, currentTime, isLargeScreen, isLoading, isBuzonOpen, setIsBuzonOpen,
-    filteredDriversList, refreshTrigger,
+    // Store data (real-time synced)
+    vehicles, drivers, weeklyRentals, checklists, maintenances, assignments, alerts, stats, isLoading, realtimeStatus,
+
+    // UI state
+    session, isSessionLoading, activeTab,
+    globalSearch, setGlobalSearch, currentTime, isLargeScreen, isBuzonOpen, setIsBuzonOpen,
+    filteredDriversList,
 
     // Dialog states
     actionSheet, setActionSheet, checklistSheet, setChecklistSheet, actionModal, setActionModal,
@@ -425,6 +386,6 @@ export function useDashboard() {
     handlePayment, submitPayment,
     exportChecklistCsv, getVerificationWindow, getDateStatus,
     getVehicleDesc, getDriverDesc,
-    loadAlerts, loadData,
+    setAlerts,
   };
 }

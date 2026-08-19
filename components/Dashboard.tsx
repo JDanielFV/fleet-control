@@ -100,7 +100,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col md:flex-row h-dvh w-screen bg-background text-foreground font-sans antialiased overflow-hidden">
-      <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} pushEnabled={pushEnabled} onTogglePush={handleTogglePush} />
+      <Sidebar items={desktopNavItems} activeTab={ctx.activeTab} onChange={ctx.handleTabChange} alertCount={ctx.alerts.length} onAlertsClick={() => ctx.setIsBuzonOpen(true)} onLogout={handleLogout} pushEnabled={pushEnabled} onTogglePush={handleTogglePush} realtimeStatus={ctx.realtimeStatus} />
 
       <div className="flex-1 flex overflow-hidden">
         <main id="main-content" className="relative z-[10] flex-1 overflow-hidden flex flex-col px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-[calc(env(safe-area-inset-top,0px)+16px)] pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-4 scroll-smooth w-full h-full max-w-7xl mx-auto">
@@ -275,8 +275,8 @@ export default function Dashboard() {
 
               {ctx.activeTab !== "dashboard" && (
                 <div className="flex-1 overflow-y-auto pr-1 overscroll-contain">
-                  {ctx.activeTab === "drivers" && <DriversSlice onRefreshAlerts={ctx.triggerRefresh} searchQuery={ctx.globalSearch} onOpenActionSheet={ctx.openActionSheet} autoOpen={ctx.autoOpenDriver} onAutoOpenConsumed={() => ctx.setAutoOpenDriver(false)} weeklyRentals={ctx.weeklyRentals} onAssignDriver={(driverId) => { ctx.setAssignmentPreselect(driverId, null); ctx.setAssignmentDialogOpen(true); }} />}
-                  {ctx.activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={ctx.triggerRefresh} searchQuery={ctx.globalSearch} onOpenActionSheet={ctx.openActionSheet} autoOpen={ctx.autoOpenVehicle} onAutoOpenConsumed={() => ctx.setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { ctx.setAssignmentPreselect(null, vehicleId); ctx.setAssignmentDialogOpen(true); }} externalWearPartVehicle={ctx.wearPartVehicle} refreshTrigger={ctx.refreshTrigger} />}
+                  {ctx.activeTab === "drivers" && <DriversSlice onRefreshAlerts={ctx.triggerRefresh} searchQuery={ctx.globalSearch} onOpenActionSheet={ctx.openActionSheet} autoOpen={ctx.autoOpenDriver} onAutoOpenConsumed={() => ctx.setAutoOpenDriver(false)} weeklyRentals={ctx.weeklyRentals} onAssignDriver={(driverId) => { ctx.setAssignmentPreselect(driverId, null); ctx.setAssignmentDialogOpen(true); }} initialDrivers={ctx.drivers} initialVehicles={ctx.vehicles} />}
+                  {ctx.activeTab === "vehicles" && <VehiclesSlice onRefreshAlerts={ctx.triggerRefresh} searchQuery={ctx.globalSearch} onOpenActionSheet={ctx.openActionSheet} autoOpen={ctx.autoOpenVehicle} onAutoOpenConsumed={() => ctx.setAutoOpenVehicle(false)} onAssignVehicle={(vehicleId) => { ctx.setAssignmentPreselect(null, vehicleId); ctx.setAssignmentDialogOpen(true); }} externalWearPartVehicle={ctx.wearPartVehicle} refreshTrigger={0} initialVehicles={ctx.vehicles} initialDrivers={ctx.drivers} initialMaintenances={ctx.maintenances} initialAssignments={ctx.assignments} initialChecklists={ctx.checklists} initialWeeklyRentals={ctx.weeklyRentals} />}
                   {ctx.activeTab === "users" && <UsersSlice />}
                 </div>
               )}
@@ -577,6 +577,21 @@ export default function Dashboard() {
             </button>
           );
         })}
+        {/* Realtime status dot (mobile) */}
+        <div className="flex flex-col items-center justify-center flex-1 h-full py-1">
+          <span
+            className={`block w-2 h-2 rounded-full ${
+              ctx.realtimeStatus === "connected" ? "bg-emerald-500" :
+              ctx.realtimeStatus === "connecting" ? "bg-amber-500 animate-pulse" :
+              ctx.realtimeStatus === "disconnected" ? "bg-red-500" : "bg-gray-400"
+            }`}
+            title={
+              ctx.realtimeStatus === "connected" ? "Sincronizado" :
+              ctx.realtimeStatus === "connecting" ? "Conectando..." :
+              ctx.realtimeStatus === "disconnected" ? "Sin conexión" : "Modo local"
+            }
+          />
+        </div>
         <button
           onClick={handleLogout}
           className="flex flex-col items-center justify-center flex-1 h-full py-1 text-xs transition-all active:scale-95 cursor-pointer text-muted-foreground"

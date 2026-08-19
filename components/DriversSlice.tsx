@@ -22,6 +22,9 @@ interface DriversSliceProps {
   onAutoOpenConsumed?: () => void;
   weeklyRentals?: WeeklyRental[];
   onAssignDriver?: (driverId: string) => void;
+  /** Initial data from parent store — skips internal fetch. */
+  initialDrivers?: Driver[];
+  initialVehicles?: Vehicle[];
 }
 
 export default function DriversSlice(props: DriversSliceProps) {

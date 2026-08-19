@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getSession } from "@/lib/auth";
 import LoginPage from "@/features/auth/components/LoginPage";
 import Dashboard from "@/components/Dashboard";
+import { DataStoreProvider } from "@/features/dashboard/hooks/useDataStore";
 
 export default function Home() {
   const [session, setSession] = useState<ReturnType<typeof getSession>>(null);
@@ -28,5 +29,9 @@ export default function Home() {
     return <LoginPage />;
   }
 
-  return <Dashboard />;
+  return (
+    <DataStoreProvider>
+      <Dashboard />
+    </DataStoreProvider>
+  );
 }

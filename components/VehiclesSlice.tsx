@@ -29,6 +29,13 @@ interface VehiclesSliceProps {
   onAssignVehicle?: (vehicleId: string) => void;
   externalWearPartVehicle?: Vehicle | null;
   refreshTrigger?: number;
+  /** Initial data from parent store — skips internal fetch. */
+  initialVehicles?: Vehicle[];
+  initialDrivers?: Driver[];
+  initialMaintenances?: import("@/lib/db").Maintenance[];
+  initialAssignments?: import("@/lib/db").Assignment[];
+  initialChecklists?: Checklist[];
+  initialWeeklyRentals?: import("@/lib/db").WeeklyRental[];
 }
 
 export default function VehiclesSlice(props: VehiclesSliceProps) {

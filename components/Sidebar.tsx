@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Bell, BellOff, LogOut } from "lucide-react";
 import type { TabId } from "@/features/dashboard/hooks/useDashboard";
+import type { RealtimeConnectionStatus } from "@/features/dashboard/hooks/useDataStore";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -20,7 +21,15 @@ interface SidebarProps {
   onLogout?: () => void;
   pushEnabled?: boolean;
   onTogglePush?: () => void;
+  realtimeStatus?: RealtimeConnectionStatus;
 }
+
+const statusConfig: Record<RealtimeConnectionStatus, { color: string; label: string; tooltip: string }> = {
+  connected: { color: "bg-emerald-500", label: "En línea", tooltip: "Sincronización en tiempo real activa" },
+  connecting: { color: "bg-amber-500 animate-pulse", label: "Conectando", tooltip: "Estableciendo conexión..." },
+  disconnected: { color: "bg-red-500", label: "Desconectado", tooltip: "Sin conexión — los datos podrían no estar sincronizados" },
+  disabled: { color: "bg-gray-400", label: "Sin Supabase", tooltip: "Supabase no configurado — modo local" },
+};
 
 export default function Sidebar({
   items,
@@ -31,6 +40,7 @@ export default function Sidebar({
   onLogout,
   pushEnabled,
   onTogglePush,
+  realtimeStatus = "connecting",
 }: SidebarProps) {
   return (
     <aside
@@ -74,6 +84,19 @@ export default function Sidebar({
           );
         })}
       </nav>
+
+      {/* Realtime status indicator */}
+      <div className="w-full px-2 pt-3 flex justify-center">
+        <div
+          className="group relative flex flex-col items-center gap-1"
+          title={statusConfig[realtimeStatus].tooltip}
+        >
+          <span className={cn("block w-2.5 h-2.5 rounded-full ring-2 ring-card/80 shrink-0", statusConfig[realtimeStatus].color)} />
+          <span className="text-[9px] font-semibold text-muted-foreground leading-tight text-center">
+            {statusConfig[realtimeStatus].label}
+          </span>
+        </div>
+      </div>
 
       {/* Footer: alerts + logout */}
       <div className="w-full px-2 py-3 border-t border-border/60 flex flex-col items-center gap-2">

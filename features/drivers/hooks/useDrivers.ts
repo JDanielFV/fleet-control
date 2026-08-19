@@ -20,15 +20,19 @@ export interface UseDriversOptions {
   onAutoOpenConsumed?: () => void;
   weeklyRentals?: WeeklyRental[];
   onAssignDriver?: (driverId: string) => void;
+  /** When provided, the hook skips its own fetch and uses these instead. */
+  initialDrivers?: Driver[];
+  initialVehicles?: Vehicle[];
 }
 
 export function useDrivers(options: UseDriversOptions) {
-  const { onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, weeklyRentals = [], onAssignDriver } = options;
+  const { onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, weeklyRentals = [], onAssignDriver, initialDrivers, initialVehicles } = options;
 
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const hasInitial = !!initialDrivers;
+  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers ?? []);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles ?? []);
   const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!hasInitial);
   const [showArchived, setShowArchived] = useState(false);
 
 
@@ -139,17 +143,31 @@ export function useDrivers(options: UseDriversOptions) {
     });
   }, [searchQuery]);
 
+  // Sync with parent store data when provided
+  useEffect(() => {
+    if (!hasInitial) return;
+    setDrivers(initialDrivers ?? []);
+    setVehicles(initialVehicles ?? []);
+    setIsLoading(false);
+  }, [hasInitial, initialDrivers, initialVehicles]);
+
   // --- Data loading ---
   const loadDrivers = useCallback(async () => {
+    if (hasInitial && !showArchived) {
+      setDrivers(initialDrivers ?? []);
+      return;
+    }
     const [list, vList] = await Promise.all([
       showArchived ? getArchivedDrivers() : getDrivers(),
       getVehicles(),
     ]);
     setDrivers(list);
     setVehicles(vList);
-  }, [showArchived]);
+  }, [showArchived, hasInitial, initialDrivers]);
 
+  // Initial load: only fetch when no parent data is provided
   useEffect(() => {
+    if (hasInitial) return;
     let isStale = false;
     (async () => {
       const [list, vList] = await Promise.all([
@@ -162,7 +180,7 @@ export function useDrivers(options: UseDriversOptions) {
       setIsLoading(false);
     })();
     return () => { isStale = true; };
-  }, [showArchived]);
+  }, [showArchived, hasInitial]);
 
   // --- Handlers ---
 

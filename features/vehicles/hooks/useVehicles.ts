@@ -26,18 +26,26 @@ export interface UseVehiclesOptions {
   onAssignVehicle?: (vehicleId: string) => void;
   externalWearPartVehicle?: Vehicle | null;
   refreshTrigger?: number;
+  /** When provided, the hook skips its own fetch and uses these instead. */
+  initialVehicles?: Vehicle[];
+  initialDrivers?: Driver[];
+  initialMaintenances?: Maintenance[];
+  initialAssignments?: Assignment[];
+  initialChecklists?: Checklist[];
+  initialWeeklyRentals?: WeeklyRental[];
 }
 
 export function useVehicles(options: UseVehiclesOptions) {
-  const { onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle, externalWearPartVehicle: extWearPartVehicle, refreshTrigger } = options;
+  const { onRefreshAlerts, searchQuery, onOpenActionSheet, autoOpen, onAutoOpenConsumed, onAssignVehicle, externalWearPartVehicle: extWearPartVehicle, refreshTrigger, initialVehicles, initialDrivers, initialMaintenances, initialAssignments, initialChecklists, initialWeeklyRentals } = options;
 
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [checklists, setChecklists] = useState<Checklist[]>([]);
-  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const hasInitial = !!initialVehicles;
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles ?? []);
+  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers ?? []);
+  const [maintenances, setMaintenances] = useState<Maintenance[]>(initialMaintenances ?? []);
+  const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments ?? []);
+  const [checklists, setChecklists] = useState<Checklist[]>(initialChecklists ?? []);
+  const [weeklyRentals, setWeeklyRentals] = useState<WeeklyRental[]>(initialWeeklyRentals ?? []);
+  const [isLoading, setIsLoading] = useState(!hasInitial);
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [expandedVehicleDetails, setExpandedVehicleDetails] = useState<Record<string, boolean>>({});
@@ -157,8 +165,25 @@ export function useVehicles(options: UseVehiclesOptions) {
     });
   }, [searchQuery]);
 
-  // Data loading
+  // Sync with parent store data when provided (skip own fetch)
+  useEffect(() => {
+    if (!hasInitial) return;
+    setVehicles(initialVehicles ?? []);
+    setDrivers(initialDrivers ?? []);
+    setMaintenances(initialMaintenances ?? []);
+    setAssignments(initialAssignments ?? []);
+    setChecklists(initialChecklists ?? []);
+    setWeeklyRentals(initialWeeklyRentals ?? []);
+    setIsLoading(false);
+  }, [hasInitial, initialVehicles, initialDrivers, initialMaintenances, initialAssignments, initialChecklists, initialWeeklyRentals]);
+
+  // Data loading (used when no initial data provided, or for archived vehicles)
   const loadData = useCallback(async () => {
+    if (hasInitial && !showArchived) {
+      // When using parent store data and viewing active, just re-sync from props
+      setVehicles(initialVehicles ?? []);
+      return;
+    }
     const [list, dList, maints, assigns, cls, rents] = await Promise.all([
       showArchived ? getArchivedVehicles() : getVehicles(),
       getDrivers(),
@@ -173,9 +198,11 @@ export function useVehicles(options: UseVehiclesOptions) {
     setAssignments(assigns);
     setChecklists(cls);
     setWeeklyRentals(rents);
-  }, [showArchived]);
+  }, [showArchived, hasInitial, initialVehicles]);
 
+  // Initial load: only fetch when no parent data is provided
   useEffect(() => {
+    if (hasInitial) return;
     let isStale = false;
     (async () => {
       const [list, dList, maints, assigns, cls, rents] = await Promise.all([
@@ -196,7 +223,7 @@ export function useVehicles(options: UseVehiclesOptions) {
       setIsLoading(false);
     })();
     return () => { isStale = true; };
-  }, [showArchived, refreshTrigger]);
+  }, [showArchived, hasInitial]);
 
   // --- Handlers ---
 
