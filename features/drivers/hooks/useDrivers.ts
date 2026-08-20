@@ -96,7 +96,7 @@ export function useDrivers(options: UseDriversOptions) {
   const { setOcrStep, setOcrLogs, isScanning, setIsScanning, setScanTarget, startCamera, stopCamera } = scanner;
 
   // --- Section stepper ---
-  const [activeSection, setActiveSection] = useState<string>("doc");
+  const [activeSection, setActiveSection] = useState<string>("datos");
   const scrollToSection = useCallback((id: string) => {
     requestAnimationFrame(() => {
       document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -107,7 +107,7 @@ export function useDrivers(options: UseDriversOptions) {
   // --- IntersectionObserver for stepper ---
   useEffect(() => {
     if (!isOpen) return;
-    const ids = ["foto", "doc", "dom", "datos"];
+    const ids = ["datos", "docs", "review"];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
