@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Driver, Vehicle, WeeklyRental } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { User, AlertTriangle, Search, CheckCircle2, Car, Pencil, RefreshCcw, DollarSign, XCircle, Calendar, Plus, Minus, ArrowLeftRight, Download, Trash2 } from "lucide-react";
@@ -12,7 +12,8 @@ import LicenseRenewalDialogs from "@/components/LicenseRenewalDialogs";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
 import { resolveDocUrl } from "@/lib/db/storage";
 import { useDrivers } from "@/features/drivers/hooks/useDrivers";
-import { MobileCard, MobileActionButton } from "@/components/ui/MobileCard";
+import { MobileCard } from "@/components/ui/MobileCard";
+import DriverDetailDialog from "@/components/ui/DriverDetailDialog";
 
 interface DriversSliceProps {
   onRefreshAlerts: () => void;
@@ -29,6 +30,10 @@ interface DriversSliceProps {
 
 export default function DriversSlice(props: DriversSliceProps) {
   const drivers = useDrivers(props);
+
+  // Detail dialog state for mobile
+  const [detailDialogDriver, setDetailDialogDriver] = useState<Driver | null>(null);
+
   const {
   search,
   setSearch,
@@ -334,15 +339,12 @@ export default function DriversSlice(props: DriversSliceProps) {
             return (
               <MobileCard
                 key={driver.id}
-                onClick={() => toggleDriverDetails(driver.id)}
+                onClick={() => setDetailDialogDriver(driver)}
                 statusClass={licenseExpired ? "border-l-4 border-l-red-500" : !assignedVehicle ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-transparent"}
                 header={
                   <>
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div
-                        className="relative w-10 h-10 rounded-full overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0 cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); if (driver.driver_photo_img) setPreviewImage(resolveDocUrl(driver.driver_photo_img)); }}
-                      >
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-[#D8D8D8] flex items-center justify-center shrink-0">
                         {driver.driver_photo_img ? <Image src={resolveDocUrl(driver.driver_photo_img)} alt="Foto" fill className="object-cover" /> : <User className="w-5 h-5 text-muted-foreground/60" />}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -358,33 +360,10 @@ export default function DriversSlice(props: DriversSliceProps) {
                   </>
                 }
                 rows={[
-                  { label: "CURP", value: <span className="font-mono">{driver.curp}</span> },
+                  { label: "CURP", value: <span className="font-mono truncate">{driver.curp}</span> },
                   { label: "Licencia", value: <span className="font-mono">{driver.license_number || "—"}</span> },
                   { label: "Vence", value: driver.license_is_permanent ? "Permanente" : <span className={licenseExpired ? "text-red-400 font-bold" : ""}>{driver.license_expiration_date || "—"}</span> },
                 ]}
-                actions={
-                  <div className="grid grid-cols-2 gap-2">
-                    {!assignedVehicle && onAssignDriver && (
-                      <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); onAssignDriver!(driver.id); }}>
-                        <ArrowLeftRight className="w-4 h-4" /> Asignar
-                      </MobileActionButton>
-                    )}
-                    {!driver.license_is_permanent && (
-                      <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); handleRenewLicense(driver); }}>
-                        <RefreshCcw className="w-4 h-4" /> Renovar
-                      </MobileActionButton>
-                    )}
-                    <MobileActionButton onClick={(e) => { e.stopPropagation(); exportDriverPdf(driver); }}>
-                      <Download className="w-4 h-4" /> Exportar
-                    </MobileActionButton>
-                    <MobileActionButton onClick={(e) => { e.stopPropagation(); handleEditDriver(driver); }}>
-                      <Pencil className="w-4 h-4" /> Editar
-                    </MobileActionButton>
-                    <MobileActionButton variant="danger" onClick={(e) => { e.stopPropagation(); handleDeleteDriver(driver.id); }}>
-                      <Trash2 className="w-4 h-4" /> Eliminar
-                    </MobileActionButton>
-                  </div>
-                }
               >
                 {expandedDriverDetails[driver.id] && (
                   <div className="pt-2 border-t border-border/40 space-y-2">
@@ -403,6 +382,23 @@ export default function DriversSlice(props: DriversSliceProps) {
           })
         )}
       </div>
+
+      {/* Driver Detail Dialog (Mobile) */}
+      <DriverDetailDialog
+        driver={detailDialogDriver}
+        open={!!detailDialogDriver}
+        onClose={() => setDetailDialogDriver(null)}
+        onEdit={handleEditDriver}
+        onDelete={handleDeleteDriver}
+        onRenewLicense={handleRenewLicense}
+        onExportPdf={exportDriverPdf}
+        onAssignDriver={onAssignDriver}
+        vehicles={vehicles}
+        weeklyRentals={weeklyRentals}
+        setPreviewImage={setPreviewImage}
+        setPaymentDialog={setPaymentDialog}
+        setCondonationDialog={setCondonationDialog}
+      />
 
       {/* Renovación de licencia y previsualización de documentos */}
       <LicenseRenewalDialogs {...drivers} />
