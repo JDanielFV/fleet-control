@@ -207,31 +207,43 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanea los Documentos</h4>
                         <p className="text-[11px] text-muted-foreground -mt-1">El OCR extrae marca, modelo, VIN, placas y vigencias automáticamente.</p>
 
-                        {/* Preview inline de cámara — solo cuando se está escaneando */}
+                        {/* Preview inline — cámara o procesamiento de archivo */}
                         {isScanning && scanner.scanTarget && (
                           <div className="rounded-xl border border-primary/40 bg-card overflow-hidden">
-                            <div className="relative aspect-video w-full bg-muted">
-                              <video ref={scanner.videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                              {scanner.ocrStep === "scan" && (
-                                <motion.div initial={{ y: -60 }} animate={{ y: 60 }} transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }} className="absolute left-0 right-0 h-0.5 bg-primary shadow-lg shadow-primary/60 z-10" />
-                              )}
-                              <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-white/60" />
-                              <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-white/60" />
-                              <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-white/60" />
-                              <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-white/60" />
-                              {scanner.isCameraActive && (
+                            {scanner.isCameraActive ? (
+                              /* Modo cámara — video en vivo */
+                              <div className="relative aspect-video w-full bg-muted">
+                                <video ref={scanner.videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                                {scanner.ocrStep === "scan" && (
+                                  <motion.div initial={{ y: -60 }} animate={{ y: 60 }} transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }} className="absolute left-0 right-0 h-0.5 bg-primary shadow-lg shadow-primary/60 z-10" />
+                                )}
+                                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-white/60" />
+                                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-white/60" />
+                                <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-white/60" />
+                                <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-white/60" />
                                 <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-30">
                                   <button type="button" onClick={scanner.capturePhoto} className="bg-primary hover:bg-primary text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer"><Camera className="w-4 h-4" /> Capturar</button>
                                   <button type="button" onClick={scanner.cancelScan} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer">Cancelar</button>
                                 </div>
-                              )}
-                            </div>
-                            <div className="px-3 py-2 flex items-center gap-2 text-xs">
-                              {scanner.ocrStep === "align" && <><Loader2 className="w-3.5 h-3.5 text-primary animate-spin" /><span className="text-muted-foreground">Abriendo cámara...</span></>}
-                              {scanner.ocrStep === "scan" && <><Camera className="w-3.5 h-3.5 text-primary animate-pulse" /><span className="text-foreground font-semibold">Coloca el documento frente a la cámara</span></>}
-                              {scanner.ocrStep === "extract" && <><Loader2 className="w-3.5 h-3.5 text-primary animate-spin" /><span className="text-foreground font-semibold">Extrayendo datos del documento...</span></>}
-                              {scanner.ocrStep === "done" && <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /><span className="text-emerald-600 font-semibold">Documento procesado</span></>}
-                            </div>
+                              </div>
+                            ) : (
+                              /* Modo archivo — indicador de procesamiento */
+                              <div className="flex items-center gap-3 p-4">
+                                <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                  {scanner.ocrStep === "done" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-bold text-foreground">
+                                    {scanner.ocrStep === "align" && "Cargando archivo..."}
+                                    {scanner.ocrStep === "scan" && "Analizando documento..."}
+                                    {scanner.ocrStep === "extract" && "Extrayendo datos..."}
+                                    {scanner.ocrStep === "done" && "¡Documento procesado!"}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">{scanner.scanTarget === "CIRCULACION" ? "Tarjeta de Circulación" : scanner.scanTarget === "SEGURO" ? "Póliza de Seguro" : scanner.scanTarget}</p>
+                                </div>
+                                <button type="button" onClick={scanner.cancelScan} className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer">Cancelar</button>
+                              </div>
+                            )}
                           </div>
                         )}
 
