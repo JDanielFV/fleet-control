@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Stepper } from "@/components/ui/stepper";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Image from "next/image";
@@ -103,18 +102,6 @@ export default function DriverFormDialog(props: DriversFormProps) {
                     : "Crea el expediente escaneando documentos o llenando los campos."}
                 </DialogDescription>
               </DialogHeader>
-
-              <div className="pt-2 pb-1">
-                <Stepper
-                  steps={[
-                    { id: "datos", label: "Datos" },
-                    { id: "docs", label: "Documentos" },
-                    { id: "review", label: "Revisión" },
-                  ]}
-                  currentStep={activeSection}
-                  onStepClick={scrollToSection}
-                />
-              </div>
 
               <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                     <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">

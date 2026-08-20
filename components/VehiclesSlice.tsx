@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Stepper } from "@/components/ui/stepper";
 import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -166,11 +165,6 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                   {editingVehicleId ? "Modifica los datos del vehículo. Los cambios se aplican al instante." : "Ingresa datos o usa OCR de la tarjeta de circulación y póliza."}
                 </DialogDescription>
               </DialogHeader>
-
-              <div className="pt-2 pb-1">
-                <Stepper steps={[{ id: "data", label: "Datos" }, { id: "docs", label: "Escaneo" }, { id: "review", label: "Revisión" }]}
-                  currentStep={activeSection} onStepClick={scrollToSection} />
-              </div>
 
               <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                     <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
