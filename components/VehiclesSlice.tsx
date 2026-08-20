@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Stepper } from "@/components/ui/stepper";
 import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
 import { VehiclesListSkeleton } from "@/components/ui/skeletons";
@@ -172,11 +172,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                   currentStep={activeSection} onStepClick={scrollToSection} />
               </div>
 
-              <AnimatePresence mode="wait">
-                {isScanning ? (
-                  <ScannerViewfinder scanner={scanner} labels={{ scan: "Analizando documento...", extract: "Extrayendo datos...", logsHeader: "LOGS DETALLADOS VEHICULARES" }} />
-                ) : (
-                  <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
+              <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                     <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
                       {/* PASO 1: Datos — solo lo que el OCR no puede saber */}
                       <div id="section-data" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
@@ -210,6 +206,38 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                       <div id="section-docs" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanea los Documentos</h4>
                         <p className="text-[11px] text-muted-foreground -mt-1">El OCR extrae marca, modelo, VIN, placas y vigencias automáticamente.</p>
+
+                        {/* Preview inline de cámara — solo cuando se está escaneando */}
+                        {isScanning && scanner.scanTarget && (
+                          <div className="rounded-xl border border-primary/40 bg-card overflow-hidden">
+                            <div className="relative aspect-video w-full bg-muted">
+                              <video ref={scanner.videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                              {scanner.ocrStep === "scan" && (
+                                <motion.div initial={{ y: -60 }} animate={{ y: 60 }} transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }} className="absolute left-0 right-0 h-0.5 bg-primary shadow-lg shadow-primary/60 z-10" />
+                              )}
+                              <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-white/60" />
+                              <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-white/60" />
+                              <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-white/60" />
+                              <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-white/60" />
+                              {scanner.isCameraActive && (
+                                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-30">
+                                  <button type="button" onClick={scanner.capturePhoto} className="bg-primary hover:bg-primary text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer"><Camera className="w-4 h-4" /> Capturar</button>
+                                  <button type="button" onClick={scanner.cancelScan} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer">Cancelar</button>
+                                </div>
+                              )}
+                            </div>
+                            <div className="px-3 py-2 flex items-center gap-2 text-xs">
+                              {scanner.ocrStep === "align" && <><Loader2 className="w-3.5 h-3.5 text-primary animate-spin" /><span className="text-muted-foreground">Abriendo cámara...</span></>}
+                              {scanner.ocrStep === "scan" && <><Camera className="w-3.5 h-3.5 text-primary animate-pulse" /><span className="text-foreground font-semibold">Coloca el documento frente a la cámara</span></>}
+                              {scanner.ocrStep === "extract" && <><Loader2 className="w-3.5 h-3.5 text-primary animate-spin" /><span className="text-foreground font-semibold">Extrayendo datos del documento...</span></>}
+                              {scanner.ocrStep === "done" && <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /><span className="text-emerald-600 font-semibold">Documento procesado</span></>}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Canvas oculto para captura */}
+                        <canvas ref={scanner.canvasRef} className="hidden" />
+
                         <div className="space-y-4">
                           {/* Circulación */}
                           <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
@@ -224,8 +252,10 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                               </div>
                             )}
                             <div className="grid grid-cols-2 gap-2">
-                              <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
-                              <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
+                              <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} disabled={isScanning && scanner.scanTarget !== "CIRCULACION"} className={`border-border text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer ${isScanning && scanner.scanTarget === "CIRCULACION" ? "bg-primary/10 border-primary/40 text-primary" : "bg-card hover:bg-accent text-foreground"}`}>
+                                {isScanning && scanner.scanTarget === "CIRCULACION" ? (<><Loader2 className="w-4 h-4 animate-spin" /> Escaneando...</>) : (<><Camera className="w-4 h-4 text-primary" /> Tomar Foto</>)}
+                              </Button>
+                              <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} disabled={isScanning} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
                               <input type="file" accept="image/*" className="hidden" ref={circFileRef} onChange={(e) => handleFileChange(e, "CIRCULACION")} />
                             </div>
                             {circulationImg && (
@@ -246,8 +276,10 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                               {insurancePolicyFiles.length > 0 && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">{insurancePolicyFiles.length} pág.</span>}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                              <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
-                              <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
+                              <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} disabled={isScanning && scanner.scanTarget !== "SEGURO"} className={`border-border text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer ${isScanning && scanner.scanTarget === "SEGURO" ? "bg-primary/10 border-primary/40 text-primary" : "bg-card hover:bg-accent text-foreground"}`}>
+                                {isScanning && scanner.scanTarget === "SEGURO" ? (<><Loader2 className="w-4 h-4 animate-spin" /> Escaneando...</>) : (<><Camera className="w-4 h-4 text-primary" /> Tomar Foto</>)}
+                              </Button>
+                              <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} disabled={isScanning} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
                               <input type="file" accept="image/*,application/pdf" multiple className="hidden" ref={insFileRef} onChange={(e) => handleFileChange(e, "SEGURO")} />
                             </div>
                             {insurancePolicyFiles.length > 0 && (
@@ -320,8 +352,6 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                       )}
                     </Button>
                   </form>
-                )}
-              </AnimatePresence>
             </DialogContent>
           </Dialog>
         }
