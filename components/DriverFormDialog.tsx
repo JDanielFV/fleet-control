@@ -10,7 +10,7 @@ import { Stepper } from "@/components/ui/stepper";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Image from "next/image";
-import { User, Camera, FolderOpen, Sparkles, Trash2, ChevronDown, Loader2 } from "lucide-react";
+import { User, Camera, FolderOpen, Sparkles, Trash2, ChevronDown, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MEXICAN_STATES } from "@/lib/ocr";
 import { cn } from "@/lib/utils";
@@ -128,17 +128,62 @@ export default function DriverFormDialog(props: DriversFormProps) {
                 ) : (
                   <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                     <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
-                      {/* PASO 1: Datos Básicos */}
+                      {/* PASO 1: Datos — nombre + foto, CURP se llena desde INE */}
                       <div id="section-datos" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Conductor</h4>
                         <div className="space-y-3">
+                          {/* Foto de perfil — compacta en paso 1 */}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="relative w-16 h-16 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner shrink-0 cursor-pointer"
+                              onClick={() => { if (driverPhotoImg) setPreviewImage(driverPhotoImg); }}
+                            >
+                              {driverPhotoImg ? (
+                                <Image src={driverPhotoImg} alt="Foto Chofer" fill className="object-cover" />
+                              ) : (
+                                <User className="w-8 h-8 text-muted-foreground/60" />
+                              )}
+                              {driverPhotoImg && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setDriverPhotoImg(""); }}
+                                  className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity duration-200 cursor-pointer"
+                                >
+                                  Eliminar
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex-1 space-y-1.5">
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Foto de perfil (opcional)</span>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <Button type="button" variant="outline" onClick={() => startCamera("CHOFER")}
+                                  className="border-border bg-card hover:bg-accent text-foreground text-[10px] rounded-lg flex items-center justify-center gap-1 h-8 cursor-pointer">
+                                  <Camera className="w-3 h-3 text-primary" /> Foto
+                                </Button>
+                                <Button type="button" variant="outline" onClick={() => photoFileRef.current?.click()}
+                                  className="border-border bg-card hover:bg-accent text-foreground text-[10px] rounded-lg flex items-center justify-center gap-1 h-8 cursor-pointer">
+                                  <FolderOpen className="w-3 h-3 text-primary" /> Subir
+                                </Button>
+                                <input type="file" accept="image/*" ref={photoFileRef} className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = (event) => { if (event.target?.result) setDriverPhotoImg(event.target.result as string); };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }} />
+                              </div>
+                            </div>
+                          </div>
+
                           <div className="min-w-0">
-                            <Label htmlFor="firstName" className="text-muted-foreground text-xs">Nombre(s) *</Label>
+                            <Label htmlFor="firstName" className="text-muted-foreground text-xs font-bold">Nombre(s) *</Label>
                             <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="ej. Juan Carlos" className="border-input bg-background rounded-xl w-full min-w-0" />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="min-w-0">
-                              <Label htmlFor="patName" className="text-muted-foreground text-xs">Apellido Paterno *</Label>
+                              <Label htmlFor="patName" className="text-muted-foreground text-xs font-bold">Apellido Paterno *</Label>
                               <Input id="patName" value={paternalLastName} onChange={(e) => setPaternalLastName(e.target.value)} placeholder="ej. Pérez" className="border-input bg-background rounded-xl w-full min-w-0" />
                             </div>
                             <div className="min-w-0">
@@ -146,21 +191,32 @@ export default function DriverFormDialog(props: DriversFormProps) {
                               <Input id="matName" value={maternalLastName} onChange={(e) => setMaternalLastName(e.target.value)} placeholder="ej. López" className="border-input bg-background rounded-xl w-full min-w-0" />
                             </div>
                           </div>
-                          <div className="min-w-0">
-                            <Label htmlFor="mainCurp" className="text-muted-foreground text-xs font-bold">CURP *</Label>
-                            <Input
-                              id="mainCurp"
-                              value={licenseCurp || ineCurp}
-                              onChange={(e) => {
-                                const val = e.target.value.toUpperCase().trim();
-                                setLicenseCurp(val);
-                                setIneCurp(val);
-                              }}
-                              placeholder="18 caracteres (ej. ABCD123456HDFRRN01)"
-                              maxLength={18}
-                              className="border-input bg-background rounded-xl w-full min-w-0 uppercase font-mono"
-                            />
-                          </div>
+                          {/* CURP — se llena automáticamente desde el INE, editable */}
+                          {(licenseCurp || ineCurp) ? (
+                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-1">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                <span className="text-emerald-600 font-bold">CURP detectada desde INE</span>
+                              </div>
+                              <div className="font-mono text-sm text-foreground font-bold tracking-wider">{licenseCurp || ineCurp}</div>
+                            </div>
+                          ) : (
+                            <div className="min-w-0">
+                              <Label htmlFor="mainCurp" className="text-muted-foreground text-xs">CURP (se detecta al escanear INE)</Label>
+                              <Input
+                                id="mainCurp"
+                                value={licenseCurp || ineCurp}
+                                onChange={(e) => {
+                                  const val = e.target.value.toUpperCase().trim();
+                                  setLicenseCurp(val);
+                                  setIneCurp(val);
+                                }}
+                                placeholder="Se llena automáticamente con el INE"
+                                maxLength={18}
+                                className="border-input bg-background rounded-xl w-full min-w-0 uppercase font-mono"
+                              />
+                            </div>
+                          )}
                           {suggestedCurp && (
                             <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl space-y-2">
                               <div className="flex justify-between items-center text-xs">
@@ -173,57 +229,19 @@ export default function DriverFormDialog(props: DriversFormProps) {
                         </div>
                       </div>
 
-                      {/* PASO 2: Documentos */}
+                      {/* PASO 2: Documentos — INE llena CURP, Licencia llena No. y vigencia */}
                       <div id="section-docs" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Documentos</h4>
-                        <div className="space-y-4">
-                          {/* Foto de Perfil */}
-                          <div className="flex flex-col items-center text-center">
-                            <div
-                              className="relative w-20 h-20 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center shadow-inner group cursor-pointer"
-                              onClick={() => { if (driverPhotoImg) setPreviewImage(driverPhotoImg); }}
-                            >
-                              {driverPhotoImg ? (
-                                <Image src={driverPhotoImg} alt="Foto Chofer" fill className="object-cover" />
-                              ) : (
-                                <User className="w-10 h-10 text-muted-foreground/60" />
-                              )}
-                              {driverPhotoImg && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); setDriverPhotoImg(""); }}
-                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-2xs font-bold transition-opacity duration-200 cursor-pointer"
-                                >
-                                  Eliminar
-                                </button>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 w-full mt-2">
-                              <Button type="button" variant="outline" onClick={() => startCamera("CHOFER")}
-                                className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-10 cursor-pointer">
-                                <Camera className="w-4 h-4 text-primary" /> Foto
-                              </Button>
-                              <Button type="button" variant="outline" onClick={() => photoFileRef.current?.click()}
-                                className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-10 cursor-pointer">
-                                <FolderOpen className="w-4 h-4 text-primary" /> Subir
-                              </Button>
-                              <input type="file" accept="image/*" ref={photoFileRef} className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => { if (event.target?.result) setDriverPhotoImg(event.target.result as string); };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }} />
-                            </div>
-                          </div>
-
+                        <p className="text-[11px] text-muted-foreground -mt-1">El INE detecta CURP y clave electoral. La licencia llena número y vigencia.</p>
+                        <div className="space-y-3">
                           {/* INE */}
-                          <div>
-                            <h5 className="text-[11px] font-bold text-foreground mb-2">INE (Identificación) *</h5>
+                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">🪪 INE (Identificación) *</h5>
+                              {ineImg && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">Cargado</span>}
+                            </div>
                             {ineImg && (
-                              <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center mb-2">
+                              <div className="relative w-full h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
                                 <Image src={ineImg} alt="INE" fill className="object-contain p-1" />
                                 <button type="button" onClick={() => setIneImg("")}
                                   className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar INE">
@@ -242,13 +260,22 @@ export default function DriverFormDialog(props: DriversFormProps) {
                               </Button>
                               <input type="file" accept="image/*" className="hidden" ref={ineFileRef} onChange={(e) => handleFileChange(e, "INE")} />
                             </div>
+                            {ineImg && (
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] pt-1 border-t border-border/40">
+                                {(ineCurp || licenseCurp) && <div><span className="text-muted-foreground/70">CURP: </span><strong className="text-foreground font-mono truncate block">{ineCurp || licenseCurp}</strong></div>}
+                                {ineElectorKey && <div><span className="text-muted-foreground/70">Clave Electoral: </span><strong className="text-foreground font-mono truncate block">{ineElectorKey}</strong></div>}
+                              </div>
+                            )}
                           </div>
 
                           {/* Licencia */}
-                          <div>
-                            <h5 className="text-[11px] font-bold text-foreground mb-2">Licencia de Conducir *</h5>
+                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">🪪 Licencia de Conducir *</h5>
+                              {licenseImg && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">Cargada</span>}
+                            </div>
                             {licenseImg && (
-                              <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center mb-2">
+                              <div className="relative w-full h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
                                 <Image src={licenseImg} alt="Licencia" fill className="object-contain p-1" />
                                 <button type="button" onClick={() => setLicenseImg("")}
                                   className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar Licencia">
@@ -267,18 +294,23 @@ export default function DriverFormDialog(props: DriversFormProps) {
                               </Button>
                               <input type="file" accept="image/*" className="hidden" ref={licFileRef} onChange={(e) => handleFileChange(e, "LICENCIA")} />
                             </div>
+                            {licenseImg && (
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] pt-1 border-t border-border/40">
+                                {licenseNumber && <div><span className="text-muted-foreground/70">No. Licencia: </span><strong className="text-foreground font-mono">{licenseNumber}</strong></div>}
+                                {licenseExpirationDate && <div><span className="text-muted-foreground/70">Vence: </span><strong className="text-foreground">{licenseExpirationDate}</strong></div>}
+                                {licenseIsPermanent !== undefined && <div><span className="text-muted-foreground/70">Tipo: </span><strong className="text-foreground">{licenseIsPermanent ? "Permanente" : "Temporal"}</strong></div>}
+                              </div>
+                            )}
                           </div>
 
-                          {/* Comprobante de Domicilio */}
-                          <div>
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="text-[11px] font-bold text-foreground">Comprobante de Domicilio (opcional)</h5>
-                              {addressProofImg && (
-                                <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-bold">Cargado</span>
-                              )}
+                          {/* Comprobante de Domicilio — 100% opcional */}
+                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">📄 Comprobante de Domicilio <span className="text-muted-foreground font-normal">(opcional)</span></h5>
+                              {addressProofImg && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">Cargado</span>}
                             </div>
                             {addressProofImg && (
-                              <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center mb-2">
+                              <div className="relative w-full h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
                                 <Image src={addressProofImg} alt="Comprobante de Domicilio" fill className="object-contain p-1" />
                                 <button type="button" onClick={() => setAddressProofImg("")}
                                   className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar comprobante">
@@ -302,34 +334,58 @@ export default function DriverFormDialog(props: DriversFormProps) {
                         </div>
                       </div>
 
-                      {/* PASO 3: Revisión */}
+                      {/* PASO 3: Revisión — resumen visual con thumbnails */}
                       <div id="section-review" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Revisión</h4>
-                        <div className="space-y-2 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Nombre:</span>
-                            <span className="font-semibold text-foreground">{firstName} {paternalLastName} {maternalLastName}</span>
+                        {/* Datos del conductor */}
+                        <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                              {driverPhotoImg ? <Image src={driverPhotoImg} alt="" width={32} height={32} className="object-cover w-full h-full" /> : <User className="w-4 h-4 text-muted-foreground/60" />}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block text-sm font-bold text-foreground truncate">{firstName} {paternalLastName} {maternalLastName}</span>
+                              {(licenseCurp || ineCurp) && <span className="block text-[10px] font-mono text-muted-foreground truncate">{(licenseCurp || ineCurp)}</span>}
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">CURP:</span>
-                            <span className="font-semibold text-foreground font-mono">{licenseCurp || ineCurp || "—"}</span>
+                        </div>
+                        {/* Documentos — thumbnails */}
+                        <div className="space-y-1.5 text-[11px]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">🪪 INE</span>
+                            <span className={`font-semibold ${ineImg ? "text-emerald-500" : "text-muted-foreground"}`}>{ineImg ? "✓ Cargado" : "Sin escanear"}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Foto:</span>
-                            <span className={`font-semibold ${driverPhotoImg ? "text-emerald-500" : "text-muted-foreground"}`}>{driverPhotoImg ? "✓ Cargada" : "No cargada"}</span>
+                          {ineImg && ineCurp && (
+                            <div className="flex items-center justify-between pl-3">
+                              <span className="text-muted-foreground/70">CURP detectada</span>
+                              <span className="font-mono text-foreground font-semibold">{ineCurp}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">🪪 Licencia</span>
+                            <span className={`font-semibold ${licenseImg ? "text-emerald-500" : "text-muted-foreground"}`}>{licenseImg ? `✓ ${licenseNumber || "Cargada"}` : "Sin escanear"}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">INE:</span>
-                            <span className={`font-semibold ${ineImg ? "text-emerald-500" : "text-muted-foreground"}`}>{ineImg ? "✓ Cargado" : "No cargado"}</span>
+                          {licenseImg && licenseExpirationDate && (
+                            <div className="flex items-center justify-between pl-3">
+                              <span className="text-muted-foreground/70">Vigencia</span>
+                              <span className="text-foreground font-semibold">{licenseExpirationDate}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">📄 Domicilio</span>
+                            <span className={`font-semibold ${addressProofImg ? "text-emerald-500" : "text-muted-foreground"}`}>{addressProofImg ? "✓ Cargado" : "Opcional"}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Licencia:</span>
-                            <span className={`font-semibold ${licenseImg ? "text-emerald-500" : "text-muted-foreground"}`}>{licenseImg ? "✓ Cargada" : "No cargada"}</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">📸 Foto</span>
+                            <span className={`font-semibold ${driverPhotoImg ? "text-emerald-500" : "text-muted-foreground"}`}>{driverPhotoImg ? "✓ Cargada" : "Opcional"}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Domicilio:</span>
-                            <span className={`font-semibold ${addressProofImg ? "text-emerald-500" : "text-muted-foreground"}`}>{addressProofImg ? "✓ Cargado" : "No cargado"}</span>
-                          </div>
+                          {/* Validación cruzada CURP */}
+                          {ineCurp && licenseCurp && ineCurp !== licenseCurp && (
+                            <div className="flex items-center gap-1.5 text-amber-500 font-semibold mt-2"><AlertTriangle className="w-3 h-3" /> CURP de INE y Licencia no coinciden</div>
+                          )}
+                          {ineCurp && licenseCurp && ineCurp === licenseCurp && (
+                            <div className="flex items-center gap-1.5 text-emerald-500 font-semibold mt-2"><CheckCircle2 className="w-3 h-3" /> CURP validada: INE = Licencia</div>
+                          )}
                         </div>
                       </div>
                     </div>

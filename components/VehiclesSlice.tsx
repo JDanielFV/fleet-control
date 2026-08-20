@@ -168,88 +168,140 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
               </DialogHeader>
 
               <div className="pt-2 pb-1">
-                <Stepper steps={[{ id: "id", label: "Identificación" }, { id: "docs", label: "Documentos" }, { id: "details", label: "Detalles" }]}
+                <Stepper steps={[{ id: "data", label: "Datos" }, { id: "docs", label: "Escaneo" }, { id: "review", label: "Revisión" }]}
                   currentStep={activeSection} onStepClick={scrollToSection} />
               </div>
 
               <AnimatePresence mode="wait">
                 {isScanning ? (
-                  <ScannerViewfinder scanner={scanner} labels={{ scan: "Analizando marcas...", extract: "Generando bloques de texto...", logsHeader: "LOGS DETALLADOS VEHICULARES" }} />
+                  <ScannerViewfinder scanner={scanner} labels={{ scan: "Analizando documento...", extract: "Extrayendo datos...", logsHeader: "LOGS DETALLADOS VEHICULARES" }} />
                 ) : (
                   <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                     <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
-                      {/* PASO 1: Identificación */}
-                      <div id="section-id" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
+                      {/* PASO 1: Datos — solo lo que el OCR no puede saber */}
+                      <div id="section-data" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Auto</h4>
                         <div className="space-y-3">
-                          <div className="min-w-0">
-                            <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa *</Label>
-                            <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" className="border-input bg-background rounded-xl w-full min-w-0 font-mono" />
-                            {isPlateLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1"><AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.</span>}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="min-w-0">
+                              <Label htmlFor="rentCost" className="text-muted-foreground text-xs font-bold">💰 Renta Semanal ($) *</Label>
+                              <Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0 text-lg font-bold" placeholder="2500" />
+                            </div>
+                            <div className="min-w-0">
+                              <Label htmlFor="color" className="text-muted-foreground text-xs font-bold">🎨 Color *</Label>
+                              <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. Blanco, Rojo, Gris" />
+                            </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="brand" className="text-muted-foreground text-xs">Marca *</Label><Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                            <div className="min-w-0"><Label htmlFor="vName" className="text-muted-foreground text-xs">Vehículo / Submarca *</Label><Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} placeholder="ej. Versa" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                            <div className="min-w-0">
+                              <Label htmlFor="plate" className="text-muted-foreground text-xs">📋 Placa (opcional — el OCR la detecta)</Label>
+                              <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" className="border-input bg-background rounded-xl w-full min-w-0 font-mono" />
+                              {isPlateLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1"><AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.</span>}
+                            </div>
+                            <div className="min-w-0">
+                              <Label htmlFor="nextService" className="text-muted-foreground text-xs">🚗 Kilometraje Próximo Servicio (opcional)</Label>
+                              <Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" />
+                            </div>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="model" className="text-muted-foreground text-xs">Modelo (Año)</Label><Input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="ej. 2022" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                            <div className="min-w-0"><Label htmlFor="classType" className="text-muted-foreground text-xs">Clase / Tipo</Label><Input id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} placeholder="ej. Sedán" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                          </div>
-                          <div className="min-w-0"><Label htmlFor="color" className="text-muted-foreground text-xs">Color del Auto</Label><Input id="color" value={color} onChange={(e) => setColor(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. Rojo, Blanco, Gris" /></div>
                         </div>
                       </div>
 
-                      {/* PASO 2: Documentos */}
+                      {/* PASO 2: Escaneo — solo uploads, OCR llena el resto */}
                       <div id="section-docs" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Documentos Vehiculares</h4>
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanea los Documentos</h4>
+                        <p className="text-[11px] text-muted-foreground -mt-1">El OCR extrae marca, modelo, VIN, placas y vigencias automáticamente.</p>
                         <div className="space-y-4">
                           {/* Circulación */}
-                          <div>
-                            <h5 className="text-[11px] font-bold text-foreground mb-2">Tarjeta de Circulación</h5>
+                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">📄 Tarjeta de Circulación</h5>
+                              {circulationImg && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">Cargada</span>}
+                            </div>
                             {circulationImg && (
-                              <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center mb-2">
+                              <div className="relative w-full h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
                                 <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-contain p-1" />
                                 <button type="button" onClick={() => setCirculationImg("")} className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
                               </div>
                             )}
                             <div className="grid grid-cols-2 gap-2">
                               <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
-                              <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
+                              <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
                               <input type="file" accept="image/*" className="hidden" ref={circFileRef} onChange={(e) => handleFileChange(e, "CIRCULACION")} />
                             </div>
+                            {circulationImg && (
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] pt-1 border-t border-border/40">
+                                {plateNumber && <div><span className="text-muted-foreground/70">Placa: </span><strong className="text-foreground font-mono">{plateNumber}</strong></div>}
+                                {vin && <div><span className="text-muted-foreground/70">VIN: </span><strong className="text-foreground font-mono truncate block">{vin}</strong></div>}
+                                {brand && <div><span className="text-muted-foreground/70">Marca: </span><strong className="text-foreground">{brand}</strong></div>}
+                                {model && <div><span className="text-muted-foreground/70">Modelo: </span><strong className="text-foreground">{model}</strong></div>}
+                                {circulationExpirationDate && <div><span className="text-muted-foreground/70">Vence: </span><strong className="text-foreground">{circulationExpirationDate}</strong></div>}
+                              </div>
+                            )}
                           </div>
+
                           {/* Seguro */}
-                          <div>
-                            <h5 className="text-[11px] font-bold text-foreground mb-2">Póliza de Seguro</h5>
+                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">🛡️ Póliza de Seguro</h5>
+                              {insurancePolicyFiles.length > 0 && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">{insurancePolicyFiles.length} pág.</span>}
+                            </div>
                             <div className="grid grid-cols-2 gap-2">
                               <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
-                              <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
+                              <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
                               <input type="file" accept="image/*,application/pdf" multiple className="hidden" ref={insFileRef} onChange={(e) => handleFileChange(e, "SEGURO")} />
                             </div>
                             {insurancePolicyFiles.length > 0 && (
-                              <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400 font-semibold"><CheckCircle2 className="w-4 h-4" /> {insurancePolicyFiles.length} página(s) cargada(s)</div>
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] pt-1 border-t border-border/40">
+                                {insurancePolicyNumber && <div><span className="text-muted-foreground/70">Póliza: </span><strong className="text-foreground font-mono">{insurancePolicyNumber}</strong></div>}
+                                {insuranceExpirationDate && <div><span className="text-muted-foreground/70">Vence: </span><strong className="text-foreground">{insuranceExpirationDate}</strong></div>}
+                              </div>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {/* PASO 3: Detalles */}
-                      <div id="section-details" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Detalles del Vehículo</h4>
-                        <div className="space-y-3">
-                          <div className="min-w-0">
-                            <Label htmlFor="vin" className="text-muted-foreground text-xs">VIN / NIV</Label>
-                            <Input id="vin" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="17 caracteres" className="border-input bg-background rounded-xl w-full min-w-0 font-mono" />
-                            {isVinLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1 font-semibold"><AlertTriangle className="w-3.5 h-3.5" /> El NIV debe tener 17 caracteres (leídos: {vin.length}).</span>}
+                      {/* PASO 3: Revisión — resumen visual consolidado */}
+                      <div id="section-review" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Revisión</h4>
+                        {/* Resumen del vehículo */}
+                        <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Car className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-bold text-foreground">
+                              {brand || "—"} {vehicleName || "—"} {model || "—"}
+                            </span>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label><Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" /></div>
-                            <div className="min-w-0"><Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label><Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" /></div>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                            <div><span className="text-muted-foreground/70">Placa: </span><strong className="text-foreground font-mono">{plateNumber || "—"}</strong></div>
+                            <div><span className="text-muted-foreground/70">Color: </span><strong className="text-foreground">{color || "—"}</strong></div>
+                            <div><span className="text-muted-foreground/70">Renta: </span><strong className="text-foreground">${rentCost?.toLocaleString() || "—"}/sem</strong></div>
+                            {vin && <div><span className="text-muted-foreground/70">VIN: </span><strong className="text-foreground font-mono truncate block">{vin}</strong></div>}
+                            {nextServiceMileage && <div><span className="text-muted-foreground/70">Próx. Serv: </span><strong className="text-foreground">{parseInt(nextServiceMileage).toLocaleString()} km</strong></div>}
+                            <div>
+                              <span className="text-muted-foreground/70">Engomado: </span>
+                              <span className="flex items-center gap-1 inline-flex">
+                                <span className="w-2 h-2 rounded-full border border-black/20 inline-block shrink-0" style={{ backgroundColor: getVerificationSchedule(plateNumber || "0").color === "Amarillo" ? "#eab308" : getVerificationSchedule(plateNumber || "0").color === "Rosa" ? "#ec4899" : getVerificationSchedule(plateNumber || "0").color === "Rojo" ? "#ef4444" : getVerificationSchedule(plateNumber || "0").color === "Verde" ? "#22c55e" : "#3b82f6" }} />
+                                <strong className="text-foreground">{getVerificationSchedule(plateNumber || "0").color}</strong>
+                              </span>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="circExp" className="text-muted-foreground text-xs">Vigencia Tarjeta Circulación</Label><Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                            <div className="min-w-0"><Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label><Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                        </div>
+                        {/* Estado de documentos */}
+                        <div className="space-y-1.5 text-[11px]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">📄 Circulación</span>
+                            <span className={`font-semibold ${circulationImg ? "text-emerald-500" : "text-muted-foreground"}`}>{circulationImg ? "✓ Cargada" : "Sin escanear"}</span>
                           </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">🛡️ Seguro</span>
+                            <span className={`font-semibold ${insurancePolicyFiles.length > 0 ? "text-emerald-500" : "text-muted-foreground"}`}>{insurancePolicyFiles.length > 0 ? `✓ ${insurancePolicyFiles.length} pág.` : "Sin escanear"}</span>
+                          </div>
+                          {circulationExpirationDate && new Date(circulationExpirationDate) < new Date() && (
+                            <div className="flex items-center gap-1.5 text-amber-500 font-semibold"><AlertTriangle className="w-3 h-3" /> Vigencia de circulación vencida</div>
+                          )}
+                          {insuranceExpirationDate && new Date(insuranceExpirationDate) < new Date() && (
+                            <div className="flex items-center gap-1.5 text-amber-500 font-semibold"><AlertTriangle className="w-3 h-3" /> Vigencia de seguro vencida</div>
+                          )}
                         </div>
                       </div>
                     </div>

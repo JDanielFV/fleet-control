@@ -106,7 +106,7 @@ export function useVehicles(options: UseVehiclesOptions) {
   const [verificationExpirationDate, setVerificationExpirationDate] = useState("");
 
   // Stepper
-  const [activeSection, setActiveSection] = useState<string>("id");
+  const [activeSection, setActiveSection] = useState<string>("data");
   const scrollToSection = useCallback((id: string) => {
     requestAnimationFrame(() => {
       document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -116,7 +116,7 @@ export function useVehicles(options: UseVehiclesOptions) {
 
   useEffect(() => {
     if (!isOpen) return;
-    const ids = ["id", "docs", "details"];
+    const ids = ["data", "docs", "review"];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
@@ -417,9 +417,9 @@ export function useVehicles(options: UseVehiclesOptions) {
     e.preventDefault();
     if (isSaving) return;
 
-    if (!brand.trim() || !vehicleName.trim() || !plateNumber.trim()) {
-      scrollToSection("datos");
-      alert("Por favor completa los campos obligatorios: Marca, Vehículo y Placa.");
+    if (!color.trim()) {
+      scrollToSection("data");
+      alert("Por favor ingresa el color del vehículo.");
       return;
     }
 
