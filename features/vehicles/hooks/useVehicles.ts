@@ -106,7 +106,7 @@ export function useVehicles(options: UseVehiclesOptions) {
   const [verificationExpirationDate, setVerificationExpirationDate] = useState("");
 
   // Stepper
-  const [activeSection, setActiveSection] = useState<string>("circ");
+  const [activeSection, setActiveSection] = useState<string>("id");
   const scrollToSection = useCallback((id: string) => {
     requestAnimationFrame(() => {
       document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -116,7 +116,7 @@ export function useVehicles(options: UseVehiclesOptions) {
 
   useEffect(() => {
     if (!isOpen) return;
-    const ids = ["circ", "seguro", "datos", "vig"];
+    const ids = ["id", "docs", "details"];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);

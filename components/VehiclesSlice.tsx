@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Vehicle, Driver, getVerificationSchedule, Checklist } from "@/lib/db";
 import { computeUsageStats } from "@/lib/usageStats";
 import { getDriverName } from "@/lib/lookups";
@@ -19,6 +19,7 @@ import VehicleHistory from "@/components/VehicleHistory";
 import { resolveDocUrl } from "@/lib/db/storage";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
 import { MobileCard, MobileActionButton } from "@/components/ui/MobileCard";
+import VehicleDetailDialog from "@/components/ui/VehicleDetailDialog";
 
 interface VehiclesSliceProps {
   onRefreshAlerts: () => void;
@@ -39,6 +40,9 @@ interface VehiclesSliceProps {
 }
 
 export default function VehiclesSlice(props: VehiclesSliceProps) {
+  // Detail dialog state for mobile
+  const [detailDialogVehicle, setDetailDialogVehicle] = useState<Vehicle | null>(null);
+
   const {
   isOpen,
   setIsOpen,
@@ -164,7 +168,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
               </DialogHeader>
 
               <div className="pt-2 pb-1">
-                <Stepper steps={[{ id: "circ", label: "Circulación" }, { id: "seguro", label: "Seguro" }, { id: "datos", label: "Datos" }, { id: "vig", label: "Vigencias" }]}
+                <Stepper steps={[{ id: "id", label: "Identificación" }, { id: "docs", label: "Documentos" }, { id: "details", label: "Detalles" }]}
                   currentStep={activeSection} onStepClick={scrollToSection} />
               </div>
 
@@ -174,87 +178,77 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                 ) : (
                   <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
                     <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
-                      {/* Circulación */}
-                      <div id="section-circ" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Tarjeta de Circulación (OCR)</h4>
-                        {circulationImg && (
-                          <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                            <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-contain p-1" />
-                            <button type="button" onClick={() => setCirculationImg("")} className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
-                          <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
-                          <input type="file" accept="image/*" className="hidden" ref={circFileRef} onChange={(e) => handleFileChange(e, "CIRCULACION")} />
-                        </div>
-                      </div>
-
-                      {/* Seguro */}
-                      <div id="section-seguro" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro (OCR)</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
-                          <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
-                          <input type="file" accept="image/*,application/pdf" multiple className="hidden" ref={insFileRef} onChange={(e) => handleFileChange(e, "SEGURO")} />
-                        </div>
-                      </div>
-
-                      {/* Datos */}
-                      <div id="section-datos" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
+                      {/* PASO 1: Identificación */}
+                      <div id="section-id" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
                         <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Vehículo</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="min-w-0"><Label htmlFor="brand" className="text-muted-foreground text-xs">Marca *</Label><Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                          <div className="min-w-0"><Label htmlFor="vName" className="text-muted-foreground text-xs">Vehículo / Submarca *</Label><Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} placeholder="ej. Versa" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                          <div className="min-w-0"><Label htmlFor="model" className="text-muted-foreground text-xs">Modelo (Año)</Label><Input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="ej. 2022" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                          <div className="min-w-0"><Label htmlFor="classType" className="text-muted-foreground text-xs">Clase / Tipo</Label><Input id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} placeholder="ej. Sedán" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                        </div>
-                      </div>
-
-                      {/* Vigencias */}
-                      <div id="section-vig" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Identificación & Vigencias</h4>
                         <div className="space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0">
-                              <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa *</Label>
-                              <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" className="border-input bg-background rounded-xl w-full min-w-0" />
-                              {isPlateLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1"><AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.</span>}
-                            </div>
-                            <div className="min-w-0">
-                              <Label htmlFor="vin" className="text-muted-foreground text-xs">NIV / Serie</Label>
-                              <Input id="vin" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="17 caracteres" className="border-input bg-background rounded-xl w-full min-w-0" />
-                              {isVinLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1 font-semibold"><AlertTriangle className="w-3.5 h-3.5" /> El NIV debe tener 17 caracteres (leídos: {vin.length}).</span>}
-                            </div>
+                          <div className="min-w-0">
+                            <Label htmlFor="plate" className="text-muted-foreground text-xs">Placa *</Label>
+                            <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" className="border-input bg-background rounded-xl w-full min-w-0 font-mono" />
+                            {isPlateLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1"><AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.</span>}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="circExp" className="text-muted-foreground text-xs">Vigencia Tarjeta Circulación</Label><Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
-                            <div className="min-w-0"><Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label><Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                            <div className="min-w-0"><Label htmlFor="brand" className="text-muted-foreground text-xs">Marca *</Label><Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="ej. Nissan" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                            <div className="min-w-0"><Label htmlFor="vName" className="text-muted-foreground text-xs">Vehículo / Submarca *</Label><Input id="vName" value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} placeholder="ej. Versa" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0"><Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label><Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" /></div>
-                            <div className="min-w-0"><Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label><Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" /></div>
+                            <div className="min-w-0"><Label htmlFor="model" className="text-muted-foreground text-xs">Modelo (Año)</Label><Input id="model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="ej. 2022" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                            <div className="min-w-0"><Label htmlFor="classType" className="text-muted-foreground text-xs">Clase / Tipo</Label><Input id="classType" value={classType} onChange={(e) => setClassType(e.target.value)} placeholder="ej. Sedán" className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                           </div>
                           <div className="min-w-0"><Label htmlFor="color" className="text-muted-foreground text-xs">Color del Auto</Label><Input id="color" value={color} onChange={(e) => setColor(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. Rojo, Blanco, Gris" /></div>
                         </div>
                       </div>
 
-                      {/* Póliza */}
-                      <div className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Póliza de Seguro</h4>
-                        <div>
-                          <Label className="text-muted-foreground text-xs">Documentos de Póliza</Label>
-                          <div className="border border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => insFileRef.current?.click()}>
-                            {insurancePolicyFiles.length > 0 ? (
-                              <div className="flex flex-col items-center gap-2">
-                                <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 font-semibold"><CheckCircle2 className="w-4 h-4" /> {insurancePolicyFiles.length} página(s) cargada(s)</div>
-                                <div className="flex gap-1.5 flex-wrap justify-center">
-                                  {insurancePolicyFiles.map((_, i) => (<span key={i} className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md font-bold">Pág. {i + 1}</span>))}
-                                </div>
+                      {/* PASO 2: Documentos */}
+                      <div id="section-docs" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Documentos Vehiculares</h4>
+                        <div className="space-y-4">
+                          {/* Circulación */}
+                          <div>
+                            <h5 className="text-[11px] font-bold text-foreground mb-2">Tarjeta de Circulación</h5>
+                            {circulationImg && (
+                              <div className="relative w-full h-14 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center mb-2">
+                                <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-contain p-1" />
+                                <button type="button" onClick={() => setCirculationImg("")} className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
                               </div>
-                            ) : (
-                              <div className="text-muted-foreground text-xs flex flex-col items-center gap-1"><Shield className="w-6 h-6 text-muted-foreground/80 mb-1" /><span>Subir PDF o imágenes (múltiples páginas)</span></div>
                             )}
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
+                              <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
+                              <input type="file" accept="image/*" className="hidden" ref={circFileRef} onChange={(e) => handleFileChange(e, "CIRCULACION")} />
+                            </div>
+                          </div>
+                          {/* Seguro */}
+                          <div>
+                            <h5 className="text-[11px] font-bold text-foreground mb-2">Póliza de Seguro</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><Camera className="w-4 h-4 text-primary" /> Tomar Foto</Button>
+                              <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir Archivo</Button>
+                              <input type="file" accept="image/*,application/pdf" multiple className="hidden" ref={insFileRef} onChange={(e) => handleFileChange(e, "SEGURO")} />
+                            </div>
+                            {insurancePolicyFiles.length > 0 && (
+                              <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400 font-semibold"><CheckCircle2 className="w-4 h-4" /> {insurancePolicyFiles.length} página(s) cargada(s)</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* PASO 3: Detalles */}
+                      <div id="section-details" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Detalles del Vehículo</h4>
+                        <div className="space-y-3">
+                          <div className="min-w-0">
+                            <Label htmlFor="vin" className="text-muted-foreground text-xs">VIN / NIV</Label>
+                            <Input id="vin" value={vin} onChange={(e) => setVin(e.target.value)} placeholder="17 caracteres" className="border-input bg-background rounded-xl w-full min-w-0 font-mono" />
+                            {isVinLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1 font-semibold"><AlertTriangle className="w-3.5 h-3.5" /> El NIV debe tener 17 caracteres (leídos: {vin.length}).</span>}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="min-w-0"><Label htmlFor="rentCost" className="text-muted-foreground text-xs">Costo Renta Semanal ($)</Label><Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 2500" /></div>
+                            <div className="min-w-0"><Label htmlFor="nextService" className="text-muted-foreground text-xs">Kilometraje Próximo Servicio (km)</Label><Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" /></div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="min-w-0"><Label htmlFor="circExp" className="text-muted-foreground text-xs">Vigencia Tarjeta Circulación</Label><Input type="date" id="circExp" value={circulationExpirationDate} onChange={(e) => setCirculationExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
+                            <div className="min-w-0"><Label htmlFor="insExp" className="text-muted-foreground text-xs">Vigencia del Seguro</Label><Input type="date" id="insExp" value={insuranceExpirationDate} onChange={(e) => setInsuranceExpirationDate(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" /></div>
                           </div>
                         </div>
                       </div>
@@ -508,7 +502,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
             return (
               <MobileCard
                 key={vehicle.id}
-                onClick={() => toggleVehicleDetails(vehicle.id)}
+                onClick={() => setDetailDialogVehicle(vehicle)}
                 statusClass={isInService ? "border-l-4 border-l-blue-500" : !vehicle.active_driver_id ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-transparent"}
                 header={
                   <>
@@ -722,6 +716,25 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Vehicle Detail Dialog (Mobile) */}
+      <VehicleDetailDialog
+        vehicle={detailDialogVehicle}
+        open={!!detailDialogVehicle}
+        onClose={() => setDetailDialogVehicle(null)}
+        onEdit={handleEditVehicle}
+        onDelete={handleDeleteVehicle}
+        onRenewDocument={handleRenewDocument}
+        onServiceOut={handleServiceOut}
+        onServiceReturn={handleServiceReturn}
+        onReportWearPart={handleReportWearPart}
+        drivers={drivers}
+        maintenances={maintenances}
+        assignments={assignments}
+        checklists={checklists}
+        weeklyRentals={weeklyRentals}
+        setPreviewImage={setPreviewImage}
+      />
 
       {/* Document Preview */}
       <Dialog open={!!previewImage} onOpenChange={(o) => { if (!o) setPreviewImage(null); }}>
