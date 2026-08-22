@@ -1,20 +1,23 @@
 /**
  * Fleet Control Service Worker
  *
- * v2 — Cache-busting version bump. Bump this string on every deploy
+ * v3 — Offline page + cache-busting. Bump CACHE on every deploy
  *      to force old PWA caches to be evicted (fixes stale iOS Safari).
  *
  * Strategy:
  *   • /api/*       → network only (never cached)
- *   • HTML pages   → network-first, fallback to cache (offline)
+ *   • HTML pages   → network-first, fallback to /offline page
  *   • .js / .css   → network-first with cache fallback (new deploys arrive instantly)
  *   • Immutable    → cache-first (icons, manifest, fonts — rarely change)
  */
-const CACHE = "fleet-control-v2"; // ← bump on every deploy
+const CACHE = "fleet-control-v3"; // ← bump on every deploy
+const OFFLINE_URL = "/offline";
 const IMMUTABLE_ASSETS = [
   "/icon-192.png",
   "/icon-512.png",
+  "/icon-maskable.png",
   "/manifest.webmanifest",
+  OFFLINE_URL,
 ];
 
 // ---------------------------------------------------------------------------
@@ -86,7 +89,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 4) HTML pages & everything else — network-first, fallback to cache
+  // 4) HTML pages & everything else — network-first, fallback to offline page
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -94,9 +97,19 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE).then((cache) => cache.put(request, clone));
         return response;
       })
-      .catch(() =>
-        caches.match(request).then((cached) => cached || new Response("Offline", { status: 503 }))
-      )
+      .catch(async () => {
+        // Try cache first, then serve the offline page
+        const cached = await caches.match(request);
+        if (cached) return cached;
+
+        // For navigation requests, serve the offline page
+        if (request.mode === "navigate") {
+          const offlinePage = await caches.match(OFFLINE_URL);
+          if (offlinePage) return offlinePage;
+        }
+
+        return new Response("Offline", { status: 503 });
+      })
   );
 });
 
@@ -115,6 +128,15 @@ self.addEventListener("push", (event) => {
     });
   } catch {
     // Ignore malformed push payloads
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Message handler — skip waiting for new SW version
+// ---------------------------------------------------------------------------
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
   }
 });
 

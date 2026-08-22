@@ -4,6 +4,8 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import InstallBanner from "@/components/ui/InstallBanner";
+import UpdateBanner from "@/components/ui/UpdateBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -88,6 +90,8 @@ export default function RootLayout({
         >
           Saltar al contenido principal
         </a>
+        <InstallBanner />
+        <UpdateBanner />
         {children}
       </ErrorBoundary></ToastProvider></ConfirmProvider></body>
     </html>
