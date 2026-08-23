@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
+import InlineScanner from "@/components/InlineScanner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Image from "next/image";
 import { User, Camera, FolderOpen, Sparkles, Trash2, ChevronDown, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -213,46 +214,11 @@ export default function DriverFormDialog(props: DriversFormProps) {
 
                         {/* Preview inline — cámara o procesamiento de archivo */}
                         {isScanning && scanner.scanTarget && (
-                          <div className="rounded-xl border border-primary/40 bg-card overflow-hidden">
-                            {scanner.isCameraActive ? (
-                              /* Modo cámara — video en vivo */
-                              <div className="relative aspect-video w-full bg-muted">
-                                <video ref={scanner.videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                                {scanner.ocrStep === "scan" && (
-                                  <motion.div initial={{ y: -60 }} animate={{ y: 60 }} transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }} className="absolute left-0 right-0 h-0.5 bg-primary shadow-lg shadow-primary/60 z-10" />
-                                )}
-                                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-white/60" />
-                                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-white/60" />
-                                <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-white/60" />
-                                <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-white/60" />
-                                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-30">
-                                  <button type="button" onClick={scanner.capturePhoto} className="bg-primary hover:bg-primary text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer"><Camera className="w-4 h-4" /> Capturar</button>
-                                  <button type="button" onClick={scanner.cancelScan} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer">Cancelar</button>
-                                </div>
-                              </div>
-                            ) : (
-                              /* Modo archivo — indicador de procesamiento */
-                              <div className="flex items-center gap-3 p-4">
-                                <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                  {scanner.ocrStep === "done" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Loader2 className="w-5 h-5 text-primary animate-spin" />}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-bold text-foreground">
-                                    {scanner.ocrStep === "align" && "Cargando archivo..."}
-                                    {scanner.ocrStep === "scan" && "Analizando documento..."}
-                                    {scanner.ocrStep === "extract" && "Extrayendo datos..."}
-                                    {scanner.ocrStep === "done" && "¡Documento procesado!"}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">{scanner.scanTarget === "INE" ? "INE (Identificación)" : scanner.scanTarget === "LICENCIA" ? "Licencia de Conducir" : scanner.scanTarget === "CHOFER" ? "Foto de Perfil" : scanner.scanTarget === "DOMICILIO" ? "Comprobante de Domicilio" : scanner.scanTarget}</p>
-                                </div>
-                                <button type="button" onClick={scanner.cancelScan} className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer">Cancelar</button>
-                              </div>
-                            )}
-                          </div>
+                          <InlineScanner
+                            scanner={scanner}
+                            targetLabels={{ INE: "INE (Identificación)", LICENCIA: "Licencia de Conducir", CHOFER: "Foto de Perfil", DOMICILIO: "Comprobante de Domicilio" }}
+                          />
                         )}
-
-                        {/* Canvas oculto para captura */}
-                        <canvas ref={scanner.canvasRef} className="hidden" />
 
                         <div className="space-y-3">
                           {/* INE */}

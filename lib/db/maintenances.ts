@@ -3,7 +3,7 @@ import type { Maintenance } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedMaintenances } from "./seed";
 import { genId } from "./utils";
-import { getOwnerId, ownerScoped } from "./owner";
+import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 import { getSession } from "@/lib/session";
 
 export async function getMaintenances(): Promise<Maintenance[]> {
@@ -12,7 +12,7 @@ export async function getMaintenances(): Promise<Maintenance[]> {
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("maintenances").select("*");
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("maintenances", data, seedMaintenances, ownerId);
   }

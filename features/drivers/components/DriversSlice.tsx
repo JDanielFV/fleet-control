@@ -7,7 +7,7 @@ import { User, AlertTriangle, Search, CheckCircle2, Car, Pencil, RefreshCcw, Dol
 import { motion } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
-import DriverFormDialog from "@/components/DriverFormDialog";
+import DriverFormDialog from "@/features/drivers/components/DriverFormDialog";
 import LicenseRenewalDialogs from "@/components/LicenseRenewalDialogs";
 import { DriversListSkeleton } from "@/components/ui/skeletons";
 import { resolveDocUrl } from "@/lib/db/storage";

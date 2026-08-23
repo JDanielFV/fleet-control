@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSession } from "@/lib/auth";
 import LoginPage from "@/features/auth/components/LoginPage";
-import Dashboard from "@/components/Dashboard";
+import Dashboard from "@/features/dashboard/components/Dashboard";
 import { DataStoreProvider } from "@/features/dashboard/hooks/useDataStore";
 
 export default function Home() {

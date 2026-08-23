@@ -12,7 +12,7 @@ export async function getDrivers(): Promise<Driver[]> {
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("drivers").select("*").is("deleted_at", null);
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("drivers", data, seedDrivers, ownerId);
   }
@@ -24,8 +24,11 @@ export async function getArchivedDrivers(): Promise<Driver[]> {
   const ownerId = session?.userId;
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
-    let query = supabase.from("drivers").select("*").not("deleted_at", "is", null);
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    // Cast to the generic filter shape — chaining .or() on PostgrestFilterBuilder
+    // with ownerEq's union type blows up TS2589 here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = supabase.from("drivers").select("*").not("deleted_at", "is", null);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("deleted_at", { ascending: false });
     if (!error) return data as Driver[];
   }

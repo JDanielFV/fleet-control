@@ -11,6 +11,16 @@ import { useOcrScanner } from "@/components/useOcrScanner";
 import { uploadDocumentImage, resolveDocUrl } from "@/lib/db/storage";
 import { requirePasskeyConfirmation } from "@/lib/webauthn";
 
+/** Pure wrapper so the React Compiler can memoize `suggestedCurp` cleanly. */
+function calculateCurpSuggested(p: {
+  firstName: string; paternalLastName: string; maternalLastName: string;
+  ineDob: string; ineSex: "M" | "F" | "X"; birthState: string;
+}): string {
+  return p.firstName && p.paternalLastName && p.ineDob
+    ? calculateCurp({ firstName: p.firstName, paternalLastName: p.paternalLastName, maternalLastName: p.maternalLastName, dob: p.ineDob, sex: p.ineSex, stateCode: p.birthState })
+    : "";
+}
+
 
 export interface UseDriversOptions {
   onRefreshAlerts: () => void;
@@ -596,14 +606,10 @@ export function useDrivers(options: UseDriversOptions) {
     [drivers, search]
   );
 
-  const currentDob = ineDob;
-  const suggestedCurp = useMemo(
-    () =>
-      firstName && paternalLastName && currentDob
-        ? calculateCurp({ firstName, paternalLastName, maternalLastName, dob: currentDob, sex: ineSex, stateCode: birthState })
-        : "",
-    [firstName, paternalLastName, maternalLastName, currentDob, ineSex, birthState]
-  );
+  // Plain derivation — the React Compiler memoizes this automatically.
+  const suggestedCurp = calculateCurpSuggested({
+    firstName, paternalLastName, maternalLastName, ineDob, ineSex, birthState,
+  });
 
   const applySuggestedCurp = () => {
     if (suggestedCurp) {

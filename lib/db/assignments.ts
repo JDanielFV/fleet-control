@@ -13,7 +13,7 @@ export async function getAssignments(): Promise<Assignment[]> {
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("assignments").select("*");
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("assignments", data, seedAssignments, ownerId);
   }

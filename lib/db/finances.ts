@@ -4,7 +4,7 @@ import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendi
 import { seedWeeklyRentals } from "./seed";
 import { genId } from "./utils";
 import { applyPayment } from "../utils";
-import { getOwnerId, ownerScoped } from "./owner";
+import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 import { getSession } from "@/lib/session";
 
 export async function getWeeklyRentals(): Promise<WeeklyRental[]> {
@@ -13,7 +13,7 @@ export async function getWeeklyRentals(): Promise<WeeklyRental[]> {
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("weekly_rentals").select("*");
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("week_start", { ascending: false });
     if (!error) return mergePendingLocal("weekly_rentals", data, seedWeeklyRentals, ownerId);
   }

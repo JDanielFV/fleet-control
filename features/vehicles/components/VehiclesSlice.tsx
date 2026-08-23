@@ -7,13 +7,14 @@ import { getDriverName } from "@/lib/lookups";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Car, CheckCircle2, Search, Trash2, Camera, FolderOpen, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Car, CheckCircle2, Search, Trash2, Camera, Pencil, RefreshCcw, Mic, AlertTriangle, Shield, Wrench, ArrowLeftRight, CheckCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import SliceHeader from "@/components/SliceHeader";
 import { VehiclesListSkeleton } from "@/components/ui/skeletons";
 import ScannerViewfinder from "@/components/ScannerViewfinder";
+import VehicleFormDialog, { VerificationBadge } from "@/features/vehicles/components/VehicleFormDialog";
 import VehicleHistory from "@/components/VehicleHistory";
 import { resolveDocUrl } from "@/lib/db/storage";
 import { useVehicles } from "@/features/vehicles/hooks/useVehicles";
@@ -43,325 +44,71 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
   const [detailDialogVehicle, setDetailDialogVehicle] = useState<Vehicle | null>(null);
 
   const {
-  isOpen,
-  setIsOpen,
-  resetForm,
-  editingVehicleId,
-  activeSection,
-  scrollToSection,
-  isScanning,
-  scanner,
-  handleSave,
-  isSaving,
-  isRenewing,
-  isSavingWearPart,
-  isVerifying,
-  brand,
-  setBrand,
-  vehicleName,
-  setVehicleName,
-  model,
-  setModel,
-  classType,
-  setClassType,
-  circulationExpirationDate,
-  setCirculationExpirationDate,
-  vin,
-  setVin,
-  plateNumber,
-  setPlateNumber,
-  isPlateLengthInvalid,
-  isVinLengthInvalid,
-  insurancePolicyImg,
-  setInsurancePolicyImg,
-  insurancePolicyFiles,
-  insuranceExpirationDate,
-  setInsuranceExpirationDate,
-  circulationImg,
-  setCirculationImg,
-  circFileRef,
-  insFileRef,
-  handleFileChange,
-  startCamera,
-  rentCost,
-  setRentCost,
-  nextServiceMileage,
-  setNextServiceMileage,
-  color,
-  setColor,
-  insurancePolicyNumber,
-  setInsurancePolicyNumber,
-  verificationExpirationDate,
-  setVerificationExpirationDate,
-  isLoading,
-  filteredVehicles,
-  expandedVehicleDetails,
-  toggleVehicleDetails,
-  search,
-  setSearch,
-  showArchived,
-  setShowArchived,
-  handleEditVehicle,
-  handleDeleteVehicle,
-  handleServiceOut,
-  handleServiceReturn,
-  handleReportWearPart,
-  handleRenewDocument,
-  setPreviewImage,
-  drivers,
-  onAssignVehicle,
-  maintenances,
-  assignments,
-  checklists,
-  weeklyRentals,
-  renewingVehicle,
-  renewTarget,
-  stopCamera,
-  setRenewingVehicle,
-  isRenewOpen,
-  setIsRenewOpen,
-  renewPolicyImg,
-  renewExpirationDate,
-  setRenewExpirationDate,
-  submitRenewal,
-  wearPartOpen,
-  setWearPartOpen,
-  setWearPartVehicleState,
-  wearPartVehicleState,
-  wearPartName,
-  setWearPartName,
-  wearPartCost,
-  setWearPartCost,
-  wearPartDate,
-  setWearPartDate,
-  submitWearPart,
-  verifOpen,
-  setVerifVehicle,
-  verifVehicle,
-  verifFileRef,
-  verifImg,
-  setVerifImg,
-  setVerifOpen,
-  submitVerification,
-  previewImage,
-} = useVehicles(props);
+    isScanning,
+    scanner,
+    filteredVehicles,
+    expandedVehicleDetails,
+    toggleVehicleDetails,
+    search,
+    setSearch,
+    showArchived,
+    setShowArchived,
+    handleEditVehicle,
+    handleDeleteVehicle,
+    handleServiceOut,
+    handleServiceReturn,
+    handleReportWearPart,
+    handleRenewDocument,
+    setPreviewImage,
+    drivers,
+    onAssignVehicle,
+    maintenances,
+    assignments,
+    checklists,
+    weeklyRentals,
+    renewingVehicle,
+    renewTarget,
+    stopCamera,
+    setRenewingVehicle,
+    isRenewOpen,
+    setIsRenewOpen,
+    renewPolicyImg,
+    renewExpirationDate,
+    setRenewExpirationDate,
+    submitRenewal,
+    isRenewing,
+    wearPartOpen,
+    setWearPartOpen,
+    setWearPartVehicleState,
+    wearPartVehicleState,
+    wearPartName,
+    setWearPartName,
+    wearPartCost,
+    setWearPartCost,
+    wearPartDate,
+    setWearPartDate,
+    submitWearPart,
+    isSavingWearPart,
+    verifOpen,
+    setVerifVehicle,
+    verifVehicle,
+    verifFileRef,
+    verifImg,
+    setVerifImg,
+    setVerifOpen,
+    submitVerification,
+    isVerifying,
+    isLoading,
+    previewImage,
+  } = useVehicles(props);
+
+  // The registration dialog consumes the whole hook return (same pattern as DriverFormDialog).
+  const formDialog = useVehicles(props);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <SliceHeader
-        title="Vehículos"
-        action={
-          <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className="rounded-full bg-[#0088FF] hover:bg-[#0077EE] text-white text-sm font-bold px-6 h-11 border-none active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs">
-                Registrar vehículo
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto border border-border bg-background text-foreground rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-foreground font-black text-lg">{editingVehicleId ? "Editar Vehículo" : "Registro de Vehículo"}</DialogTitle>
-                <DialogDescription className="text-muted-foreground text-xs">
-                  {editingVehicleId ? "Modifica los datos del vehículo. Los cambios se aplican al instante." : "Ingresa datos o usa OCR de la tarjeta de circulación y póliza."}
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSave} className="space-y-4 pt-2 flex flex-col max-h-[78vh]">
-                    <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[62vh]">
-                      {/* PASO 1: Datos — solo lo que el OCR no puede saber */}
-                      <div id="section-data" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Datos del Auto</h4>
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0">
-                              <Label htmlFor="rentCost" className="text-muted-foreground text-xs font-bold">💰 Renta Semanal ($) *</Label>
-                              <Input type="number" id="rentCost" value={rentCost || ""} onChange={(e) => setRentCost(Number(e.target.value))} className="border-input bg-background rounded-xl w-full min-w-0 text-lg font-bold" placeholder="2500" />
-                            </div>
-                            <div className="min-w-0">
-                              <Label htmlFor="color" className="text-muted-foreground text-xs font-bold">🎨 Color *</Label>
-                              <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. Blanco, Rojo, Gris" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="min-w-0">
-                              <Label htmlFor="plate" className="text-muted-foreground text-xs">📋 Placa (opcional — el OCR la detecta)</Label>
-                              <Input id="plate" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} placeholder="ej. 982-WXY" className="border-input bg-background rounded-xl w-full min-w-0 font-mono" />
-                              {isPlateLengthInvalid && <span className="text-xs text-amber-400 flex items-center gap-1 mt-1"><AlertTriangle className="w-3.5 h-3.5" /> Placa corta o inusual.</span>}
-                            </div>
-                            <div className="min-w-0">
-                              <Label htmlFor="nextService" className="text-muted-foreground text-xs">🚗 Kilometraje Próximo Servicio (opcional)</Label>
-                              <Input type="number" id="nextService" value={nextServiceMileage} onChange={(e) => setNextServiceMileage(e.target.value)} className="border-input bg-background rounded-xl w-full min-w-0" placeholder="ej. 20000" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* PASO 2: Escaneo — solo uploads, OCR llena el resto */}
-                      <div id="section-docs" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3.5 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Escanea los Documentos</h4>
-                        <p className="text-[11px] text-muted-foreground -mt-1">El OCR extrae marca, modelo, VIN, placas y vigencias automáticamente.</p>
-
-                        {/* Preview inline — cámara o procesamiento de archivo */}
-                        {isScanning && scanner.scanTarget && (
-                          <div className="rounded-xl border border-primary/40 bg-card overflow-hidden">
-                            {scanner.isCameraActive ? (
-                              /* Modo cámara — video en vivo */
-                              <div className="relative aspect-video w-full bg-muted">
-                                <video ref={scanner.videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                                {scanner.ocrStep === "scan" && (
-                                  <motion.div initial={{ y: -60 }} animate={{ y: 60 }} transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2 }} className="absolute left-0 right-0 h-0.5 bg-primary shadow-lg shadow-primary/60 z-10" />
-                                )}
-                                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-white/60" />
-                                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-white/60" />
-                                <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-white/60" />
-                                <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-white/60" />
-                                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-30">
-                                  <button type="button" onClick={scanner.capturePhoto} className="bg-primary hover:bg-primary text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer"><Camera className="w-4 h-4" /> Capturar</button>
-                                  <button type="button" onClick={scanner.cancelScan} className="bg-red-500 hover:bg-red-600 text-white font-bold rounded-full h-10 px-4 flex items-center justify-center gap-1.5 shadow-lg active:scale-90 text-xs cursor-pointer">Cancelar</button>
-                                </div>
-                              </div>
-                            ) : (
-                              /* Modo archivo — indicador de procesamiento */
-                              <div className="flex items-center gap-3 p-4">
-                                <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                  {scanner.ocrStep === "done" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Loader2 className="w-5 h-5 text-primary animate-spin" />}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-bold text-foreground">
-                                    {scanner.ocrStep === "align" && "Cargando archivo..."}
-                                    {scanner.ocrStep === "scan" && "Analizando documento..."}
-                                    {scanner.ocrStep === "extract" && "Extrayendo datos..."}
-                                    {scanner.ocrStep === "done" && "¡Documento procesado!"}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">{scanner.scanTarget === "CIRCULACION" ? "Tarjeta de Circulación" : scanner.scanTarget === "SEGURO" ? "Póliza de Seguro" : scanner.scanTarget}</p>
-                                </div>
-                                <button type="button" onClick={scanner.cancelScan} className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer">Cancelar</button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Canvas oculto para captura */}
-                        <canvas ref={scanner.canvasRef} className="hidden" />
-
-                        <div className="space-y-4">
-                          {/* Circulación */}
-                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">📄 Tarjeta de Circulación</h5>
-                              {circulationImg && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">Cargada</span>}
-                            </div>
-                            {circulationImg && (
-                              <div className="relative w-full h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                                <Image src={circulationImg} alt="Tarjeta de Circulación" fill className="object-contain p-1" />
-                                <button type="button" onClick={() => setCirculationImg("")} className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all active:scale-90" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                              </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button type="button" variant="outline" onClick={() => startCamera("CIRCULACION")} disabled={isScanning && scanner.scanTarget !== "CIRCULACION"} className={`border-border text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer ${isScanning && scanner.scanTarget === "CIRCULACION" ? "bg-primary/10 border-primary/40 text-primary" : "bg-card hover:bg-accent text-foreground"}`}>
-                                {isScanning && scanner.scanTarget === "CIRCULACION" ? (<><Loader2 className="w-4 h-4 animate-spin" /> Escaneando...</>) : (<><Camera className="w-4 h-4 text-primary" /> Tomar Foto</>)}
-                              </Button>
-                              <Button type="button" variant="outline" onClick={() => circFileRef.current?.click()} disabled={isScanning} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
-                              <input type="file" accept="image/*" className="hidden" ref={circFileRef} onChange={(e) => handleFileChange(e, "CIRCULACION")} />
-                            </div>
-                            {circulationImg && (
-                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] pt-1 border-t border-border/40">
-                                {plateNumber && <div><span className="text-muted-foreground/70">Placa: </span><strong className="text-foreground font-mono">{plateNumber}</strong></div>}
-                                {vin && <div><span className="text-muted-foreground/70">VIN: </span><strong className="text-foreground font-mono truncate block">{vin}</strong></div>}
-                                {brand && <div><span className="text-muted-foreground/70">Marca: </span><strong className="text-foreground">{brand}</strong></div>}
-                                {model && <div><span className="text-muted-foreground/70">Modelo: </span><strong className="text-foreground">{model}</strong></div>}
-                                {circulationExpirationDate && <div><span className="text-muted-foreground/70">Vence: </span><strong className="text-foreground">{circulationExpirationDate}</strong></div>}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Seguro */}
-                          <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">🛡️ Póliza de Seguro</h5>
-                              {insurancePolicyFiles.length > 0 && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-md font-bold">{insurancePolicyFiles.length} pág.</span>}
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button type="button" variant="outline" onClick={() => startCamera("SEGURO")} disabled={isScanning && scanner.scanTarget !== "SEGURO"} className={`border-border text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer ${isScanning && scanner.scanTarget === "SEGURO" ? "bg-primary/10 border-primary/40 text-primary" : "bg-card hover:bg-accent text-foreground"}`}>
-                                {isScanning && scanner.scanTarget === "SEGURO" ? (<><Loader2 className="w-4 h-4 animate-spin" /> Escaneando...</>) : (<><Camera className="w-4 h-4 text-primary" /> Tomar Foto</>)}
-                              </Button>
-                              <Button type="button" variant="outline" onClick={() => insFileRef.current?.click()} disabled={isScanning} className="border-border bg-card hover:bg-accent text-foreground text-xs rounded-xl flex items-center justify-center gap-1.5 h-11 cursor-pointer"><FolderOpen className="w-4 h-4 text-primary" /> Subir</Button>
-                              <input type="file" accept="image/*,application/pdf" multiple className="hidden" ref={insFileRef} onChange={(e) => handleFileChange(e, "SEGURO")} />
-                            </div>
-                            {insurancePolicyFiles.length > 0 && (
-                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] pt-1 border-t border-border/40">
-                                {insurancePolicyNumber && <div><span className="text-muted-foreground/70">Póliza: </span><strong className="text-foreground font-mono">{insurancePolicyNumber}</strong></div>}
-                                {insuranceExpirationDate && <div><span className="text-muted-foreground/70">Vence: </span><strong className="text-foreground">{insuranceExpirationDate}</strong></div>}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* PASO 3: Revisión — resumen visual consolidado */}
-                      <div id="section-review" className="bg-muted/40 p-4 rounded-xl border border-border/80 space-y-3 scroll-mt-2">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground font-black">Revisión</h4>
-                        {/* Resumen del vehículo */}
-                        <div className="bg-card rounded-xl border border-border/60 p-3 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Car className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-bold text-foreground">
-                              {brand || "—"} {vehicleName || "—"} {model || "—"}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-                            <div><span className="text-muted-foreground/70">Placa: </span><strong className="text-foreground font-mono">{plateNumber || "—"}</strong></div>
-                            <div><span className="text-muted-foreground/70">Color: </span><strong className="text-foreground">{color || "—"}</strong></div>
-                            <div><span className="text-muted-foreground/70">Renta: </span><strong className="text-foreground">${rentCost?.toLocaleString() || "—"}/sem</strong></div>
-                            {vin && <div><span className="text-muted-foreground/70">VIN: </span><strong className="text-foreground font-mono truncate block">{vin}</strong></div>}
-                            {nextServiceMileage && <div><span className="text-muted-foreground/70">Próx. Serv: </span><strong className="text-foreground">{parseInt(nextServiceMileage).toLocaleString()} km</strong></div>}
-                            <div>
-                              <span className="text-muted-foreground/70">Engomado: </span>
-                              <span className="flex items-center gap-1 inline-flex">
-                                <span className="w-2 h-2 rounded-full border border-black/20 inline-block shrink-0" style={{ backgroundColor: getVerificationSchedule(plateNumber || "0").color === "Amarillo" ? "#eab308" : getVerificationSchedule(plateNumber || "0").color === "Rosa" ? "#ec4899" : getVerificationSchedule(plateNumber || "0").color === "Rojo" ? "#ef4444" : getVerificationSchedule(plateNumber || "0").color === "Verde" ? "#22c55e" : "#3b82f6" }} />
-                                <strong className="text-foreground">{getVerificationSchedule(plateNumber || "0").color}</strong>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Estado de documentos */}
-                        <div className="space-y-1.5 text-[11px]">
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">📄 Circulación</span>
-                            <span className={`font-semibold ${circulationImg ? "text-emerald-500" : "text-muted-foreground"}`}>{circulationImg ? "✓ Cargada" : "Sin escanear"}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">🛡️ Seguro</span>
-                            <span className={`font-semibold ${insurancePolicyFiles.length > 0 ? "text-emerald-500" : "text-muted-foreground"}`}>{insurancePolicyFiles.length > 0 ? `✓ ${insurancePolicyFiles.length} pág.` : "Sin escanear"}</span>
-                          </div>
-                          {circulationExpirationDate && new Date(circulationExpirationDate) < new Date() && (
-                            <div className="flex items-center gap-1.5 text-amber-500 font-semibold"><AlertTriangle className="w-3 h-3" /> Vigencia de circulación vencida</div>
-                          )}
-                          {insuranceExpirationDate && new Date(insuranceExpirationDate) < new Date() && (
-                            <div className="flex items-center gap-1.5 text-amber-500 font-semibold"><AlertTriangle className="w-3 h-3" /> Vigencia de seguro vencida</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full rounded-xl bg-primary text-white font-bold hover:bg-primary transition-all cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                      disabled={isScanning || isSaving}
-                    >
-                      {isSaving ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" /> Guardando Vehículo...
-                        </span>
-                      ) : (
-                        "Guardar Vehículo"
-                      )}
-                    </Button>
-                  </form>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+      {/* Header — registration dialog lives inside VehicleFormDialog */}
+      <SliceHeader title="Vehículos" action={<VehicleFormDialog {...formDialog} />} />
 
       {/* Search */}
       <div className="bg-[#ECECEC] rounded-full h-11 px-4 flex items-center gap-2 w-full shadow-inner mb-4 mt-2">
@@ -395,9 +142,9 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
               ) : (
                 filteredVehicles.map((vehicle) => {
                   const vehicleId = vehicle.vin?.slice(-6).toUpperCase() || "—";
-                  const schedule = getVerificationSchedule(vehicle.plate_number);
-                  const vehicleChecklists = [] as Checklist[];
-                  const lastChecklist = null as Checklist | null;
+                  const vehicleChecklists = checklists.filter((c) => c.vehicle_id === vehicle.id);
+                  const sortedChecks = [...vehicleChecklists].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                  const lastChecklist = sortedChecks[0] ?? null;
                   const { weeks: usageWeeks, monthlyAverage: monthlyUsageAverage } = computeUsageStats(vehicleChecklists);
                   const latestWeek = usageWeeks.length > 0 ? usageWeeks[usageWeeks.length - 1] : null;
                   const currentKm = lastChecklist ? lastChecklist.mileage : 0;
@@ -467,12 +214,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
                                   <div><span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Clase / Tipo</span><span className="block text-foreground font-medium">{vehicle.class_type || "Sedán"}</span></div>
                                   <div><span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Color</span><span className="block text-foreground font-medium">{vehicle.color || "Sin registrar"}</span></div>
-                                  <div><span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Engomado</span>
-                                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                                      <span className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block shrink-0" style={{ backgroundColor: schedule.color === "Amarillo" ? "#eab308" : schedule.color === "Rosa" ? "#ec4899" : schedule.color === "Rojo" ? "#ef4444" : schedule.color === "Verde" ? "#22c55e" : "#3b82f6" }} />
-                                      <span>{schedule.color}</span>
-                                    </span>
-                                  </div>
+                                  <div><span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Engomado</span><VerificationBadge plate={vehicle.plate_number} showMonths /></div>
                                   <div><span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">Estado</span>
                                     <span className={`block font-bold ${vehicle.status === "in_service" ? "text-amber-500" : "text-emerald-500"}`}>
                                       {vehicle.status === "in_service" ? <><Wrench className="w-3 h-3 inline text-amber-400" /> En Servicio</> : <><CheckCircle className="w-3 h-3 inline text-emerald-400" /> Activo</>}
@@ -543,12 +285,7 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                                     </div>
                                     <div className="text-[10px] space-y-0.5">
                                       <div><span className="text-muted-foreground/70">Vence: </span><strong className={vehicle.verification_expiration_date && new Date(vehicle.verification_expiration_date) < new Date() ? "text-red-400" : "text-foreground"}>{vehicle.verification_expiration_date || "—"}</strong></div>
-                                      <div><span className="text-muted-foreground/70">Engomado: </span>
-                                        <span className="flex items-center gap-1 font-semibold text-foreground">
-                                          <span className="w-2 h-2 rounded-full border border-black/20 inline-block shrink-0" style={{ backgroundColor: schedule.color === "Amarillo" ? "#eab308" : schedule.color === "Rosa" ? "#ec4899" : schedule.color === "Rojo" ? "#ef4444" : schedule.color === "Verde" ? "#22c55e" : "#3b82f6" }} />
-                                          <span>{schedule.color} · {schedule.months}</span>
-                                        </span>
-                                      </div>
+                                      <div><span className="text-muted-foreground/70">Engomado: </span><VerificationBadge plate={vehicle.plate_number} showMonths /></div>
                                     </div>
                                   </div>
                                 </div>
@@ -667,9 +404,9 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                   <DialogTitle className="text-foreground font-black text-lg">Renovar {renewTarget === "CIRCULACION" ? "Tarjeta de Circulación" : renewTarget === "SEGURO" ? "Póliza de Seguro" : "Verificación Vehicular"}</DialogTitle>
                   <span className="text-[11px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">Actualización</span>
                 </div>
-                <DialogDescription className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-xs mt-1">
                   {renewingVehicle ? `${renewingVehicle.brand} ${renewingVehicle.vehicle_name} · ${renewingVehicle.plate_number}` : "Cargando..."}
-                </DialogDescription>
+                </p>
               </div>
             </div>
           </DialogHeader>
@@ -721,9 +458,9 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                   <DialogTitle className="text-foreground font-black text-lg">Reemplazo de Pieza de Desgaste</DialogTitle>
                   <span className="text-[11px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md">Reporte</span>
                 </div>
-                <DialogDescription className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-xs mt-1">
                   {wearPartVehicleState ? `${wearPartVehicleState.brand} ${wearPartVehicleState.vehicle_name} · ${wearPartVehicleState.plate_number}` : "Cargando..."}
-                </DialogDescription>
+                </p>
               </div>
             </div>
           </DialogHeader>
@@ -762,9 +499,9 @@ export default function VehiclesSlice(props: VehiclesSliceProps) {
                   <DialogTitle className="text-foreground font-black text-lg">Verificación Vehicular</DialogTitle>
                   <span className="text-[11px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">Evidencia</span>
                 </div>
-                <DialogDescription className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-xs mt-1">
                   {verifVehicle ? `${verifVehicle.brand} ${verifVehicle.vehicle_name} · ${verifVehicle.plate_number}` : "Cargando..."}
-                </DialogDescription>
+                </p>
               </div>
             </div>
           </DialogHeader>

@@ -21,9 +21,14 @@ type RealtimeTable = "drivers" | "vehicles" | "assignments" | "checklists" | "we
  */
 export function useRealtimeSync(store: DataStoreValue) {
   const storeRef = useRef(store);
-  storeRef.current = store;
+
+  // Keep the ref current AFTER render (React Compiler-safe).
+  useEffect(() => {
+    storeRef.current = store;
+  }, [store]);
 
   useEffect(() => {
+    storeRef.current = store; // initial assignment on mount
     const supabase = getSupabase();
     if (!supabase) {
       storeRef.current.setRealtimeStatus("disabled");
@@ -35,7 +40,7 @@ export function useRealtimeSync(store: DataStoreValue) {
     const ownerId = getOwnerId();
     const filter = ownerId ? `owner_id=eq.${ownerId}` : undefined;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const setterMap: Record<RealtimeTable, React.Dispatch<React.SetStateAction<any[]>>> = {
       drivers: storeRef.current.setDrivers as React.Dispatch<React.SetStateAction<any[]>>,
       vehicles: storeRef.current.setVehicles as React.Dispatch<React.SetStateAction<any[]>>,
@@ -46,7 +51,6 @@ export function useRealtimeSync(store: DataStoreValue) {
     };
 
     // Use type assertion to bypass supabase-js's narrow Realtime typing
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const channel = (supabase as any).channel("fleet-realtime");
 
     for (const table of Object.keys(setterMap) as RealtimeTable[]) {
@@ -84,11 +88,9 @@ export function useRealtimeSync(store: DataStoreValue) {
     }
 
     // Track connection status via the system event
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channel.on("system" as any, { event: "connected" }, () => {
       storeRef.current.setRealtimeStatus("connected");
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channel.on("system" as any, { event: "disconnected" }, () => {
       storeRef.current.setRealtimeStatus("disconnected");
     });

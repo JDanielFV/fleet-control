@@ -3,7 +3,7 @@ import type { Checklist } from "./types";
 import { getLocalData, setLocalData, mergePendingLocal, addPendingId, clearPendingIds } from "./localStorage";
 import { seedChecklists } from "./seed";
 import { genId } from "./utils";
-import { getOwnerId, ownerScoped } from "./owner";
+import { getOwnerId, ownerScoped, ownerEq } from "./owner";
 import { getSession } from "@/lib/session";
 
 export async function getChecklists(): Promise<Checklist[]> {
@@ -12,7 +12,7 @@ export async function getChecklists(): Promise<Checklist[]> {
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("checklists").select("*");
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("checklists", data, seedChecklists, ownerId);
   }

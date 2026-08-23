@@ -12,7 +12,7 @@ export async function getVehicles(): Promise<Vehicle[]> {
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
     let query = supabase.from("vehicles").select("*").is("deleted_at", null);
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("created_at", { ascending: false });
     if (!error) return mergePendingLocal("vehicles", data, seedVehicles, ownerId);
   }
@@ -24,8 +24,9 @@ export async function getArchivedVehicles(): Promise<Vehicle[]> {
   const ownerId = session?.userId;
   const isAdmin = session?.role === "admin";
   const supabase = getSupabase(); if (supabase) {
-    let query = supabase.from("vehicles").select("*").not("deleted_at", "is", null);
-    if (ownerId && !isAdmin) query = query.or(`owner_id.eq.${ownerId},owner_id.is.null`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ownerEq's union type explodes TS2589 on this chain
+    let query: any = supabase.from("vehicles").select("*").not("deleted_at", "is", null);
+    if (ownerId && !isAdmin) query = ownerEq(query, ownerId);
     const { data, error } = await query.order("deleted_at", { ascending: false });
     if (!error) return data as Vehicle[];
   }
@@ -38,7 +39,8 @@ export async function getArchivedVehicles(): Promise<Vehicle[]> {
  * message or null when the vehicle can be saved.
  */
 function findDuplicateVehicle(fullVehicle: Vehicle): string | null {
-  const all = getLocalData<Vehicle>("vehicles", seedVehicles);
+  // Ignore soft-deleted vehicles — their plates/VINs are free again.
+  const all = getLocalData<Vehicle>("vehicles", seedVehicles).filter((v) => !v.deleted_at);
   const plate = (fullVehicle.plate_number || "").toLowerCase().trim();
   const vin = (fullVehicle.vin || "").toLowerCase().trim();
 
